@@ -1,11 +1,13 @@
 //! Whimbrel desktop backend: Tauri commands over the HTTP engine.
 
+pub mod collections;
 pub mod commands;
 pub mod error;
 pub mod ipc;
 pub mod logging;
 pub mod registry;
 pub mod state;
+pub mod watch;
 
 #[cfg(test)]
 mod bindings;
@@ -34,6 +36,8 @@ pub fn run() -> Result<(), tauri::Error> {
                 )
                 .build(),
         )
+        .plugin(tauri_plugin_dialog::init())
+        .manage(collections::Collections::default())
         .setup(|app| {
             let state = AppState::new(SendOptions::default())
                 .map_err(|e| std::io::Error::other(e.message))?;
@@ -48,6 +52,19 @@ pub fn run() -> Result<(), tauri::Error> {
         .invoke_handler(tauri::generate_handler![
             commands::request_send,
             commands::request_cancel,
+            collections::collection_open,
+            collections::collection_create,
+            collections::collection_close,
+            collections::collection_tree,
+            collections::request_read,
+            collections::request_save,
+            collections::request_create,
+            collections::folder_create,
+            collections::request_rename,
+            collections::request_duplicate,
+            collections::request_move,
+            collections::node_order,
+            collections::node_delete,
         ])
         .run(tauri::generate_context!())
 }

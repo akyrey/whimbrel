@@ -37,7 +37,7 @@ jobs:
       - run: cargo test --workspace
       - name: Coverage per crate (80% lines; the app crate is Tauri glue, as in Dunlin)
         run: |
-          for crate in wbl-core wbl-http; do
+          for crate in wbl-core wbl-http wbl-format; do
             cargo llvm-cov --package "$crate" --all-features --fail-under-lines 80 --summary-only
           done
       - name: TypeScript bindings are up to date

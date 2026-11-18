@@ -19,10 +19,11 @@ Design: [FILE_FORMAT.md](../FILE_FORMAT.md), [PRD.md](../PRD.md) FR-1, FR-2.7, D
 - [x] 2.4 Operations: create (file name from a slug of the name, made unique), rename (renames
       the file), move to a folder, duplicate, delete, new folder, reorder (`order` in steps of
       10, so a move rewrites one file). Writes go to a temporary file then rename.
-- [ ] 2.5 Commands: open a collection (folder dialog), read and save a request with the hash of
+- [x] 2.5 Commands: open a collection (folder dialog), read and save a request with the hash of
       what was read (`conflict` when the file changed since), and the operations above.
-- [ ] 2.6 File watcher (`notify`, debounced): a `collection_changed` event with the paths; the
-      app's own writes are recognised by content hash and not reported.
+- [x] 2.6 File watcher (`notify`, debounced): a `collection_changed` event with the changed
+      paths (hidden files and the writer's temporary files left out). The app's own saves are
+      reported too and recognised in the frontend: the tab already holds the file's new hash.
 - [ ] 2.7 Frontend: the collection tree in the sidebar, tabs for open requests with an unsaved
       marker, save (Mod-s), a keep-mine / take-theirs prompt when an unsaved tab's file changes
       on disk, context menus for the operations, the open collections and tabs restored on start.

@@ -40,6 +40,20 @@ impl From<wbl_http::HttpError> for AppError {
     }
 }
 
+impl From<wbl_format::FormatError> for AppError {
+    fn from(error: wbl_format::FormatError) -> Self {
+        use wbl_format::FormatError as F;
+        let code = match &error {
+            F::Syntax(_) | F::Missing(_) | F::Invalid { .. } => "invalid_file",
+            F::TooNew { .. } => "too_new",
+            F::Io(_) => "io",
+            F::Conflict => "conflict",
+            F::Path(_) => "invalid_path",
+        };
+        Self::new(code, error.to_string())
+    }
+}
+
 impl From<roost_shell::ShellError> for AppError {
     fn from(error: roost_shell::ShellError) -> Self {
         Self::new(error.code, error.message)
@@ -63,6 +77,24 @@ mod tests {
             AppError::from(HttpError::new(HttpErrorCode::Timeout, "late")).detail,
             None
         );
+    }
+
+    #[test]
+    fn format_errors_have_stable_codes() {
+        use wbl_format::FormatError as F;
+        let code = |e: F| AppError::from(e).code;
+        assert_eq!(code(F::Syntax("x".into())), "invalid_file");
+        assert_eq!(code(F::Missing("name".into())), "invalid_file");
+        assert_eq!(
+            code(F::TooNew {
+                found: 2,
+                supported: 1
+            }),
+            "too_new"
+        );
+        assert_eq!(code(F::Io("x".into())), "io");
+        assert_eq!(code(F::Conflict), "conflict");
+        assert_eq!(code(F::Path("x".into())), "invalid_path");
     }
 
     #[test]
