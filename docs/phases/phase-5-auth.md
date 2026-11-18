@@ -13,7 +13,7 @@ Design: [PRD.md](../PRD.md) FR-5; D-H04, D-H12.
       them. "Inherit" uses the nearest folder's auth, then the collection's, else none.
 - [x] 5.2 `wbl-format`: `[auth]` in request files, `_folder.toml` and `collection.toml`, with the
       Phase 2 write rules; `[tls]` in `collection.toml` (CA file, client certificate PEM).
-- [ ] 5.3 `wbl-auth`: OAuth 2 client credentials, authorization code with PKCE (system browser,
+- [x] 5.3 `wbl-auth`: OAuth 2 client credentials, authorization code with PKCE (system browser,
       a loopback redirect on 127.0.0.1), device authorization; refresh with the refresh token;
       tokens cached in the keychain per collection and configuration. Tested against a fake
       authorization server.
