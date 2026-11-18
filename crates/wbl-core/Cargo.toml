@@ -16,6 +16,7 @@ serde.workspace = true
 thiserror.workspace = true
 ts-rs = { workspace = true, optional = true }
 url = "2.5"
+uuid.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true
