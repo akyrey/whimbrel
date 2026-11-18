@@ -13,10 +13,10 @@ Design: [FILE_FORMAT.md](../FILE_FORMAT.md), [PRD.md](../PRD.md) FR-1, FR-2.7, D
       formatting and unknown keys. A file with `format` newer than the app's is refused.
 - [x] 2.2 Property tests: write then read gives the same request; saving an unchanged request is
       byte-identical; editing one field changes only its line.
-- [ ] 2.3 Collection tree: `collection.toml` marks the root, folders are directories
+- [x] 2.3 Collection tree: `collection.toml` marks the root, folders are directories
       (`_folder.toml` optional), requests are `*.req.toml`, ordered by `order` then name.
       Unparsable files are listed as broken with the parser's message and never overwritten.
-- [ ] 2.4 Operations: create (file name from a slug of the name, made unique), rename (renames
+- [x] 2.4 Operations: create (file name from a slug of the name, made unique), rename (renames
       the file), move to a folder, duplicate, delete, new folder, reorder (`order` in steps of
       10, so a move rewrites one file). Writes go to a temporary file then rename.
 - [ ] 2.5 Commands: open a collection (folder dialog), read and save a request with the hash of

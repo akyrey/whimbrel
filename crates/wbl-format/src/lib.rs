@@ -2,6 +2,7 @@
 //! so a save changes only the values that changed and keeps the user's comments, formatting
 //! and unknown keys.
 
+pub mod collection;
 mod error;
 mod fields;
 mod request_file;

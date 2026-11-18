@@ -12,14 +12,26 @@ fn text() -> impl Strategy<Value = String> {
 }
 
 fn header() -> impl Strategy<Value = Header> {
-    ("[A-Za-z][A-Za-z0-9-]{0,15}", text(), any::<bool>())
-        .prop_map(|(name, value, enabled)| Header { name, value, enabled })
+    ("[A-Za-z][A-Za-z0-9-]{0,15}", text(), any::<bool>()).prop_map(|(name, value, enabled)| {
+        Header {
+            name,
+            value,
+            enabled,
+        }
+    })
 }
 
 fn body() -> impl Strategy<Value = Body> {
     prop_oneof![
         Just(Body::None),
-        (prop_oneof![Just(BodyKind::Json), Just(BodyKind::Xml), Just(BodyKind::Text)], text())
+        (
+            prop_oneof![
+                Just(BodyKind::Json),
+                Just(BodyKind::Xml),
+                Just(BodyKind::Text)
+            ],
+            text()
+        )
             .prop_map(|(kind, text)| Body::Text { kind, text }),
     ]
 }
@@ -30,11 +42,23 @@ fn url() -> impl Strategy<Value = String> {
 }
 
 fn stored() -> impl Strategy<Value = StoredRequest> {
-    (text(), any::<i64>(), "[A-Z]{1,8}", url(), prop::collection::vec(header(), 0..4), body())
+    (
+        text(),
+        any::<i64>(),
+        "[A-Z]{1,8}",
+        url(),
+        prop::collection::vec(header(), 0..4),
+        body(),
+    )
         .prop_map(|(name, order, method, url, headers, body)| StoredRequest {
             name,
             order,
-            request: Request { method, url, headers, body },
+            request: Request {
+                method,
+                url,
+                headers,
+                body,
+            },
         })
 }
 

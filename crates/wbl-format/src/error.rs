@@ -12,6 +12,18 @@ pub enum FormatError {
     Invalid { field: String, expected: String },
     #[error("{0}")]
     Io(String),
+    /// The file changed on disk since it was read.
+    #[error("The file changed on disk since it was opened")]
+    Conflict,
+    /// A path that is not a file of this collection.
+    #[error("{0}")]
+    Path(String),
+}
+
+impl From<std::io::Error> for FormatError {
+    fn from(error: std::io::Error) -> Self {
+        Self::Io(error.to_string())
+    }
 }
 
 impl FormatError {

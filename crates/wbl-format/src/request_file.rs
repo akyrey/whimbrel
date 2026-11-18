@@ -61,7 +61,10 @@ impl RequestFile {
         let root = self.doc.as_table();
         let format = optional_integer(root, "format", "format")?.unwrap_or(FORMAT);
         if format > FORMAT {
-            return Err(FormatError::TooNew { found: format, supported: FORMAT });
+            return Err(FormatError::TooNew {
+                found: format,
+                supported: FORMAT,
+            });
         }
         Ok(StoredRequest {
             name: string(root, "name", "name")?,
@@ -145,7 +148,10 @@ fn read_body(root: &Table) -> Result<Body, FormatError> {
         .ok_or_else(|| FormatError::invalid("body", "a [body] table"))?;
     let kind = string(table, "kind", "body.kind")?;
     let kind = kind_of(&kind).ok_or_else(|| FormatError::invalid("body.kind", BODY_KINDS))?;
-    Ok(Body::Text { kind, text: string(table, "text", "body.text")? })
+    Ok(Body::Text {
+        kind,
+        text: string(table, "text", "body.text")?,
+    })
 }
 
 fn write_body(root: &mut Table, body: &Body) {

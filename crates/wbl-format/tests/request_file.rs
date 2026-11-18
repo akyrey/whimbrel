@@ -11,10 +11,21 @@ fn stored() -> StoredRequest {
             method: "POST".into(),
             url: "{{baseUrl}}/users".into(),
             headers: vec![
-                Header { name: "Content-Type".into(), value: "application/json".into(), enabled: true },
-                Header { name: "X-Debug".into(), value: "1".into(), enabled: false },
+                Header {
+                    name: "Content-Type".into(),
+                    value: "application/json".into(),
+                    enabled: true,
+                },
+                Header {
+                    name: "X-Debug".into(),
+                    value: "1".into(),
+                    enabled: false,
+                },
             ],
-            body: Body::Text { kind: BodyKind::Json, text: "{\n  \"name\": \"ada\"\n}\n".into() },
+            body: Body::Text {
+                kind: BodyKind::Json,
+                text: "{\n  \"name\": \"ada\"\n}\n".into(),
+            },
         },
     }
 }
@@ -91,7 +102,10 @@ fn saving_an_unchanged_request_changes_nothing() {
 #[test]
 fn editing_one_field_changes_only_its_value_and_keeps_comments_and_unknown_keys() {
     let file = RequestFile::parse(HAND_EDITED).unwrap();
-    let renamed = StoredRequest { name: "Create a user".into(), ..file.read().unwrap() };
+    let renamed = StoredRequest {
+        name: "Create a user".into(),
+        ..file.read().unwrap()
+    };
 
     let text = file.updated(&renamed).to_string();
 
@@ -149,7 +163,13 @@ fn a_newer_format_is_refused() {
         .unwrap()
         .read()
         .unwrap_err();
-    assert_eq!(error, FormatError::TooNew { found: 2, supported: 1 });
+    assert_eq!(
+        error,
+        FormatError::TooNew {
+            found: 2,
+            supported: 1
+        }
+    );
 }
 
 #[test]
@@ -158,11 +178,20 @@ fn missing_or_wrong_fields_are_named() {
     let bad_order = CANONICAL.replace("order = 20", "order = \"first\"");
     let bad_kind = CANONICAL.replace("kind = \"json\"", "kind = \"yaml\"");
 
-    let error = |text: &str| RequestFile::parse(text).unwrap().read().unwrap_err().to_string();
+    let error = |text: &str| {
+        RequestFile::parse(text)
+            .unwrap()
+            .read()
+            .unwrap_err()
+            .to_string()
+    };
 
     assert_eq!(error(&no_method), "`method` is missing");
     assert_eq!(error(&bad_order), "`order` must be a whole number");
-    assert_eq!(error(&bad_kind), "`body.kind` must be one of json, xml, text");
+    assert_eq!(
+        error(&bad_kind),
+        "`body.kind` must be one of json, xml, text"
+    );
 }
 
 #[test]
