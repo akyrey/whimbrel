@@ -27,6 +27,7 @@ fn args(id: &str, url: String) -> RequestSendArgs {
         environment: None,
         example: None,
         settings: None,
+        name: None,
     }
 }
 

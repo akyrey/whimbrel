@@ -4,6 +4,7 @@ pub mod collections;
 pub mod commands;
 pub mod environments;
 pub mod error;
+pub mod history;
 pub mod ipc;
 pub mod logging;
 pub mod registry;
@@ -43,10 +44,15 @@ pub fn run() -> Result<(), tauri::Error> {
         .manage(collections::Collections::default())
         .setup(|app| {
             let spill_dir = app.path().app_cache_dir()?.join("bodies");
+            let data = app.path().app_data_dir()?;
+            std::fs::create_dir_all(&data)?;
+            let history = wbl_store::History::open(&data.join("whimbrel.db"))
+                .map_err(|e| std::io::Error::other(e.to_string()))?;
             let state = AppState::new(SendOptions {
                 spill_dir: Some(spill_dir),
                 ..SendOptions::default()
             })
+            .map(|s| s.with_history(history))
             .map_err(|e| std::io::Error::other(e.message))?;
             app.manage(state);
             let keychain = roost_keychain::KeychainSecretStore::open(secrets::SERVICE)
@@ -64,6 +70,11 @@ pub fn run() -> Result<(), tauri::Error> {
             commands::request_cancel,
             commands::request_preview,
             commands::response_save,
+            commands::curl_export,
+            commands::curl_import,
+            history::history_list,
+            history::history_get,
+            history::history_clear,
             commands::example_apply,
             commands::example_overlay,
             environments::environment_list,

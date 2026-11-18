@@ -40,6 +40,13 @@ fn export_all(dir: &Path) {
     wbl_format::collection::ReadRequest::export_all(&config).unwrap();
     crate::ipc::EnvironmentArgs::export_all(&config).unwrap();
     crate::ipc::ResponseSaveArgs::export_all(&config).unwrap();
+    crate::ipc::HistoryListArgs::export_all(&config).unwrap();
+    crate::ipc::CurlExportArgs::export_all(&config).unwrap();
+    crate::ipc::CurlImportArgs::export_all(&config).unwrap();
+    crate::ipc::CurlImported::export_all(&config).unwrap();
+    crate::ipc::HistoryIdArgs::export_all(&config).unwrap();
+    wbl_store::HistorySummary::export_all(&config).unwrap();
+    wbl_store::HistoryEntry::export_all(&config).unwrap();
     wbl_http::StreamEvent::export_all(&config).unwrap();
     crate::ipc::ExampleApplyArgs::export_all(&config).unwrap();
     crate::ipc::ExampleOverlayArgs::export_all(&config).unwrap();

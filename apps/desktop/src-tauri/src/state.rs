@@ -10,6 +10,8 @@ pub struct AppState {
     pub in_flight: InFlight,
     /// Where long bodies are written; emptied at start.
     spill_dir: Option<std::path::PathBuf>,
+    /// Sent requests (FR-8); `None` in tests that do not need it.
+    pub history: Option<wbl_store::History>,
 }
 
 impl AppState {
@@ -23,7 +25,15 @@ impl AppState {
             sender: Sender::new(options)?,
             in_flight: InFlight::default(),
             spill_dir,
+            history: None,
         })
+    }
+
+    pub fn with_history(self, history: wbl_store::History) -> Self {
+        Self {
+            history: Some(history),
+            ..self
+        }
     }
 
     /// `file` if it is a body this app wrote; anything else is refused.

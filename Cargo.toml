@@ -1,6 +1,12 @@
 [workspace]
 resolver = "3"
-members = ["crates/wbl-core", "crates/wbl-http", "crates/wbl-format", "apps/desktop/src-tauri"]
+members = [
+    "crates/wbl-core",
+    "crates/wbl-http",
+    "crates/wbl-format",
+    "crates/wbl-store",
+    "apps/desktop/src-tauri",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,6 +19,7 @@ publish = false
 wbl-core = { path = "crates/wbl-core" }
 wbl-http = { path = "crates/wbl-http" }
 wbl-format = { path = "crates/wbl-format" }
+wbl-store = { path = "crates/wbl-store" }
 # The kit shared with Dunlin (D-H09). scripts/link-roost.sh points these at a local checkout.
 roost-keychain = { git = "https://github.com/akyrey/roost", tag = "v0.1.0" }
 roost-shell = { git = "https://github.com/akyrey/roost", tag = "v0.1.0" }

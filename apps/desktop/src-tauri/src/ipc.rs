@@ -21,6 +21,9 @@ pub struct RequestSendArgs {
     /// The request's own settings; the defaults when absent.
     #[ts(optional)]
     pub settings: Option<wbl_core::RequestSettings>,
+    /// The request's name, for the history.
+    #[ts(optional)]
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, TS)]
@@ -176,4 +179,44 @@ pub struct ResponseSaveArgs {
     pub text: Option<String>,
     #[ts(optional)]
     pub base64: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryListArgs {
+    pub query: String,
+    #[ts(type = "number")]
+    pub limit: i64,
+    #[ts(type = "number")]
+    pub offset: i64,
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryIdArgs {
+    #[ts(type = "number")]
+    pub id: i64,
+}
+
+/// The request as a cURL command; secrets masked unless `reveal`.
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct CurlExportArgs {
+    pub send: RequestSendArgs,
+    pub reveal: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct CurlImportArgs {
+    pub text: String,
+}
+
+/// A pasted cURL command as a request, with the options that were not used.
+#[derive(Debug, Clone, serde::Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct CurlImported {
+    pub request: Request,
+    pub settings: wbl_core::RequestSettings,
+    pub ignored: Vec<String>,
 }

@@ -49,18 +49,33 @@ pub async fn send(
     on_event: &mut (dyn FnMut(StreamEvent) + Send),
     args: RequestSendArgs,
 ) -> Result<Response, AppError> {
-    let request = prepare(collections, secrets, &args)?.request;
+    let resolved = prepare(collections, secrets, &args)?;
     let exchange = Exchange {
         settings: args.settings.unwrap_or_default(),
         jar: jar_of(collections, &args),
     };
+    let sent_at_ms = crate::history::now_ms();
     let ticket = state.in_flight.start(&args.request_id)?;
     let result = state
         .sender
-        .send_with(&request, &exchange, &ticket.token, on_event)
-        .await;
+        .send_with(&resolved.request, &exchange, &ticket.token, on_event)
+        .await
+        .map_err(AppError::from);
     state.in_flight.finish(&args.request_id, &ticket)?;
-    Ok(result?)
+    crate::history::record(
+        state,
+        &wbl_store::NewEntry {
+            sent_at_ms,
+            collection: args.root.clone(),
+            name: args
+                .name
+                .clone()
+                .unwrap_or_else(|| resolved.request.url.clone()),
+            request: masked(&resolved),
+            outcome: crate::history::outcome(&result, &resolved.secrets),
+        },
+    );
+    result
 }
 
 /// What would be sent, secrets masked (FR-2.5).
@@ -145,6 +160,52 @@ pub async fn request_cancel(
     args: RequestCancelArgs,
 ) -> Result<bool, AppError> {
     logged("request_cancel", async { cancel(&state, &args) }).await
+}
+
+/// The resolved request as a cURL command (FR-2.6).
+pub fn curl_command(
+    collections: &Collections,
+    secrets: &Secrets,
+    args: &crate::ipc::CurlExportArgs,
+) -> Result<String, AppError> {
+    let resolved = prepare(collections, secrets, &args.send)?;
+    let request = if args.reveal {
+        resolved.request.clone()
+    } else {
+        masked(&resolved)
+    };
+    Ok(wbl_core::curl::to_curl(&request))
+}
+
+#[tauri::command]
+pub async fn curl_export(
+    collections: State<'_, Collections>,
+    secrets: State<'_, Secrets>,
+    args: crate::ipc::CurlExportArgs,
+) -> Result<String, AppError> {
+    logged("curl_export", async {
+        curl_command(&collections, &secrets, &args)
+    })
+    .await
+}
+
+pub fn import_curl(
+    args: &crate::ipc::CurlImportArgs,
+) -> Result<crate::ipc::CurlImported, AppError> {
+    let imported = wbl_core::curl::parse(&args.text)
+        .map_err(|e| AppError::new("invalid_curl", e.to_string()))?;
+    Ok(crate::ipc::CurlImported {
+        request: imported.request,
+        settings: imported.settings,
+        ignored: imported.ignored,
+    })
+}
+
+#[tauri::command]
+pub async fn curl_import(
+    args: crate::ipc::CurlImportArgs,
+) -> Result<crate::ipc::CurlImported, AppError> {
+    logged("curl_import", async { import_curl(&args) }).await
 }
 
 /// The request with the example laid over it ("apply to the editor").

@@ -19,4 +19,8 @@ example?: Example,
 /**
  * The request's own settings; the defaults when absent.
  */
-settings?: RequestSettings, };
+settings?: RequestSettings, 
+/**
+ * The request's name, for the history.
+ */
+name?: string, };

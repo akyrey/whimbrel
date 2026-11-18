@@ -89,6 +89,7 @@ fn send_args(
         environment: Some(env.into()),
         example,
         settings: None,
+        name: None,
     }
 }
 
@@ -388,7 +389,10 @@ async fn the_sentinel_secret_never_reaches_a_file_or_the_log() {
         .with_writer(captured.clone())
         .finish();
     let _guard = tracing::subscriber::set_default(subscriber);
-    let state = AppState::new(SendOptions::default()).unwrap();
+    let history_dir = tempfile::tempdir().unwrap();
+    let state = AppState::new(SendOptions::default())
+        .unwrap()
+        .with_history(wbl_store::History::open(&history_dir.path().join("whimbrel.db")).unwrap());
 
     logged("secret_set", async {
         set_secret(
@@ -493,4 +497,12 @@ async fn the_sentinel_secret_never_reaches_a_file_or_the_log() {
     let log = String::from_utf8(captured.0.lock().unwrap().clone()).unwrap();
     assert!(log.contains("request_send"), "{log}");
     assert!(!log.contains(SENTINEL), "{log}");
+    let history = state.history.as_ref().unwrap();
+    let recorded = history.list("", 10, 0).unwrap();
+    let entry = history.get(recorded[0].id).unwrap().unwrap();
+    assert_eq!(entry.request.headers[0].value, wbl_core::interpolate::MASK);
+    assert_eq!(
+        files_containing(history_dir.path(), SENTINEL),
+        Vec::<String>::new()
+    );
 }
