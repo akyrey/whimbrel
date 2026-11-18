@@ -26,6 +26,7 @@ fn args(id: &str, url: String) -> RequestSendArgs {
         root: None,
         environment: None,
         example: None,
+        settings: None,
     }
 }
 
@@ -62,6 +63,7 @@ async fn cancel_ends_a_running_request_with_cancelled() {
                 &state,
                 &deps().0,
                 &deps().1,
+                &mut |_| {},
                 args("tab-1", format!("{base}/")),
             )
             .await
@@ -85,9 +87,15 @@ async fn cancel_ends_a_running_request_with_cancelled() {
 
 #[tokio::test]
 async fn an_invalid_request_is_an_app_error_naming_the_field() {
-    let error = send(&state(), &deps().0, &deps().1, args("tab-1", "nope".into()))
-        .await
-        .unwrap_err();
+    let error = send(
+        &state(),
+        &deps().0,
+        &deps().1,
+        &mut |_| {},
+        args("tab-1", "nope".into()),
+    )
+    .await
+    .unwrap_err();
 
     assert_eq!(error.code, "invalid_request");
     assert_eq!(error.detail, Some(serde_json::json!({ "field": "url" })));
@@ -133,6 +141,7 @@ async fn a_finished_request_leaves_nothing_in_flight() {
         &state,
         &deps().0,
         &deps().1,
+        &mut |_| {},
         args("tab-1", format!("{base}/")),
     )
     .await
@@ -141,4 +150,59 @@ async fn a_finished_request_leaves_nothing_in_flight() {
     assert_eq!(response.status, 200);
     assert_eq!(response.body.text.as_deref(), Some("ok"));
     assert!(state.in_flight.is_empty());
+}
+
+#[test]
+fn bodies_are_saved_from_text_base64_or_a_file_of_ours_only() {
+    let dir = tempfile::tempdir().unwrap();
+    let spill = dir.path().join("bodies");
+    let state = AppState::new(SendOptions {
+        spill_dir: Some(spill.clone()),
+        ..SendOptions::default()
+    })
+    .unwrap();
+    std::fs::create_dir_all(&spill).unwrap();
+    std::fs::write(spill.join("body-1.bin"), b"whole body").unwrap();
+    let outside = dir.path().join("secret.txt");
+    std::fs::write(&outside, b"not a body").unwrap();
+    let target = |name: &str| dir.path().join(name).to_string_lossy().into_owned();
+    let save = |args: crate::ipc::ResponseSaveArgs| save_response(&state, &args);
+    let args = |destination: String| crate::ipc::ResponseSaveArgs {
+        destination,
+        file: None,
+        text: None,
+        base64: None,
+    };
+
+    save(crate::ipc::ResponseSaveArgs {
+        text: Some("hi".into()),
+        ..args(target("a.txt"))
+    })
+    .unwrap();
+    save(crate::ipc::ResponseSaveArgs {
+        base64: Some("iVD//g==".into()),
+        ..args(target("b.bin"))
+    })
+    .unwrap();
+    save(crate::ipc::ResponseSaveArgs {
+        file: Some(spill.join("body-1.bin").to_string_lossy().into_owned()),
+        ..args(target("c.bin"))
+    })
+    .unwrap();
+    let refused = save(crate::ipc::ResponseSaveArgs {
+        file: Some(outside.to_string_lossy().into_owned()),
+        ..args(target("d.bin"))
+    })
+    .unwrap_err();
+
+    assert_eq!(std::fs::read(dir.path().join("a.txt")).unwrap(), b"hi");
+    assert_eq!(
+        std::fs::read(dir.path().join("b.bin")).unwrap(),
+        [0x89, 0x50, 0xff, 0xfe]
+    );
+    assert_eq!(
+        std::fs::read(dir.path().join("c.bin")).unwrap(),
+        b"whole body"
+    );
+    assert_eq!(refused.code, "invalid_path");
 }

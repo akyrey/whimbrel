@@ -108,7 +108,8 @@ Check that an installed Dunlin updates to a release built through Roost's workfl
 
 - Viewers: pretty/raw/hex/image, JSON-array-as-grid, large-body spill to file, SSE and JSON
   Lines incremental view.
-- Timings, cookies jar per collection, redirects, proxy, TLS settings, client certs.
+- Timings, cookie jar per collection, redirects, TLS verification (proxy: system; client
+  certs: Phase 5). Brief: [phase-4-responses.md](phases/phase-4-responses.md).
 - `wbl-store` history with redaction and size caps; history panel with search.
 - Copy as cURL / import from cURL.
 - **Accept:** 10 MB JSON viewable without UI freeze (E2E perf test like Dunlin's grid one).

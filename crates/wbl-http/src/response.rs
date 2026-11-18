@@ -15,14 +15,17 @@ pub struct ResponseHeader {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct ResponseBody {
-    /// The body as text, when it is valid UTF-8; `None` for binary bodies (shown as hex in
-    /// Phase 4).
+    /// The shown bytes as text, when they are UTF-8 (a character cut at the end is dropped).
     pub text: Option<String>,
-    /// Bytes kept (after decompression), at most the cap.
+    /// The shown bytes, base64, when they are not text (hex view, image preview).
+    pub base64: Option<String>,
+    /// Bytes of the body (after decompression), as far as it was read.
     #[cfg_attr(feature = "ts", ts(type = "number"))]
     pub size: u64,
-    /// The body was longer than the cap; the rest was not read.
+    /// What is shown is only the start of the body.
     pub truncated: bool,
+    /// The whole body, when it was too long to keep in memory.
+    pub file: Option<String>,
     pub content_type: Option<String>,
 }
 
@@ -65,6 +68,8 @@ pub struct Response {
     pub headers: Vec<ResponseHeader>,
     pub body: ResponseBody,
     pub timing: Timing,
+    /// Events of a stream (SSE, JSON Lines) received; 0 for other bodies.
+    pub stream_events: u32,
 }
 
 /// The parts of a response known before its body is read.
@@ -101,8 +106,16 @@ impl Head {
         }
     }
 
-    pub(crate) fn into_response(self, bytes: Vec<u8>, truncated: bool, timing: Timing) -> Response {
-        let size = u64::try_from(bytes.len()).unwrap_or(u64::MAX);
+    pub(crate) fn content_type(&self) -> Option<&str> {
+        self.content_type.as_deref()
+    }
+
+    pub(crate) fn into_response(
+        self,
+        collected: crate::body::Collected,
+        timing: Timing,
+    ) -> Response {
+        let (text, base64) = decode(&collected.head);
         Response {
             status: self.status,
             reason: self.reason,
@@ -110,12 +123,31 @@ impl Head {
             url: self.url,
             headers: self.headers,
             body: ResponseBody {
-                text: String::from_utf8(bytes).ok(),
-                size,
-                truncated,
+                text,
+                base64,
+                size: collected.total,
+                truncated: collected.truncated,
+                file: collected.file.map(|p| p.to_string_lossy().into_owned()),
                 content_type: self.content_type,
             },
             timing,
+            stream_events: collected.events,
         }
+    }
+}
+
+/// Text when the bytes are UTF-8 (allowing a character cut at the end), base64 otherwise.
+fn decode(bytes: &[u8]) -> (Option<String>, Option<String>) {
+    use base64::Engine;
+    match std::str::from_utf8(bytes) {
+        Ok(text) => (Some(text.to_owned()), None),
+        Err(e) if e.error_len().is_none() => (
+            Some(String::from_utf8_lossy(&bytes[..e.valid_up_to()]).into_owned()),
+            None,
+        ),
+        Err(_) => (
+            None,
+            Some(base64::engine::general_purpose::STANDARD.encode(bytes)),
+        ),
     }
 }

@@ -73,18 +73,31 @@ fn stored() -> impl Strategy<Value = StoredRequest> {
         prop::collection::vec(header(), 0..4),
         body(),
         prop::collection::vec(example(), 0..3),
+        (
+            prop::option::of(1u64..100_000),
+            any::<bool>(),
+            any::<bool>(),
+        ),
     )
         .prop_map(
-            |((name, order, method, url), headers, body, examples)| StoredRequest {
-                name,
-                order,
-                request: Request {
-                    method,
-                    url,
-                    headers,
-                    body,
-                },
-                examples,
+            |((name, order, method, url), headers, body, examples, settings)| {
+                let (timeout_ms, follow_redirects, verify_tls) = settings;
+                StoredRequest {
+                    name,
+                    order,
+                    request: Request {
+                        method,
+                        url,
+                        headers,
+                        body,
+                    },
+                    examples,
+                    settings: wbl_core::RequestSettings {
+                        timeout_ms,
+                        follow_redirects,
+                        verify_tls,
+                    },
+                }
             },
         )
 }

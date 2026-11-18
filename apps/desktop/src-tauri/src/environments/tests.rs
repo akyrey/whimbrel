@@ -88,6 +88,7 @@ fn send_args(
         root: Some(f.root.clone()),
         environment: Some(env.into()),
         example,
+        settings: None,
     }
 }
 
@@ -406,7 +407,13 @@ async fn the_sentinel_secret_never_reaches_a_file_or_the_log() {
     let args = send_args(&f, &id, request("{{base}}/users"), None);
     let response = logged(
         "request_send",
-        send(&state, &f.collections, &f.secrets, args.clone()),
+        send(
+            &state,
+            &f.collections,
+            &f.secrets,
+            &mut |_| {},
+            args.clone(),
+        ),
     )
     .await
     .unwrap();
@@ -427,6 +434,7 @@ async fn the_sentinel_secret_never_reaches_a_file_or_the_log() {
             ..request("{{base}}")
         },
         examples: vec![],
+        settings: Default::default(),
     };
     let refused = logged("request_create", async {
         create_request(

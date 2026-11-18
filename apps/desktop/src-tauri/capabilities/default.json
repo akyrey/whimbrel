@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Main window: the app's own commands, and the folder dialog for opening a collection. Requests are sent by the Rust backend, never by the webview, so the CSP keeps connect-src to IPC.",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open"]
+  "permissions": ["core:default", "dialog:allow-open", "dialog:allow-save"]
 }

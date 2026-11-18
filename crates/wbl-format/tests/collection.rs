@@ -18,6 +18,7 @@ fn request(name: &str, order: i64) -> StoredRequest {
             body: Body::None,
         },
         examples: vec![],
+        settings: Default::default(),
     }
 }
 

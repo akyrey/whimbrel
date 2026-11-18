@@ -39,6 +39,8 @@ fn export_all(dir: &Path) {
     crate::watch::CollectionChanged::export_all(&config).unwrap();
     wbl_format::collection::ReadRequest::export_all(&config).unwrap();
     crate::ipc::EnvironmentArgs::export_all(&config).unwrap();
+    crate::ipc::ResponseSaveArgs::export_all(&config).unwrap();
+    wbl_http::StreamEvent::export_all(&config).unwrap();
     crate::ipc::ExampleApplyArgs::export_all(&config).unwrap();
     crate::ipc::ExampleOverlayArgs::export_all(&config).unwrap();
     crate::ipc::EnvironmentCreateArgs::export_all(&config).unwrap();

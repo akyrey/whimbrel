@@ -95,6 +95,11 @@ fn stored_with_examples() -> StoredRequest {
             },
             Example::named("d3", "Empty"),
         ],
+        settings: wbl_core::RequestSettings {
+            timeout_ms: Some(5000),
+            follow_redirects: false,
+            verify_tls: true,
+        },
     }
 }
 

@@ -18,6 +18,9 @@ pub struct RequestSendArgs {
     /// The example laid over the request, if one is picked.
     #[ts(optional)]
     pub example: Option<wbl_core::example::Example>,
+    /// The request's own settings; the defaults when absent.
+    #[ts(optional)]
+    pub settings: Option<wbl_core::RequestSettings>,
 }
 
 #[derive(Debug, Clone, Deserialize, TS)]
@@ -159,4 +162,18 @@ pub struct ExampleOverlayArgs {
     pub draft: Request,
     pub id: String,
     pub name: String,
+}
+
+/// Writes a response body to `destination` (chosen in the save dialog): a body that went to a
+/// file is copied from it; a shown one is written from its text or base64.
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ResponseSaveArgs {
+    pub destination: String,
+    #[ts(optional)]
+    pub file: Option<String>,
+    #[ts(optional)]
+    pub text: Option<String>,
+    #[ts(optional)]
+    pub base64: Option<String>,
 }

@@ -2,7 +2,7 @@
 //! without a running app. Each is logged by name, duration and error code only.
 
 use tauri::State;
-use wbl_http::Response;
+use wbl_http::{Exchange, Response, StreamEvent};
 
 use crate::collections::Collections;
 use crate::error::AppError;
@@ -32,16 +32,33 @@ fn prepare(
     resolved(&args.request, args.example.as_ref(), &scopes)
 }
 
-/// Sends a request; a newer one from the same tab cancels it.
+/// The cookie jar of the collection a request belongs to (by its stable id).
+fn jar_of(collections: &Collections, args: &RequestSendArgs) -> Option<String> {
+    let root = args
+        .root
+        .as_deref()
+        .and_then(|r| collections.opened(r).ok())?;
+    wbl_format::collection::id(&root).ok()
+}
+
+/// Sends a request; a newer one from the same tab cancels it. Stream events go to `on_event`.
 pub async fn send(
     state: &AppState,
     collections: &Collections,
     secrets: &Secrets,
+    on_event: &mut (dyn FnMut(StreamEvent) + Send),
     args: RequestSendArgs,
 ) -> Result<Response, AppError> {
     let request = prepare(collections, secrets, &args)?.request;
+    let exchange = Exchange {
+        settings: args.settings.unwrap_or_default(),
+        jar: jar_of(collections, &args),
+    };
     let ticket = state.in_flight.start(&args.request_id)?;
-    let result = state.sender.send(&request, &ticket.token).await;
+    let result = state
+        .sender
+        .send_with(&request, &exchange, &ticket.token, on_event)
+        .await;
     state.in_flight.finish(&args.request_id, &ticket)?;
     Ok(result?)
 }
@@ -66,8 +83,48 @@ pub async fn request_send(
     collections: State<'_, Collections>,
     secrets: State<'_, Secrets>,
     args: RequestSendArgs,
+    on_event: tauri::ipc::Channel<StreamEvent>,
 ) -> Result<Response, AppError> {
-    logged("request_send", send(&state, &collections, &secrets, args)).await
+    let mut forward = move |event: StreamEvent| {
+        // A closed window cannot be told; the response still completes.
+        let _ = on_event.send(event);
+    };
+    logged(
+        "request_send",
+        send(&state, &collections, &secrets, &mut forward, args),
+    )
+    .await
+}
+
+/// Writes a response body to the file the user chose.
+pub fn save_response(
+    state: &AppState,
+    args: &crate::ipc::ResponseSaveArgs,
+) -> Result<(), AppError> {
+    use base64::Engine;
+    let destination = std::path::Path::new(&args.destination);
+    let written = if let Some(file) = &args.file {
+        let source = state.spilled(file)?;
+        std::fs::copy(source, destination).map(|_| ())
+    } else if let Some(encoded) = &args.base64 {
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(encoded)
+            .map_err(|e| {
+                AppError::new("invalid_argument", format!("The body is not base64: {e}"))
+            })?;
+        std::fs::write(destination, bytes)
+    } else {
+        std::fs::write(destination, args.text.as_deref().unwrap_or_default())
+    };
+    written.map_err(|e| AppError::new("io", format!("Could not write {}: {e}", args.destination)))
+}
+
+#[tauri::command]
+pub async fn response_save(
+    state: State<'_, AppState>,
+    args: crate::ipc::ResponseSaveArgs,
+) -> Result<(), AppError> {
+    logged("response_save", async { save_response(&state, &args) }).await
 }
 
 #[tauri::command]

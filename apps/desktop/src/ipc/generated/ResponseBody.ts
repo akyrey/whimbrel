@@ -2,15 +2,22 @@
 
 export type ResponseBody = { 
 /**
- * The body as text, when it is valid UTF-8; `None` for binary bodies (shown as hex in
- * Phase 4).
+ * The shown bytes as text, when they are UTF-8 (a character cut at the end is dropped).
  */
 text: string | null, 
 /**
- * Bytes kept (after decompression), at most the cap.
+ * The shown bytes, base64, when they are not text (hex view, image preview).
+ */
+base64: string | null, 
+/**
+ * Bytes of the body (after decompression), as far as it was read.
  */
 size: number, 
 /**
- * The body was longer than the cap; the rest was not read.
+ * What is shown is only the start of the body.
  */
-truncated: boolean, contentType: string | null, };
+truncated: boolean, 
+/**
+ * The whole body, when it was too long to keep in memory.
+ */
+file: string | null, contentType: string | null, };

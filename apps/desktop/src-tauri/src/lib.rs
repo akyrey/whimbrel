@@ -42,8 +42,12 @@ pub fn run() -> Result<(), tauri::Error> {
         .plugin(tauri_plugin_dialog::init())
         .manage(collections::Collections::default())
         .setup(|app| {
-            let state = AppState::new(SendOptions::default())
-                .map_err(|e| std::io::Error::other(e.message))?;
+            let spill_dir = app.path().app_cache_dir()?.join("bodies");
+            let state = AppState::new(SendOptions {
+                spill_dir: Some(spill_dir),
+                ..SendOptions::default()
+            })
+            .map_err(|e| std::io::Error::other(e.message))?;
             app.manage(state);
             let keychain = roost_keychain::KeychainSecretStore::open(secrets::SERVICE)
                 .map_err(|e| std::io::Error::other(e.0))?;
@@ -59,6 +63,7 @@ pub fn run() -> Result<(), tauri::Error> {
             commands::request_send,
             commands::request_cancel,
             commands::request_preview,
+            commands::response_save,
             commands::example_apply,
             commands::example_overlay,
             environments::environment_list,

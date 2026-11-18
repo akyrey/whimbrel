@@ -15,4 +15,8 @@ httpVersion: string,
 /**
  * Where the request ended, after redirects.
  */
-url: string, headers: Array<ResponseHeader>, body: ResponseBody, timing: Timing, };
+url: string, headers: Array<ResponseHeader>, body: ResponseBody, timing: Timing, 
+/**
+ * Events of a stream (SSE, JSON Lines) received; 0 for other bodies.
+ */
+streamEvents: number, };

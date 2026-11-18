@@ -17,6 +17,9 @@ pub struct StoredRequest {
     pub request: Request,
     /// Saved examples (D-H08), in file order.
     pub examples: Vec<wbl_core::example::Example>,
+    /// `[settings]`; written only when not the defaults.
+    #[serde(default)]
+    pub settings: wbl_core::RequestSettings,
 }
 
 /// A parsed request file. Keeps the document so writing preserves what it does not know.
@@ -59,6 +62,7 @@ impl RequestFile {
                 body: read_body(root)?,
             },
             examples: crate::examples::read_examples(root)?,
+            settings: read_settings(root)?,
         })
     }
 
@@ -74,6 +78,7 @@ impl RequestFile {
         write_headers(root, &stored.request.headers);
         write_body(root, &stored.request.body);
         crate::examples::write_examples(root, &stored.examples);
+        write_settings(root, &stored.settings);
         Self { doc }
     }
 }
@@ -122,6 +127,73 @@ fn write_headers(root: &mut Table, headers: &[Header]) {
         tables.push(table);
     }
     root.insert("headers", Item::ArrayOfTables(tables));
+}
+
+fn read_settings(root: &Table) -> Result<wbl_core::RequestSettings, FormatError> {
+    let defaults = wbl_core::RequestSettings::default();
+    let Some(item) = root.get("settings") else {
+        return Ok(defaults);
+    };
+    let table = item
+        .as_table()
+        .ok_or_else(|| FormatError::invalid("settings", "a [settings] table"))?;
+    let timeout = optional_integer(table, "timeout_ms", "settings.timeout_ms")?;
+    let timeout_ms = match timeout {
+        None => None,
+        Some(ms) => Some(u64::try_from(ms).ok().filter(|ms| *ms > 0).ok_or_else(|| {
+            FormatError::invalid("settings.timeout_ms", "a positive number of milliseconds")
+        })?),
+    };
+    Ok(wbl_core::RequestSettings {
+        timeout_ms,
+        follow_redirects: optional_bool(
+            table,
+            "follow_redirects",
+            "settings.follow_redirects",
+            defaults.follow_redirects,
+        )?,
+        verify_tls: optional_bool(
+            table,
+            "verify_tls",
+            "settings.verify_tls",
+            defaults.verify_tls,
+        )?,
+    })
+}
+
+fn write_settings(root: &mut Table, settings: &wbl_core::RequestSettings) {
+    if read_settings(root).ok().as_ref() == Some(settings) {
+        return;
+    }
+    if settings.is_default() {
+        root.remove("settings");
+        return;
+    }
+    if !matches!(root.get("settings"), Some(Item::Table(_))) {
+        root.insert(
+            "settings",
+            Item::Table(crate::examples::spaced(Table::new())),
+        );
+    }
+    let Some(Item::Table(table)) = root.get_mut("settings") else {
+        return;
+    };
+    match settings.timeout_ms.and_then(|ms| i64::try_from(ms).ok()) {
+        Some(ms) => set(table, "timeout_ms", ms),
+        None => {
+            table.remove("timeout_ms");
+        }
+    }
+    for (key, value) in [
+        ("follow_redirects", settings.follow_redirects),
+        ("verify_tls", settings.verify_tls),
+    ] {
+        if value {
+            table.remove(key);
+        } else {
+            set(table, key, false);
+        }
+    }
 }
 
 fn read_body(root: &Table) -> Result<Body, FormatError> {

@@ -21,6 +21,7 @@ wbl-format = { workspace = true, features = ["ts"] }
 roost-shell = { workspace = true, features = ["ts"] }
 roost-keychain.workspace = true
 secrecy = "0.10"
+base64 = "0.22"
 serde.workspace = true
 serde_json.workspace = true
 tauri = { version = "2.12", features = [] }

@@ -146,3 +146,48 @@ pub async fn closed_port() -> String {
     drop(listener);
     base
 }
+
+/// A server for the Phase 4 routes: `/sse` streams two events 100 ms apart (no length, closed
+/// after); `/set-cookie` sets `session=abc`; `/echo` answers with the Cookie header it got.
+pub async fn streaming_server() -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    tokio::spawn(async move {
+        loop {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            tokio::spawn(async move {
+                let Some(seen) = read_request(&mut socket).await else {
+                    return;
+                };
+                match seen.path.as_str() {
+                    "/sse" => {
+                        let head = "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\n\r\n";
+                        let _ = socket.write_all(head.as_bytes()).await;
+                        let _ = socket.write_all(b"data: one\n\n").await;
+                        let _ = socket.flush().await;
+                        tokio::time::sleep(Duration::from_millis(100)).await;
+                        let _ = socket.write_all(b"event: tick\ndata: two\n\n").await;
+                    }
+                    "/set-cookie" => {
+                        let _ = socket
+                            .write_all(&respond(
+                                "200 OK",
+                                &[("set-cookie", "session=abc; Path=/")],
+                                b"ok",
+                            ))
+                            .await;
+                    }
+                    _ => {
+                        let cookie = seen.header("cookie").join("; ");
+                        let _ = socket
+                            .write_all(&respond("200 OK", &[], cookie.as_bytes()))
+                            .await;
+                    }
+                }
+            });
+        }
+    });
+    base
+}

@@ -14,7 +14,8 @@ ts = ["dep:ts-rs", "wbl-core/ts"]
 [dependencies]
 wbl-core.workspace = true
 # rustls with the platform verifier (the OS trust store), HTTP/2, decompression, streaming.
-reqwest = { version = "0.13", features = ["gzip", "brotli", "deflate", "zstd", "stream"] }
+reqwest = { version = "0.13", features = ["gzip", "brotli", "deflate", "zstd", "stream", "cookies"] }
+base64 = "0.22"
 serde.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
@@ -23,6 +24,7 @@ ts-rs = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde_json.workspace = true
+tempfile.workspace = true
 tokio = { workspace = true, features = ["net", "io-util"] }
 
 [lints]
