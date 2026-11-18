@@ -29,6 +29,7 @@ fn stored() -> StoredRequest {
         },
         examples: vec![],
         settings: Default::default(),
+        auth: Default::default(),
     }
 }
 

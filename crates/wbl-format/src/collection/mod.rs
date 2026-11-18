@@ -1,6 +1,7 @@
 //! A collection on disk: `collection.toml` at the root, folders as directories, requests as
 //! `*.req.toml` (FILE_FORMAT.md). Paths crossing to the frontend are relative, with `/`.
 
+pub mod auth;
 pub mod environments;
 mod files;
 mod ops;

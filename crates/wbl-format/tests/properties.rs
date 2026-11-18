@@ -67,6 +67,37 @@ fn example() -> impl Strategy<Value = Example> {
         })
 }
 
+fn auth() -> impl Strategy<Value = wbl_core::auth::Auth> {
+    use wbl_core::auth::{Auth, Grant, KeyLocation, OAuth2Config};
+    let word = "[a-zA-Z0-9{}_-]{1,12}";
+    prop_oneof![
+        Just(Auth::Inherit),
+        Just(Auth::None),
+        (word, text()).prop_map(|(username, password)| Auth::Basic { username, password }),
+        word.prop_map(|token| Auth::Bearer { token }),
+        (word, text(), any::<bool>()).prop_map(|(name, value, query)| Auth::ApiKey {
+            name,
+            value,
+            location: if query {
+                KeyLocation::Query
+            } else {
+                KeyLocation::Header
+            },
+        }),
+        (url(), word, text(), text()).prop_map(|(token_url, client_id, client_secret, scope)| {
+            Auth::OAuth2(OAuth2Config {
+                grant: Grant::ClientCredentials,
+                token_url,
+                auth_url: String::new(),
+                device_url: String::new(),
+                client_id,
+                client_secret,
+                scope,
+            })
+        }),
+    ]
+}
+
 fn stored() -> impl Strategy<Value = StoredRequest> {
     (
         (text(), any::<i64>(), "[A-Z]{1,8}", url()),
@@ -78,9 +109,10 @@ fn stored() -> impl Strategy<Value = StoredRequest> {
             any::<bool>(),
             any::<bool>(),
         ),
+        auth(),
     )
         .prop_map(
-            |((name, order, method, url), headers, body, examples, settings)| {
+            |((name, order, method, url), headers, body, examples, settings, auth)| {
                 let (timeout_ms, follow_redirects, verify_tls) = settings;
                 StoredRequest {
                     name,
@@ -97,6 +129,7 @@ fn stored() -> impl Strategy<Value = StoredRequest> {
                         follow_redirects,
                         verify_tls,
                     },
+                    auth,
                 }
             },
         )

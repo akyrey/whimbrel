@@ -439,6 +439,7 @@ async fn the_sentinel_secret_never_reaches_a_file_or_the_log() {
         },
         examples: vec![],
         settings: Default::default(),
+        auth: Default::default(),
     };
     let refused = logged("request_create", async {
         create_request(

@@ -2,6 +2,7 @@
 //! so a save changes only the values that changed and keeps the user's comments, formatting
 //! and unknown keys.
 
+mod auth_file;
 pub mod collection;
 mod environment;
 mod error;
@@ -9,6 +10,7 @@ mod examples;
 mod fields;
 mod request_file;
 
+pub use auth_file::CollectionTls;
 pub use environment::{Environment, EnvironmentFile, SecretName};
 pub use error::FormatError;
 pub use request_file::{RequestFile, StoredRequest};

@@ -100,6 +100,7 @@ fn stored_with_examples() -> StoredRequest {
             follow_redirects: false,
             verify_tls: true,
         },
+        auth: Default::default(),
     }
 }
 

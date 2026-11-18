@@ -20,6 +20,9 @@ pub struct StoredRequest {
     /// `[settings]`; written only when not the defaults.
     #[serde(default)]
     pub settings: wbl_core::RequestSettings,
+    /// `[auth]`; inherits when absent.
+    #[serde(default)]
+    pub auth: wbl_core::auth::Auth,
 }
 
 /// A parsed request file. Keeps the document so writing preserves what it does not know.
@@ -63,6 +66,7 @@ impl RequestFile {
             },
             examples: crate::examples::read_examples(root)?,
             settings: read_settings(root)?,
+            auth: crate::auth_file::read_auth(root)?,
         })
     }
 
@@ -79,6 +83,7 @@ impl RequestFile {
         write_body(root, &stored.request.body);
         crate::examples::write_examples(root, &stored.examples);
         write_settings(root, &stored.settings);
+        crate::auth_file::write_auth(root, &stored.auth);
         Self { doc }
     }
 }
