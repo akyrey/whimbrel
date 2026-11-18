@@ -1,0 +1,29 @@
+[package]
+name = "wbl-http"
+description = "Sends Whimbrel's requests: reqwest with rustls, cancellation, timings"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = []
+ts = ["dep:ts-rs", "wbl-core/ts"]
+
+[dependencies]
+wbl-core.workspace = true
+# rustls with the platform verifier (the OS trust store), HTTP/2, decompression, streaming.
+reqwest = { version = "0.13", features = ["gzip", "brotli", "deflate", "zstd", "stream"] }
+serde.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util = "0.7"
+ts-rs = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json.workspace = true
+tokio = { workspace = true, features = ["net", "io-util"] }
+
+[lints]
+workspace = true

@@ -1,0 +1,27 @@
+# Rust
+/target/
+**/*.rs.bk
+*.profraw
+lcov.info
+
+# Node
+node_modules/
+dist/
+coverage/
+*.log
+.pnpm-store/
+
+# Playwright
+apps/desktop/test-results/
+apps/desktop/playwright-report/
+apps/desktop/blob-report/
+
+# Tauri
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/schemas/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

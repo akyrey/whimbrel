@@ -1,0 +1,25 @@
+[package]
+name = "wbl-core"
+description = "Whimbrel's model: requests, collections, environments (no I/O)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = []
+ts = ["dep:ts-rs"]
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+ts-rs = { workspace = true, optional = true }
+url = "2.5"
+
+[dev-dependencies]
+rstest.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
