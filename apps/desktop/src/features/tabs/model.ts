@@ -1,12 +1,13 @@
 /** Tabs as data: what is open, what is unsaved, and what a change on disk does to a tab. Pure;
  * every function returns a new tab. */
-import type { AppError, ReadRequest, Response, StoredRequest } from "../../ipc";
+import type { AppError, ReadRequest, Response, StoredRequest, StreamEvent } from "../../ipc";
 
+/** Stream events (SSE, JSON Lines) arrive while sending and stay with the result. */
 export type SendStatus =
   | { kind: "idle" }
-  | { kind: "sending" }
-  | { kind: "done"; response: Response }
-  | { kind: "failed"; error: AppError };
+  | { kind: "sending"; events: StreamEvent[] }
+  | { kind: "done"; response: Response; events: StreamEvent[] }
+  | { kind: "failed"; error: AppError; events: StreamEvent[] };
 
 export type FileRef = { root: string; path: string };
 
@@ -33,6 +34,7 @@ export const NEW_REQUEST: StoredRequest = {
   order: 0,
   request: { method: "GET", url: "", headers: [], body: { type: "none" } },
   examples: [],
+  settings: { timeoutMs: null, followRedirects: true, verifyTls: true },
 };
 
 export const fileTabId = (file: FileRef): string => `${file.root}\u0000${file.path}`;
@@ -49,6 +51,15 @@ export function fileTab(file: FileRef, read: ReadRequest): Tab {
     missing: false,
     exampleId: null,
   };
+}
+
+/** A tab for a request that is not in a collection (cURL import, history). */
+export function looseTab(
+  id: string,
+  stored: StoredRequest,
+  status: SendStatus = { kind: "idle" },
+): Tab {
+  return { ...scratchTab(id), saved: stored, draft: stored, status };
 }
 
 export function scratchTab(id: string): Tab {

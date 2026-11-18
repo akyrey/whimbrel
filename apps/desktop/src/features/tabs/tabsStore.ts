@@ -5,6 +5,7 @@ import { activeEnvironment } from "../environments/environmentsStore";
 import {
   type RequestSendArgs,
   type StoredRequest,
+  type StreamEvent,
   requestCancel,
   requestCreate,
   requestRead,
@@ -15,11 +16,13 @@ import {
 import { loadJson, saveJson } from "../../lib/storage";
 import {
   type FileRef,
+  type SendStatus,
   type Tab,
   changedOnDisk,
   fileTab,
   fileTabId,
   isUnder,
+  looseTab,
   moved,
   pickedExample,
   resolved,
@@ -43,6 +46,8 @@ type TabsState = {
   save: (id: string, target?: FileRef) => Promise<void>;
   resolve: (id: string, keep: "mine" | "theirs") => void;
   send: (id: string) => Promise<void>;
+  /** Opens a request that has no file (cURL import, history) in a new tab. */
+  openLoose: (stored: StoredRequest, status?: SendStatus) => void;
   /** Picks the example sending uses (`null`: the request as it is). */
   pickExample: (id: string, exampleId: string | null) => void;
   cancel: (id: string) => Promise<void>;
@@ -68,6 +73,8 @@ export function sendArgs(tab: Tab): RequestSendArgs {
   return {
     requestId: tab.id,
     request: tab.draft.request,
+    name: tab.draft.name,
+    settings: tab.draft.settings,
     ...(root === undefined ? {} : { root }),
     ...(environment === undefined ? {} : { environment }),
     ...(example === null ? {} : { example }),
@@ -154,13 +161,32 @@ export const useTabs = create<TabsState>()((set, get) => {
     send: async (id) => {
       const tab = find(id);
       if (!tab || tab.status.kind === "sending") return;
-      replace(id, (t) => ({ ...t, status: { kind: "sending" } }));
+      replace(id, (t) => ({ ...t, status: { kind: "sending", events: [] } }));
+      const events = () => {
+        const status = find(id)?.status;
+        return status && status.kind !== "idle" ? status.events : [];
+      };
+      const onEvent = (event: StreamEvent) => {
+        replace(id, (t) =>
+          t.status.kind === "sending"
+            ? { ...t, status: { kind: "sending", events: [...t.status.events, event] } }
+            : t,
+        );
+      };
       try {
-        const response = await requestSend(sendArgs(tab));
-        replace(id, (t) => ({ ...t, status: { kind: "done", response } }));
+        const response = await requestSend(sendArgs(tab), onEvent);
+        replace(id, (t) => ({ ...t, status: { kind: "done", response, events: events() } }));
       } catch (caught) {
-        replace(id, (t) => ({ ...t, status: { kind: "failed", error: toAppError(caught) } }));
+        replace(id, (t) => ({
+          ...t,
+          status: { kind: "failed", error: toAppError(caught), events: events() },
+        }));
       }
+    },
+    openLoose: (stored, status) => {
+      scratchCount += 1;
+      const tab = looseTab(`scratch-${String(scratchCount)}`, stored, status);
+      set({ tabs: [...get().tabs, tab], activeId: tab.id });
     },
     pickExample: (id, exampleId) => {
       replace(id, (t) => ({ ...t, exampleId }));

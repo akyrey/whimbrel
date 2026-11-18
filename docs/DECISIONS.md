@@ -171,3 +171,15 @@ so the rules exist once.
 **Consequences.** Variable autocomplete and hover (Phase 8) will need names and plain values
 from the backend, secrets masked. A response that echoes a secret shows it: that is the
 server's answer, not a store of ours.
+
+## D-H13 Large bodies: 10 MB in memory, the rest on disk; long text shown raw and unwrapped (2026-11-19)
+
+**Context.** FR-3.5 and Phase 4's acceptance: a 10 MB JSON body must show without freezing the
+window. Pretty-printing, building a table and wrapping one long line all block the main thread.
+**Decision.** The engine keeps up to 10 MB in memory; a longer body is written whole to the
+app's cache (emptied at start) and its first 1 MB is shown, with "Save to file". The frontend
+pretty-prints and offers the table view only up to 2 MB, and does not wrap text longer than
+that: a compact 10 MB JSON body is one line, and wrapping it made the editor lay it out at once
+(over a second); unwrapped, the longest task is under 100 ms.
+**Consequences.** Bodies between 2 and 10 MB show raw, on one line when the server sent one.
+Pretty-printing them would need the work off the main thread (a worker, or the backend).

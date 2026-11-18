@@ -4,6 +4,7 @@ import { shortcutLabel } from "../shortcuts/registry";
 import type { Tab } from "../tabs/model";
 import { useState } from "react";
 
+import { copyAsCurl } from "../curl/curlActions";
 import { PreviewDialog } from "../send/PreviewDialog";
 import { sendTab } from "../send/sendFlow";
 import { useTabs } from "../tabs/tabsStore";
@@ -71,6 +72,15 @@ export function RequestBar({ tab }: { tab: Tab }) {
         }}
       >
         Preview
+      </Button>
+      <Button title="Secrets masked" onClick={() => void copyAsCurl(tab, false)}>
+        Copy cURL
+      </Button>
+      <Button
+        title="With the secret values: take care where you paste it"
+        onClick={() => void copyAsCurl(tab, true)}
+      >
+        Copy cURL with secrets
       </Button>
       {previewing && (
         <PreviewDialog

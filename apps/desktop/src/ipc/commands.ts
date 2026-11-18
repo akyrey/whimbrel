@@ -1,5 +1,10 @@
 import type {
   CollectionView,
+  CurlImported,
+  HistoryEntry,
+  HistorySummary,
+  ResponseSaveArgs,
+  StreamEvent,
   Environment,
   EnvironmentEntry,
   EnvironmentView,
@@ -13,12 +18,41 @@ import type {
   Response,
   StoredRequest,
 } from "./generated";
-import { call } from "./invoke";
+import { Channel } from "@tauri-apps/api/core";
+
+import { call, callWith } from "./invoke";
 
 /** Sends the tab's request with its collection's variables, environment and example; rejects
  * with an `AppError` (`cancelled` when `requestCancel` stops it, `unresolved` naming missing
  * variables). */
-export const requestSend = (args: RequestSendArgs): Promise<Response> => call("request_send", args);
+export function requestSend(
+  args: RequestSendArgs,
+  onEvent: (event: StreamEvent) => void = () => undefined,
+): Promise<Response> {
+  const channel = new Channel<StreamEvent>();
+  channel.onmessage = onEvent;
+  return callWith("request_send", args, { onEvent: channel });
+}
+
+/** Writes a body to `destination`: a spilled one from its file, a shown one from its text or
+ * base64. */
+export const responseSave = (args: ResponseSaveArgs): Promise<null> => call("response_save", args);
+
+export const historyList = (
+  query: string,
+  limit: number,
+  offset: number,
+): Promise<HistorySummary[]> => call("history_list", { query, limit, offset });
+
+export const historyGet = (id: number): Promise<HistoryEntry> => call("history_get", { id });
+
+export const historyClear = (): Promise<null> => call("history_clear");
+
+/** The resolved request as a cURL command; secret values only when `reveal`. */
+export const curlExport = (send: RequestSendArgs, reveal: boolean): Promise<string> =>
+  call("curl_export", { send, reveal });
+
+export const curlImport = (text: string): Promise<CurlImported> => call("curl_import", { text });
 
 /** What would be sent, every secret masked. */
 export const requestPreview = (args: RequestSendArgs): Promise<Request> =>

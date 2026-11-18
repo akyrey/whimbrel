@@ -28,7 +28,10 @@ import {
   registry,
   shortcutLabel,
 } from "./features/shortcuts/registry";
+import { CurlImportDialog } from "./features/curl/CurlImportDialog";
 import { useEnvironments } from "./features/environments/environmentsStore";
+import { HistoryPanel } from "./features/history/HistoryPanel";
+import { SettingsPanel } from "./features/request/SettingsPanel";
 import { ExamplesBar } from "./features/examples/ExamplesBar";
 import { cancelSend, confirmSend, sendTab, useSendConfirm } from "./features/send/sendFlow";
 import { ConflictBar } from "./features/tabs/ConflictBar";
@@ -171,6 +174,7 @@ function RequestView({ tab }: { tab: Tab }) {
         <ConflictBar tab={tab} />
         <RequestBar tab={tab} />
         <ExamplesBar tab={tab} />
+        <SettingsPanel tab={tab} />
         <PanelBoundary name="Headers">
           <HeadersEditor tab={tab} />
         </PanelBoundary>
@@ -193,6 +197,57 @@ function EmptyState() {
       <p>Open a request from a collection, or start a new one.</p>
       <Button onClick={useTabs.getState().newScratch}>New request</Button>
     </div>
+  );
+}
+
+type Side = "collections" | "history";
+
+/** Collections or history, and the cURL import. */
+function Sidebar() {
+  const [side, setSide] = useState<Side>("collections");
+  const [importing, setImporting] = useState(false);
+  return (
+    <>
+      <div
+        role="tablist"
+        aria-label="Sidebar"
+        className="flex gap-3 border-b border-zinc-800 px-2 pt-2 text-sm"
+      >
+        {(["collections", "history"] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            role="tab"
+            aria-selected={side === s}
+            className={side === s ? "text-zinc-100 underline" : "text-zinc-400"}
+            onClick={() => {
+              setSide(s);
+            }}
+          >
+            {s === "collections" ? "Collections" : "History"}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="ml-auto text-xs text-zinc-400 hover:text-zinc-100"
+          onClick={() => {
+            setImporting(true);
+          }}
+        >
+          Import cURL…
+        </button>
+      </div>
+      <PanelBoundary name={side === "collections" ? "Collections" : "History"}>
+        {side === "collections" ? <CollectionTree /> : <HistoryPanel />}
+      </PanelBoundary>
+      {importing && (
+        <CurlImportDialog
+          onClose={() => {
+            setImporting(false);
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -241,9 +296,7 @@ export function App() {
     <EditorSettingsProvider settings={editorSettings}>
       <div className="flex h-full">
         <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-800 bg-zinc-900">
-          <PanelBoundary name="Collections">
-            <CollectionTree />
-          </PanelBoundary>
+          <Sidebar />
         </aside>
         <main className="flex min-w-0 flex-1 flex-col">
           <TabStrip />

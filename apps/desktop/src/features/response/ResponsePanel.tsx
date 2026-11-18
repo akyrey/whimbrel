@@ -1,11 +1,11 @@
 import { Skeleton } from "@roost/ui";
-import { Suspense, lazy, useState } from "react";
+import { useState } from "react";
 
 import type { Response } from "../../ipc";
 import type { SendStatus } from "../tabs/model";
-import { formatSize, showBody, statusTone } from "./format";
-
-const ReadOnlyCode = lazy(async () => ({ default: (await import("@roost/editor")).ReadOnlyCode }));
+import { BodyView } from "./BodyView";
+import { EventsView } from "./EventsView";
+import { cookiesOf, formatSize, statusTone } from "./format";
 
 const TONE_CLASS = {
   ok: "text-emerald-400",
@@ -24,42 +24,55 @@ function Summary({ response }: { response: Response }) {
       <span className="text-zinc-400" title={`Headers after ${String(timing.headersMs)} ms`}>
         {timing.totalMs} ms
       </span>
-      <span className="text-zinc-400">
-        {formatSize(body.size)}
-        {body.truncated ? " (cut short)" : ""}
-      </span>
+      <span className="text-zinc-400">{formatSize(body.size)}</span>
       <span className="text-zinc-500">{httpVersion}</span>
     </div>
   );
 }
 
-function BodyView({ response }: { response: Response }) {
-  const shown = showBody(response.body);
-  if (shown.kind === "empty") return <p className="text-sm text-zinc-500">No body.</p>;
-  if (shown.kind === "binary") {
-    return <p className="text-sm text-zinc-500">Binary body, {formatSize(shown.size)}.</p>;
-  }
+function Pairs({ label, pairs }: { label: string; pairs: [string, string][] }) {
   return (
-    <Suspense fallback={<Skeleton rows={6} label="Loading the body" />}>
-      <ReadOnlyCode text={shown.text} label="Response body" language={shown.language} wrap />
-    </Suspense>
-  );
-}
-
-function HeadersView({ response }: { response: Response }) {
-  return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-xs">
-      {response.headers.map((h, i) => (
+    <dl aria-label={label} className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-xs">
+      {pairs.map(([name, value], i) => (
         <div key={i} className="contents">
-          <dt className="text-zinc-400">{h.name}</dt>
-          <dd className="break-all text-zinc-200">{h.value}</dd>
+          <dt className="text-zinc-400">{name}</dt>
+          <dd className="break-all text-zinc-200">{value}</dd>
         </div>
       ))}
     </dl>
   );
 }
 
-type View = "body" | "headers";
+type View = "body" | "headers" | "cookies" | "events";
+
+function Tabs({
+  views,
+  view,
+  onView,
+}: {
+  views: [View, string][];
+  view: View;
+  onView: (v: View) => void;
+}) {
+  return (
+    <div role="tablist" aria-label="Response parts" className="flex gap-3 text-sm">
+      {views.map(([v, label]) => (
+        <button
+          key={v}
+          type="button"
+          role="tab"
+          aria-selected={view === v}
+          className={view === v ? "text-zinc-100 underline" : "text-zinc-400"}
+          onClick={() => {
+            onView(v);
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function ResponsePanel({ status }: { status: SendStatus }) {
   const [view, setView] = useState<View>("body");
@@ -67,39 +80,57 @@ export function ResponsePanel({ status }: { status: SendStatus }) {
   if (status.kind === "idle") {
     return <p className="p-4 text-sm text-zinc-500">Send a request to see its response.</p>;
   }
-  if (status.kind === "sending") return <Skeleton rows={3} label="Waiting for the response" />;
+  if (status.kind === "sending") {
+    return status.events.length > 0 ? (
+      <section aria-label="Response" className="min-h-0 flex-1 overflow-auto p-4">
+        <EventsView events={status.events} live />
+      </section>
+    ) : (
+      <Skeleton rows={3} label="Waiting for the response" />
+    );
+  }
   if (status.kind === "failed") {
     return (
-      <div role="alert" className="p-4 text-sm text-rose-300">
+      <div role="alert" className="flex flex-col gap-2 p-4 text-sm text-rose-300">
         <p className="font-semibold">
           {status.error.code === "cancelled" ? "Cancelled" : "The request failed"}
         </p>
         <p>{status.error.message}</p>
+        {status.events.length > 0 && <EventsView events={status.events} live={false} />}
       </div>
     );
   }
-  const { response } = status;
+  const { response, events } = status;
+  const cookies = cookiesOf(response.headers);
+  const views: [View, string][] = [
+    ["body", "Body"],
+    ["headers", `Headers (${String(response.headers.length)})`],
+    ...(cookies.length > 0
+      ? [["cookies", `Cookies (${String(cookies.length)})`] as [View, string]]
+      : []),
+    ...(events.length > 0
+      ? [["events", `Events (${String(events.length)})`] as [View, string]]
+      : []),
+  ];
   return (
     <section aria-label="Response" className="flex min-h-0 flex-1 flex-col gap-2 p-4">
       <Summary response={response} />
-      <div role="tablist" aria-label="Response parts" className="flex gap-3 text-sm">
-        {(["body", "headers"] as const).map((v) => (
-          <button
-            key={v}
-            type="button"
-            role="tab"
-            aria-selected={view === v}
-            className={view === v ? "text-zinc-100 underline" : "text-zinc-400"}
-            onClick={() => {
-              setView(v);
-            }}
-          >
-            {v === "body" ? "Body" : `Headers (${String(response.headers.length)})`}
-          </button>
-        ))}
-      </div>
+      <Tabs views={views} view={view} onView={setView} />
       <div className="min-h-0 flex-1 overflow-auto">
-        {view === "body" ? <BodyView response={response} /> : <HeadersView response={response} />}
+        {view === "body" && <BodyView response={response} />}
+        {view === "headers" && (
+          <Pairs label="Response headers" pairs={response.headers.map((h) => [h.name, h.value])} />
+        )}
+        {view === "cookies" && (
+          <Pairs
+            label="Cookies set"
+            pairs={cookies.map((c) => [
+              c.name,
+              c.attributes ? `${c.value}  (${c.attributes})` : c.value,
+            ])}
+          />
+        )}
+        {view === "events" && <EventsView events={events} live={false} />}
       </div>
     </section>
   );

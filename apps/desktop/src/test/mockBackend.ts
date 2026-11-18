@@ -13,6 +13,7 @@
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC } from "@tauri-apps/api/mocks";
 
+import { phase4Command, phase4Route, recordHistory, resetHistory } from "./mockExtras";
 import {
   apply,
   environmentCommand,
@@ -55,6 +56,7 @@ const get = (stored: Partial<StoredRequest> & { name: string; url?: string }): S
     body: { type: "none" },
   },
   examples: [],
+  settings: { timeoutMs: null, followRedirects: true, verifyTls: true },
 });
 
 function seed(): void {
@@ -241,8 +243,9 @@ function response(status: number, reason: string, contentType: string, text: str
       { name: "content-type", value: contentType },
       { name: "x-mock", value: "1" },
     ],
-    body: { text, size: text.length, truncated: false, contentType },
+    body: { text, base64: null, size: text.length, truncated: false, file: null, contentType },
     timing: { headersMs: 12, totalMs: 15 },
+    streamEvents: 0,
   };
 }
 
@@ -257,6 +260,8 @@ function answer(request: Request): Response | AppError {
   if (request.url.includes("unreachable.test")) {
     return { code: "connect", message: "Could not connect (connection failed)" };
   }
+  const special = phase4Route(request);
+  if (special) return special;
   if (request.url.includes("/echo")) {
     const sent = {
       method: request.method,
@@ -273,11 +278,13 @@ const isError = (value: Response | AppError): value is AppError => "code" in val
 export function installMockBackend(): void {
   seed();
   seedEnvironments(DEMO_ROOT);
+  resetHistory();
   const pending = new Map<string, (error: AppError) => void>();
   mockIPC(
     (command, payload) => {
       const args = (payload as { args?: Args } | undefined)?.args ?? ({} as Args);
       if (command === "plugin:dialog|open") return Promise.resolve(DEMO_ROOT);
+      if (command === "plugin:dialog|save") return Promise.resolve("/tmp/saved-body");
       if (command === "request_preview" || command === "request_send") {
         const sendArgs = args as unknown as RequestSendArgs;
         const resolved = resolveFor(sendArgs, command === "request_preview");
@@ -291,6 +298,7 @@ export function installMockBackend(): void {
           });
         }
         const result = answer(request);
+        recordHistory(resolveFor(sendArgs, true) as Request, result, sendArgs.name);
         return isError(result) ? Promise.reject(result) : Promise.resolve(result);
       }
       if (command === "example_apply") {
@@ -302,6 +310,10 @@ export function installMockBackend(): void {
         const result = overlay(o.base, o.draft, o.id, o.name);
         return "code" in result ? Promise.reject(result) : Promise.resolve(result);
       }
+      const extra = phase4Command(command, args, (send, masked) =>
+        resolveFor(send as unknown as RequestSendArgs, masked),
+      );
+      if (extra) return extra;
       const environment = environmentCommand(
         command,
         args as unknown as Parameters<typeof environmentCommand>[1],
