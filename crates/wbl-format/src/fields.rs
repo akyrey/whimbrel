@@ -69,3 +69,56 @@ fn same(a: &Value, b: &Value) -> bool {
         _ => false,
     }
 }
+
+/// A table of text values (`[variables]`), or an empty map when absent.
+pub(crate) fn string_map(
+    table: &Table,
+    key: &str,
+) -> Result<std::collections::BTreeMap<String, String>, FormatError> {
+    let Some(item) = table.get(key) else {
+        return Ok(std::collections::BTreeMap::new());
+    };
+    let map = item
+        .as_table_like()
+        .ok_or_else(|| FormatError::invalid(key, "a table of text values"))?;
+    map.iter()
+        .map(|(name, value)| {
+            value
+                .as_str()
+                .map(|v| (name.to_owned(), v.to_owned()))
+                .ok_or_else(|| FormatError::invalid(&format!("{key}.{name}"), "text"))
+        })
+        .collect()
+}
+
+/// Writes `map` as the table `key`: unchanged values (and their comments) stay, removed keys go,
+/// new ones are added; an empty map removes the table.
+pub(crate) fn set_string_map(
+    table: &mut Table,
+    key: &str,
+    map: &std::collections::BTreeMap<String, String>,
+) {
+    if map.is_empty() {
+        table.remove(key);
+        return;
+    }
+    if !matches!(table.get(key), Some(Item::Table(_))) {
+        let mut fresh = Table::new();
+        fresh.decor_mut().set_prefix("\n");
+        table.insert(key, Item::Table(fresh));
+    }
+    let Some(Item::Table(inner)) = table.get_mut(key) else {
+        return;
+    };
+    let stale: Vec<String> = inner
+        .iter()
+        .map(|(k, _)| k.to_owned())
+        .filter(|k| !map.contains_key(k))
+        .collect();
+    for k in stale {
+        inner.remove(&k);
+    }
+    for (k, v) in map {
+        set(inner, k, v.as_str());
+    }
+}

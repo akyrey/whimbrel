@@ -3,10 +3,13 @@
 //! and unknown keys.
 
 pub mod collection;
+mod environment;
 mod error;
+mod examples;
 mod fields;
 mod request_file;
 
+pub use environment::{Environment, EnvironmentFile, SecretName};
 pub use error::FormatError;
 pub use request_file::{RequestFile, StoredRequest};
 

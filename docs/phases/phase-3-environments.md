@@ -15,7 +15,7 @@ D-H04, D-H08.
       anything is sent. The result lists the secret values it used, for masking.
 - [x] 3.2 Saved examples in `wbl-core`: an overlay (variables, query and header values by
       name, a replacement body) applied to a request without changing it.
-- [ ] 3.3 `wbl-format`: environment files (`environments/<name>.toml`: variables, secret names,
+- [x] 3.3 `wbl-format`: environment files (`environments/<name>.toml`: variables, secret names,
       `protected`), `.local/<name>.toml` overrides, `[variables]` in `collection.toml`,
       `[[examples]]` in request files; all with the write rules of Phase 2.
 - [ ] 3.4 Secrets in the keychain (`roost-keychain`, service `whimbrel`, account

@@ -27,6 +27,7 @@ fn stored() -> StoredRequest {
                 text: "{\n  \"name\": \"ada\"\n}\n".into(),
             },
         },
+        examples: vec![],
     }
 }
 

@@ -1,6 +1,7 @@
 //! A collection on disk: `collection.toml` at the root, folders as directories, requests as
 //! `*.req.toml` (FILE_FORMAT.md). Paths crossing to the frontend are relative, with `/`.
 
+pub mod environments;
 mod files;
 mod ops;
 mod paths;
@@ -17,6 +18,24 @@ pub use ops::{
     read_request, rename_request, save_request, set_order,
 };
 pub use paths::hash;
+
+/// The collection's own `[variables]`, the lowest scope.
+pub fn variables(root: &Path) -> Result<std::collections::BTreeMap<String, String>, FormatError> {
+    let text = fs::read_to_string(root.join(COLLECTION_FILE))?;
+    let doc = files::parse_doc(&text)?;
+    crate::fields::string_map(doc.as_table(), "variables")
+}
+
+pub fn save_variables(
+    root: &Path,
+    variables: &std::collections::BTreeMap<String, String>,
+) -> Result<(), FormatError> {
+    let marker = root.join(COLLECTION_FILE);
+    let text = fs::read_to_string(&marker)?;
+    let mut doc = files::parse_doc(&text)?;
+    crate::fields::set_string_map(doc.as_table_mut(), "variables", variables);
+    paths::write_atomic(&marker, &doc.to_string())
+}
 use paths::{COLLECTION_FILE, FOLDER_FILE, REQUEST_SUFFIX, RESERVED_DIRS, relative};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

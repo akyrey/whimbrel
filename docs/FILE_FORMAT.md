@@ -111,7 +111,8 @@ headers = [{ name = "Content-Type", value = "application/json" }]
 file = "create-user.examples/example-a.response.json"
 ```
 
-Overlay rules: fields an example does not mention come from the base request. To remove a
+Overlay rules: fields an example does not mention come from the base request. An example's
+`[examples.body]` with `kind = "none"` removes the request's body. To remove a
 query parameter or header, an example sets `enabled = false` on it. A body or response
 over 64 KB goes to a sidecar file in `<request>.examples/`.
 

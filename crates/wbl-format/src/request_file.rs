@@ -1,7 +1,7 @@
 //! One request per file (`*.req.toml`).
 
 use toml_edit::{ArrayOfTables, DocumentMut, Item, Table};
-use wbl_core::{Body, BodyKind, Header, Request};
+use wbl_core::{Body, Header, Request};
 
 use crate::fields::{optional_bool, optional_integer, set, string};
 use crate::{FORMAT, FormatError};
@@ -15,31 +15,14 @@ pub struct StoredRequest {
     #[cfg_attr(feature = "ts", ts(type = "number"))]
     pub order: i64,
     pub request: Request,
+    /// Saved examples (D-H08), in file order.
+    pub examples: Vec<wbl_core::example::Example>,
 }
 
 /// A parsed request file. Keeps the document so writing preserves what it does not know.
 #[derive(Debug, Clone)]
 pub struct RequestFile {
     doc: DocumentMut,
-}
-
-const BODY_KINDS: &str = "one of json, xml, text";
-
-fn kind_name(kind: BodyKind) -> &'static str {
-    match kind {
-        BodyKind::Json => "json",
-        BodyKind::Xml => "xml",
-        BodyKind::Text => "text",
-    }
-}
-
-fn kind_of(name: &str) -> Option<BodyKind> {
-    match name {
-        "json" => Some(BodyKind::Json),
-        "xml" => Some(BodyKind::Xml),
-        "text" => Some(BodyKind::Text),
-        _ => None,
-    }
 }
 
 impl RequestFile {
@@ -75,6 +58,7 @@ impl RequestFile {
                 headers: read_headers(root)?,
                 body: read_body(root)?,
             },
+            examples: crate::examples::read_examples(root)?,
         })
     }
 
@@ -89,6 +73,7 @@ impl RequestFile {
         set(root, "url", stored.request.url.as_str());
         write_headers(root, &stored.request.headers);
         write_body(root, &stored.request.body);
+        crate::examples::write_examples(root, &stored.examples);
         Self { doc }
     }
 }
@@ -140,18 +125,15 @@ fn write_headers(root: &mut Table, headers: &[Header]) {
 }
 
 fn read_body(root: &Table) -> Result<Body, FormatError> {
-    let Some(item) = root.get("body") else {
-        return Ok(Body::None);
-    };
-    let table = item
-        .as_table()
-        .ok_or_else(|| FormatError::invalid("body", "a [body] table"))?;
-    let kind = string(table, "kind", "body.kind")?;
-    let kind = kind_of(&kind).ok_or_else(|| FormatError::invalid("body.kind", BODY_KINDS))?;
-    Ok(Body::Text {
-        kind,
-        text: string(table, "text", "body.text")?,
-    })
+    match root.get("body") {
+        None => Ok(Body::None),
+        Some(item) => {
+            let table = item
+                .as_table_like()
+                .ok_or_else(|| FormatError::invalid("body", "a [body] table"))?;
+            crate::examples::read_body_table(table, "body", false)
+        }
+    }
 }
 
 fn write_body(root: &mut Table, body: &Body) {
@@ -169,6 +151,6 @@ fn write_body(root: &mut Table, body: &Body) {
             }
         }
     };
-    set(table, "kind", kind_name(*kind));
+    set(table, "kind", crate::examples::kind_name(*kind));
     set(table, "text", text.as_str());
 }

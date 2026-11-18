@@ -17,6 +17,7 @@ fn request(name: &str, order: i64) -> StoredRequest {
             headers: vec![],
             body: Body::None,
         },
+        examples: vec![],
     }
 }
 

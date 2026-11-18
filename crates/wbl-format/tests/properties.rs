@@ -3,6 +3,7 @@
 //! an edit touches only its own line.
 
 use proptest::prelude::*;
+use wbl_core::example::{Example, Param};
 use wbl_core::{Body, BodyKind, Header, Request};
 use wbl_format::{RequestFile, StoredRequest};
 
@@ -41,25 +42,51 @@ fn url() -> impl Strategy<Value = String> {
     "[a-zA-Z0-9:/.{}?=&%_ -]{0,40}"
 }
 
+fn example() -> impl Strategy<Value = Example> {
+    (
+        "[a-z0-9]{1,8}",
+        text(),
+        prop::collection::btree_map("[a-zA-Z][a-zA-Z0-9_]{0,8}", text(), 0..3),
+        prop::collection::vec(("[a-z]{1,6}", text(), any::<bool>()), 0..3),
+        prop::collection::vec(header(), 0..3),
+        prop::option::of(body()),
+    )
+        .prop_map(|(id, name, variables, query, headers, body)| Example {
+            variables,
+            query: query
+                .into_iter()
+                .map(|(name, value, enabled)| Param {
+                    name,
+                    value,
+                    enabled,
+                })
+                .collect(),
+            headers,
+            body,
+            ..Example::named(&id, &name)
+        })
+}
+
 fn stored() -> impl Strategy<Value = StoredRequest> {
     (
-        text(),
-        any::<i64>(),
-        "[A-Z]{1,8}",
-        url(),
+        (text(), any::<i64>(), "[A-Z]{1,8}", url()),
         prop::collection::vec(header(), 0..4),
         body(),
+        prop::collection::vec(example(), 0..3),
     )
-        .prop_map(|(name, order, method, url, headers, body)| StoredRequest {
-            name,
-            order,
-            request: Request {
-                method,
-                url,
-                headers,
-                body,
+        .prop_map(
+            |((name, order, method, url), headers, body, examples)| StoredRequest {
+                name,
+                order,
+                request: Request {
+                    method,
+                    url,
+                    headers,
+                    body,
+                },
+                examples,
             },
-        })
+        )
 }
 
 proptest! {
