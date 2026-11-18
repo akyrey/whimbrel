@@ -10,6 +10,14 @@ pub struct RequestSendArgs {
     /// The tab sending it; `request_cancel` names the same id.
     pub request_id: String,
     pub request: Request,
+    /// The collection whose variables apply, and its active environment.
+    #[ts(optional)]
+    pub root: Option<String>,
+    #[ts(optional)]
+    pub environment: Option<String>,
+    /// The example laid over the request, if one is picked.
+    #[ts(optional)]
+    pub example: Option<wbl_core::example::Example>,
 }
 
 #[derive(Debug, Clone, Deserialize, TS)]
@@ -83,4 +91,55 @@ pub struct NodeOrderArgs {
     pub path: String,
     #[ts(type = "number")]
     pub order: i64,
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct EnvironmentArgs {
+    pub root: String,
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct EnvironmentCreateArgs {
+    pub root: String,
+    pub environment: wbl_format::Environment,
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct EnvironmentSaveArgs {
+    pub root: String,
+    pub id: String,
+    pub environment: wbl_format::Environment,
+    pub hash: String,
+}
+
+/// The user's own values (`.local`), or the collection's `[variables]` (`id` absent).
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct VariablesSaveArgs {
+    pub root: String,
+    #[ts(optional)]
+    pub id: Option<String>,
+    pub variables: std::collections::BTreeMap<String, String>,
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct SecretSetArgs {
+    pub root: String,
+    pub environment: String,
+    pub name: String,
+    /// Goes to the keychain; never stored elsewhere, logged or returned.
+    pub value: String,
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct SecretArgs {
+    pub root: String,
+    pub environment: String,
+    pub name: String,
 }

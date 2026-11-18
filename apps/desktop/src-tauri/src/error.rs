@@ -25,6 +25,13 @@ impl AppError {
         }
     }
 
+    pub fn with_detail(self, detail: serde_json::Value) -> Self {
+        Self {
+            detail: Some(detail),
+            ..self
+        }
+    }
+
     pub fn internal(message: impl Into<String>) -> Self {
         Self::new("internal", message)
     }

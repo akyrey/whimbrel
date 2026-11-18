@@ -23,7 +23,17 @@ fn args(id: &str, url: String) -> RequestSendArgs {
             headers: vec![],
             body: Body::None,
         },
+        root: None,
+        environment: None,
+        example: None,
     }
+}
+
+fn deps() -> (crate::collections::Collections, crate::secrets::Secrets) {
+    (
+        crate::collections::Collections::default(),
+        crate::secrets::Secrets::new(Arc::new(roost_keychain::MemorySecretStore::default())),
+    )
 }
 
 /// Accepts connections and reads, but never answers.
@@ -47,7 +57,15 @@ async fn cancel_ends_a_running_request_with_cancelled() {
     let base = silent_server().await;
     let sending = tokio::spawn({
         let state = Arc::clone(&state);
-        async move { send(&state, args("tab-1", format!("{base}/"))).await }
+        async move {
+            send(
+                &state,
+                &deps().0,
+                &deps().1,
+                args("tab-1", format!("{base}/")),
+            )
+            .await
+        }
     });
     tokio::time::sleep(Duration::from_millis(100)).await;
 
@@ -67,7 +85,7 @@ async fn cancel_ends_a_running_request_with_cancelled() {
 
 #[tokio::test]
 async fn an_invalid_request_is_an_app_error_naming_the_field() {
-    let error = send(&state(), args("tab-1", "nope".into()))
+    let error = send(&state(), &deps().0, &deps().1, args("tab-1", "nope".into()))
         .await
         .unwrap_err();
 
@@ -111,9 +129,14 @@ async fn a_finished_request_leaves_nothing_in_flight() {
     let state = state();
     let base = ok_server().await;
 
-    let response = send(&state, args("tab-1", format!("{base}/")))
-        .await
-        .unwrap();
+    let response = send(
+        &state,
+        &deps().0,
+        &deps().1,
+        args("tab-1", format!("{base}/")),
+    )
+    .await
+    .unwrap();
 
     assert_eq!(response.status, 200);
     assert_eq!(response.body.text.as_deref(), Some("ok"));

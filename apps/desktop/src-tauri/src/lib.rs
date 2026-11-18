@@ -2,10 +2,13 @@
 
 pub mod collections;
 pub mod commands;
+pub mod environments;
 pub mod error;
 pub mod ipc;
 pub mod logging;
 pub mod registry;
+pub mod resolve;
+pub mod secrets;
 pub mod state;
 pub mod watch;
 
@@ -42,6 +45,9 @@ pub fn run() -> Result<(), tauri::Error> {
             let state = AppState::new(SendOptions::default())
                 .map_err(|e| std::io::Error::other(e.message))?;
             app.manage(state);
+            let keychain = roost_keychain::KeychainSecretStore::open(secrets::SERVICE)
+                .map_err(|e| std::io::Error::other(e.0))?;
+            app.manage(secrets::Secrets::new(std::sync::Arc::new(keychain)));
             let logs = app.path().app_log_dir()?;
             std::fs::create_dir_all(&logs)?;
             let guard = logging::init(&logs).map_err(|e| std::io::Error::other(e.to_string()))?;
@@ -52,6 +58,16 @@ pub fn run() -> Result<(), tauri::Error> {
         .invoke_handler(tauri::generate_handler![
             commands::request_send,
             commands::request_cancel,
+            commands::request_preview,
+            environments::environment_list,
+            environments::environment_read,
+            environments::environment_create,
+            environments::environment_save,
+            environments::environment_delete,
+            environments::variables_save,
+            environments::collection_variables_read,
+            environments::secret_set,
+            environments::secret_clear,
             collections::collection_open,
             collections::collection_create,
             collections::collection_close,

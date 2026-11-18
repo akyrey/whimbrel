@@ -16,6 +16,8 @@ use crate::ipc::{
     RequestMoveArgs, RequestSaveArgs,
 };
 use crate::logging::logged;
+use crate::resolve::guard;
+use crate::secrets::Secrets;
 use crate::watch::{CollectionChanged, Watchers};
 
 /// The open collections. Commands only touch collections the user opened or created.
@@ -98,8 +100,18 @@ pub fn read(state: &Collections, args: &NodeArgs) -> Result<ReadRequest, AppErro
     )?)
 }
 
-pub fn save(state: &Collections, args: &RequestSaveArgs) -> Result<String, AppError> {
+/// The request's text as it would be written, for the secret guard.
+fn text_of(stored: &wbl_format::StoredRequest) -> String {
+    wbl_format::RequestFile::new(stored).to_string()
+}
+
+pub fn save(
+    state: &Collections,
+    secrets: &Secrets,
+    args: &RequestSaveArgs,
+) -> Result<String, AppError> {
     let root = state.opened(&args.root)?;
+    guard(&root, &text_of(&args.stored), secrets)?;
     Ok(collection::save_request(
         &root,
         &args.path,
@@ -108,9 +120,15 @@ pub fn save(state: &Collections, args: &RequestSaveArgs) -> Result<String, AppEr
     )?)
 }
 
-pub fn create_request(state: &Collections, args: &RequestCreateArgs) -> Result<String, AppError> {
+pub fn create_request(
+    state: &Collections,
+    secrets: &Secrets,
+    args: &RequestCreateArgs,
+) -> Result<String, AppError> {
+    let root = state.opened(&args.root)?;
+    guard(&root, &text_of(&args.stored), secrets)?;
     Ok(collection::create_request(
-        &state.opened(&args.root)?,
+        &root,
         &args.folder,
         &args.stored,
     )?)
@@ -224,8 +242,26 @@ macro_rules! command {
 
 command!(collection_tree, CollectionArgs, CollectionView, tree);
 command!(request_read, NodeArgs, ReadRequest, read);
-command!(request_save, RequestSaveArgs, String, save);
-command!(request_create, RequestCreateArgs, String, create_request);
+#[tauri::command]
+pub async fn request_save(
+    state: State<'_, Collections>,
+    secrets: State<'_, Secrets>,
+    args: RequestSaveArgs,
+) -> Result<String, AppError> {
+    logged("request_save", async { save(&state, &secrets, &args) }).await
+}
+
+#[tauri::command]
+pub async fn request_create(
+    state: State<'_, Collections>,
+    secrets: State<'_, Secrets>,
+    args: RequestCreateArgs,
+) -> Result<String, AppError> {
+    logged("request_create", async {
+        create_request(&state, &secrets, &args)
+    })
+    .await
+}
 command!(folder_create, NodeNameArgs, String, create_folder);
 command!(request_rename, NodeNameArgs, String, rename);
 command!(request_duplicate, NodeArgs, String, duplicate);

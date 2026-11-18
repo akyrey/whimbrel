@@ -19,6 +19,11 @@ pub use ops::{
 };
 pub use paths::hash;
 
+/// The collection's id (keys its keychain entries), without reading its tree.
+pub fn id(root: &Path) -> Result<String, FormatError> {
+    Ok(files::read_collection(&fs::read_to_string(root.join(COLLECTION_FILE))?)?.id)
+}
+
 /// The collection's own `[variables]`, the lowest scope.
 pub fn variables(root: &Path) -> Result<std::collections::BTreeMap<String, String>, FormatError> {
     let text = fs::read_to_string(root.join(COLLECTION_FILE))?;

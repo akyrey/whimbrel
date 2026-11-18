@@ -15,7 +15,14 @@ fn stored(name: &str) -> StoredRequest {
             headers: vec![],
             body: Body::None,
         },
+        examples: vec![],
     }
+}
+
+fn secrets() -> Secrets {
+    Secrets::new(std::sync::Arc::new(
+        roost_keychain::MemorySecretStore::default(),
+    ))
 }
 
 fn node(root: &str, path: &str) -> NodeArgs {
@@ -79,6 +86,7 @@ fn create_read_save_and_conflict() {
     let (_dir, state, root) = created();
     let path = create_request(
         &state,
+        &secrets(),
         &RequestCreateArgs {
             root: root.clone(),
             folder: String::new(),
@@ -98,8 +106,8 @@ fn create_read_save_and_conflict() {
         hash: read_back.hash.clone(),
     };
 
-    let new_hash = save(&state, &save_args).unwrap();
-    let stale = save(&state, &save_args).unwrap_err();
+    let new_hash = save(&state, &secrets(), &save_args).unwrap();
+    let stale = save(&state, &secrets(), &save_args).unwrap_err();
 
     assert_ne!(new_hash, read_back.hash);
     assert_eq!(stale.code, "conflict");
@@ -110,6 +118,7 @@ fn folders_rename_duplicate_move_order_and_delete() {
     let (_dir, state, root) = created();
     let path = create_request(
         &state,
+        &secrets(),
         &RequestCreateArgs {
             root: root.clone(),
             folder: String::new(),

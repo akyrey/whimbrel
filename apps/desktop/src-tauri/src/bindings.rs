@@ -38,6 +38,14 @@ fn export_all(dir: &Path) {
     crate::collections::CollectionView::export_all(&config).unwrap();
     crate::watch::CollectionChanged::export_all(&config).unwrap();
     wbl_format::collection::ReadRequest::export_all(&config).unwrap();
+    crate::ipc::EnvironmentArgs::export_all(&config).unwrap();
+    crate::ipc::EnvironmentCreateArgs::export_all(&config).unwrap();
+    crate::ipc::EnvironmentSaveArgs::export_all(&config).unwrap();
+    crate::ipc::VariablesSaveArgs::export_all(&config).unwrap();
+    crate::ipc::SecretSetArgs::export_all(&config).unwrap();
+    crate::ipc::SecretArgs::export_all(&config).unwrap();
+    crate::environments::EnvironmentView::export_all(&config).unwrap();
+    wbl_format::collection::environments::EnvironmentEntry::export_all(&config).unwrap();
     write_index(dir);
 }
 
