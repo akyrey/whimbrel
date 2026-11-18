@@ -1,0 +1,28 @@
+@import "tailwindcss";
+@import "@roost/ui/theme-light.css";
+
+/* Roost's components use Tailwind classes too (D-H09). */
+@source "../node_modules/@roost";
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-zinc-950 text-zinc-100 antialiased;
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+}
+
+@layer components {
+  .input {
+    @apply rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-zinc-100 outline-none focus:border-sky-500;
+  }
+}

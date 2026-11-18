@@ -6,8 +6,9 @@ are the seeds for those briefs.
 
 ## Status
 
-- [ ] Phase 0: Extract the shared kit from Dunlin
-- [ ] Phase 1: Skeleton — send a request
+- [ ] Phase 0: Extract the shared kit from Dunlin — 0a–0d done locally; waiting on publishing
+      `akyrey/roost` and `akyrey/whimbrel` and refreshing the lockfiles (see "Publishing" below)
+- [x] Phase 1: Skeleton — send a request ([brief](phases/phase-1-skeleton.md))
 - [ ] Phase 2: Collections on disk
 - [ ] Phase 3: Environments, variables and secrets
 - [ ] Phase 4: Responses, history, streaming
@@ -29,6 +30,23 @@ Phase 0 must not change Dunlin's behaviour: Dunlin's full test suite and E2E run
 each extraction. After Phase 0, a change to the kit lands in Roost and is tagged, and then
 each app bumps the tag on its own schedule. During Whimbrel phases 1–4 the kit will churn, so
 develop against a linked local checkout and tag Roost at the end of each phase. Phase 6 can start in parallel with 3–5 because `wbl-openapi` is pure.
+
+## Publishing (the rest of Phase 0)
+
+Done locally, not pushed:
+
+- Dunlin, branch `refactor/roost-seams`: the kit extracted inside Dunlin behind `@roost/*`
+  aliases and `roost-*` crates (0a). Self-contained: it builds and passes as is.
+- Roost, `../roost`, tag `v0.1.0`: the kit with its history (0b).
+- Dunlin, branch `chore/use-roost` (on top of 0a): Dunlin on the Roost tag (0c). Its lockfiles
+  can only be refreshed once Roost is on GitHub.
+- Whimbrel, this repository (0d), linked to `../roost` for development; no lockfiles committed.
+
+To finish: create `akyrey/roost` (public, so the reusable workflow and git dependencies need no
+token) and push `main` and `v0.1.0`; then in Dunlin (`chore/use-roost`) and here run
+`scripts/unlink-roost.sh`, `cargo update -p roost-shell -p roost-keychain` and
+`pnpm --dir apps/desktop install`, and commit the lockfiles; create `akyrey/whimbrel` and push.
+Check that an installed Dunlin updates to a release built through Roost's workflow.
 
 ## Phases
 

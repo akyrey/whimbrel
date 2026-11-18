@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Whimbrel: a shorebird's head with its long, down-curved bill, on a rounded square. -->
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="#0c4a6e"/>
+  <!-- neck, behind the head -->
+  <path d="M330 520 Q350 700 290 870" stroke="#d6bc94" stroke-width="130" fill="none" stroke-linecap="round"/>
+  <!-- head -->
+  <circle cx="380" cy="420" r="150" fill="#e0c9a6"/>
+  <!-- crown stripes -->
+  <path d="M260 360 Q380 250 500 360" stroke="#7c5a3a" stroke-width="34" fill="none" stroke-linecap="round"/>
+  <path d="M290 410 Q380 350 470 410" stroke="#7c5a3a" stroke-width="18" fill="none" stroke-linecap="round"/>
+  <!-- eye -->
+  <circle cx="430" cy="430" r="22" fill="#111827"/>
+  <!-- bill: long and curving down -->
+  <path d="M510 440 Q700 450 800 700" stroke="#f8fafc" stroke-width="38" fill="none" stroke-linecap="round"/>
+</svg>

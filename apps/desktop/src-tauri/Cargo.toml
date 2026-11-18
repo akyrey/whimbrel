@@ -1,0 +1,38 @@
+[package]
+name = "whimbrel"
+description = "Whimbrel desktop app: Tauri shell and commands"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "whimbrel_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7", features = [] }
+
+[dependencies]
+wbl-core = { workspace = true, features = ["ts"] }
+wbl-http = { workspace = true, features = ["ts"] }
+roost-shell = { workspace = true, features = ["ts"] }
+serde.workspace = true
+serde_json.workspace = true
+tauri = { version = "2.12", features = [] }
+tauri-plugin-window-state = "2"
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util = "0.7"
+tracing = "0.1"
+tracing-appender = "0.2"
+ts-rs.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "json", "std", "registry"] }
+tokio = { workspace = true, features = ["net", "io-util"] }
+
+[lints]
+workspace = true

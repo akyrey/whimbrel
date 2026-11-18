@@ -1,0 +1,7 @@
+dist
+coverage
+src-tauri
+src/ipc/generated
+pnpm-lock.yaml
+playwright-report
+test-results

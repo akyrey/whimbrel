@@ -25,3 +25,4 @@ apps/desktop/src-tauri/gen/schemas/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+apps/desktop/dist/
