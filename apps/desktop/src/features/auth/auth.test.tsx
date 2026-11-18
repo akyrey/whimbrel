@@ -1,0 +1,148 @@
+import { useToasts } from "@roost/ui";
+import { clearMocks } from "@tauri-apps/api/mocks";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+import { App } from "../../App";
+import { installMockBackend } from "../../test/mockBackend";
+import { useCollections } from "../collections/collectionsStore";
+import { useEnvironments } from "../environments/environmentsStore";
+import { useTabs } from "../tabs/tabsStore";
+
+beforeEach(() => {
+  useToasts.setState({ toasts: [] });
+  localStorage.clear();
+  installMockBackend();
+  useTabs.setState({ tabs: [], activeId: null });
+  useCollections.setState({ views: {} });
+  useEnvironments.setState({ entries: {}, active: {} });
+});
+
+afterEach(async () => {
+  cleanup();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  clearMocks();
+});
+
+async function openPing() {
+  render(<App />);
+  await userEvent.click(screen.getByRole("button", { name: "Open…" }));
+  const tree = await screen.findByRole("region", { name: "Demo API" });
+  await userEvent.click(within(tree).getByRole("button", { name: /Ping/ }));
+  await screen.findByRole("textbox", { name: "URL" });
+  return tree;
+}
+
+async function preview() {
+  await userEvent.click(screen.getByRole("button", { name: "Preview" }));
+  const text = await screen.findByLabelText("Request as sent");
+  const content = text.textContent;
+  await userEvent.click(
+    within(screen.getByRole("dialog", { name: "Resolved request" })).getByRole("button", {
+      name: "Close",
+    }),
+  );
+  return content;
+}
+
+async function collectionAuth(tree: HTMLElement, pick: (dialog: HTMLElement) => Promise<void>) {
+  fireEvent.contextMenu(within(tree).getByRole("heading", { name: "Demo API" }));
+  await userEvent.click(screen.getByRole("menuitem", { name: "Auth…" }));
+  const dialog = await screen.findByRole("dialog", { name: "Auth of Demo API" });
+  await pick(dialog);
+  await userEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+  await screen.findAllByText("Auth saved");
+}
+
+describe("auth", () => {
+  it("applies the request's own bearer token, masked in the preview", async () => {
+    await openPing();
+    await userEvent.click(screen.getByText("Auth"));
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Auth type" }), "bearer");
+    await userEvent.type(screen.getByRole("textbox", { name: "Token" }), "abc");
+
+    expect(await preview()).toContain("Authorization: Bearer ••••••");
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    expect(await screen.findByLabelText("Response body")).toHaveTextContent("Bearer abc");
+  });
+
+  it("inherits the collection's auth, which the collection cannot itself inherit", async () => {
+    const tree = await openPing();
+    await collectionAuth(tree, async (dialog) => {
+      const type = within(dialog).getByRole("combobox", { name: "Auth type" });
+      expect(within(type).queryByRole("option", { name: "Inherit" })).toBeNull();
+      await userEvent.selectOptions(type, "basic");
+      await userEvent.type(within(dialog).getByRole("textbox", { name: "Username" }), "ada");
+      await userEvent.type(within(dialog).getByRole("textbox", { name: "Password" }), "pw");
+    });
+
+    expect(await preview()).toContain("Authorization: Basic ••••••");
+  });
+
+  it("gets an OAuth 2 token, sends with it, and forgets it", async () => {
+    const tree = await openPing();
+    await collectionAuth(tree, async (dialog) => {
+      await userEvent.selectOptions(
+        within(dialog).getByRole("combobox", { name: "Auth type" }),
+        "oauth2",
+      );
+      await userEvent.type(
+        within(dialog).getByRole("textbox", { name: "Token URL" }),
+        "https://idp/token",
+      );
+      await userEvent.type(within(dialog).getByRole("textbox", { name: "Client ID" }), "app");
+    });
+    await userEvent.click(screen.getByText("Auth"));
+    const panel = await screen.findByRole("group", { name: "OAuth 2 token" });
+    expect(panel).toHaveTextContent("No token yet.");
+
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    expect(await screen.findByText(/needs an OAuth 2 token/)).toBeInTheDocument();
+    await userEvent.click(within(panel).getByRole("button", { name: "Get token" }));
+    await waitFor(() => {
+      expect(screen.getByRole("group", { name: "OAuth 2 token" })).toHaveTextContent("Token ready");
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    expect(await screen.findByLabelText("Response body")).toHaveTextContent("Bearer access-1");
+    await userEvent.click(screen.getByRole("button", { name: "Forget token" }));
+    await waitFor(() => {
+      expect(screen.getByRole("group", { name: "OAuth 2 token" })).toHaveTextContent(
+        "No token yet.",
+      );
+    });
+  });
+
+  it("shows the fields of each API key place and OAuth grant", async () => {
+    await openPing();
+    await userEvent.click(screen.getByText("Auth"));
+    const type = screen.getByRole("combobox", { name: "Auth type" });
+    await userEvent.selectOptions(type, "api_key");
+    await userEvent.type(screen.getByRole("textbox", { name: "Name" }), "key");
+    await userEvent.type(screen.getByRole("textbox", { name: "Value" }), "v");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Sent in" }), "query");
+    expect(await preview()).toContain("?key=••••••");
+
+    await userEvent.selectOptions(type, "oauth2");
+    const grant = screen.getByRole("combobox", { name: "Grant" });
+    await userEvent.selectOptions(grant, "authorization_code");
+    expect(screen.getByRole("textbox", { name: "Authorization URL" })).toBeInTheDocument();
+    await userEvent.selectOptions(grant, "device_code");
+    expect(screen.getByRole("textbox", { name: "Device URL" })).toBeInTheDocument();
+    await userEvent.selectOptions(type, "none");
+    expect(useTabs.getState().tabs[0]?.draft.auth).toEqual({ type: "none" });
+  });
+
+  it("saves the collection's TLS files", async () => {
+    const tree = await openPing();
+    fireEvent.contextMenu(within(tree).getByRole("heading", { name: "Demo API" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "TLS…" }));
+    const dialog = await screen.findByRole("dialog", { name: "TLS" });
+    await userEvent.type(
+      await within(dialog).findByRole("textbox", { name: "Extra trusted CA" }),
+      "certs/ca.pem",
+    );
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText("TLS settings saved")).toBeInTheDocument();
+  });
+});

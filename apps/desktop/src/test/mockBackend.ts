@@ -13,6 +13,7 @@
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC } from "@tauri-apps/api/mocks";
 
+import { applyAuth, authCommand, resetAuth } from "./mockAuth";
 import { phase4Command, phase4Route, recordHistory, resetHistory } from "./mockExtras";
 import {
   apply,
@@ -57,6 +58,7 @@ const get = (stored: Partial<StoredRequest> & { name: string; url?: string }): S
   },
   examples: [],
   settings: { timeoutMs: null, followRedirects: true, verifyTls: true },
+  auth: { type: "inherit" },
 });
 
 function seed(): void {
@@ -279,6 +281,7 @@ export function installMockBackend(): void {
   seed();
   seedEnvironments(DEMO_ROOT);
   resetHistory();
+  resetAuth();
   const pending = new Map<string, (error: AppError) => void>();
   mockIPC(
     (command, payload) => {
@@ -287,7 +290,9 @@ export function installMockBackend(): void {
       if (command === "plugin:dialog|save") return Promise.resolve("/tmp/saved-body");
       if (command === "request_preview" || command === "request_send") {
         const sendArgs = args as unknown as RequestSendArgs;
-        const resolved = resolveFor(sendArgs, command === "request_preview");
+        const variables = resolveFor(sendArgs, command === "request_preview");
+        if ("code" in variables) return Promise.reject(variables);
+        const resolved = applyAuth(sendArgs, variables, command === "request_preview");
         if ("code" in resolved) return Promise.reject(resolved);
         if (command === "request_preview") return Promise.resolve(resolved);
         const { requestId } = sendArgs;
@@ -310,6 +315,8 @@ export function installMockBackend(): void {
         const result = overlay(o.base, o.draft, o.id, o.name);
         return "code" in result ? Promise.reject(result) : Promise.resolve(result);
       }
+      const auth = authCommand(command, args);
+      if (auth) return auth;
       const extra = phase4Command(command, args, (send, masked) =>
         resolveFor(send as unknown as RequestSendArgs, masked),
       );

@@ -31,6 +31,7 @@ import {
 import { CurlImportDialog } from "./features/curl/CurlImportDialog";
 import { useEnvironments } from "./features/environments/environmentsStore";
 import { HistoryPanel } from "./features/history/HistoryPanel";
+import { AuthPanel } from "./features/request/AuthPanel";
 import { SettingsPanel } from "./features/request/SettingsPanel";
 import { ExamplesBar } from "./features/examples/ExamplesBar";
 import { cancelSend, confirmSend, sendTab, useSendConfirm } from "./features/send/sendFlow";
@@ -174,6 +175,7 @@ function RequestView({ tab }: { tab: Tab }) {
         <ConflictBar tab={tab} />
         <RequestBar tab={tab} />
         <ExamplesBar tab={tab} />
+        <AuthPanel tab={tab} />
         <SettingsPanel tab={tab} />
         <PanelBoundary name="Headers">
           <HeadersEditor tab={tab} />

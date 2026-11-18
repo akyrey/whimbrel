@@ -1,4 +1,8 @@
 import type {
+  Auth,
+  CollectionTls,
+  DeviceCode,
+  OAuthStatus,
   CollectionView,
   CurlImported,
   HistoryEntry,
@@ -47,6 +51,36 @@ export const historyList = (
 export const historyGet = (id: number): Promise<HistoryEntry> => call("history_get", { id });
 
 export const historyClear = (): Promise<null> => call("history_clear");
+
+/** The OAuth 2 token state of the request's effective auth (never the token). */
+export const oauthStatus = (args: RequestSendArgs): Promise<OAuthStatus> =>
+  call("oauth_status", args);
+
+/** Gets a token by the configured grant; the device code, if any, comes to `onDevice`.
+ * `requestCancel("oauth:<requestId>")` stops it. */
+export function oauthAuthorize(
+  args: RequestSendArgs,
+  onDevice: (device: DeviceCode) => void,
+): Promise<OAuthStatus> {
+  const channel = new Channel<DeviceCode>();
+  channel.onmessage = onDevice;
+  return callWith("oauth_authorize", args, { onDevice: channel });
+}
+
+export const oauthForget = (args: RequestSendArgs): Promise<null> => call("oauth_forget", args);
+
+/** A folder's auth (`path`), or the collection's (`path` empty). */
+export const nodeAuthRead = (root: string, path: string): Promise<Auth> =>
+  call("node_auth_read", { root, path });
+
+export const nodeAuthSave = (root: string, path: string, auth: Auth): Promise<null> =>
+  call("node_auth_save", { root, path, auth });
+
+export const collectionTlsRead = (root: string): Promise<CollectionTls> =>
+  call("collection_tls_read", { root });
+
+export const collectionTlsSave = (root: string, tls: CollectionTls): Promise<null> =>
+  call("collection_tls_save", { root, tls });
 
 /** The resolved request as a cURL command; secret values only when `reveal`. */
 export const curlExport = (send: RequestSendArgs, reveal: boolean): Promise<string> =>

@@ -6,13 +6,13 @@ are the seeds for those briefs.
 
 ## Status
 
-- [ ] Phase 0: Extract the shared kit from Dunlin — 0a–0d done locally; waiting on publishing
-      `akyrey/roost` and `akyrey/whimbrel` and refreshing the lockfiles (see "Publishing" below)
+- [ ] Phase 0: Extract the shared kit from Dunlin — Roost and Whimbrel published; Dunlin's switch
+      to Roost to finish (see "Publishing" below)
 - [x] Phase 1: Skeleton — send a request ([brief](phases/phase-1-skeleton.md))
 - [x] Phase 2: Collections on disk ([brief](phases/phase-2-collections.md))
 - [x] Phase 3: Environments, variables and secrets ([brief](phases/phase-3-environments.md))
 - [x] Phase 4: Responses, history, streaming ([brief](phases/phase-4-responses.md))
-- [ ] Phase 5: Auth
+- [x] Phase 5: Auth ([brief](phases/phase-5-auth.md))
 - [ ] Phase 6: OpenAPI import and spec browser
 - [ ] Phase 7: Chaining, assertions, runner, re-import
 - [ ] Phase 8: Polish, interop, release
@@ -33,20 +33,12 @@ develop against a linked local checkout and tag Roost at the end of each phase. 
 
 ## Publishing (the rest of Phase 0)
 
-Done locally, not pushed:
-
-- Dunlin, branch `refactor/roost-seams`: the kit extracted inside Dunlin behind `@roost/*`
-  aliases and `roost-*` crates (0a). Self-contained: it builds and passes as is.
-- Roost, `../roost`, tag `v0.1.0`: the kit with its history (0b).
-- Dunlin, branch `chore/use-roost` (on top of 0a): Dunlin on the Roost tag (0c). Its lockfiles
-  can only be refreshed once Roost is on GitHub.
-- Whimbrel, this repository (0d), linked to `../roost` for development; no lockfiles committed.
-
-To finish: create `akyrey/roost` (public, so the reusable workflow and git dependencies need no
-token) and push `main` and `v0.1.0`; then in Dunlin (`chore/use-roost`) and here run
-`scripts/unlink-roost.sh`, `cargo update -p roost-shell -p roost-keychain` and
-`pnpm --dir apps/desktop install`, and commit the lockfiles; create `akyrey/whimbrel` and push.
-Check that an installed Dunlin updates to a release built through Roost's workflow.
+Done 2026-11-19: `akyrey/roost` and `akyrey/whimbrel` are on GitHub. Installing Roost's
+packages from git showed that `workspace:*` between them does not resolve outside Roost's
+workspace; Roost `v0.1.1` lists sibling packages as peer dependencies instead, and Whimbrel
+uses `v0.1.1` with committed lockfiles. Still to do: Dunlin's `chore/use-roost` branch moves to
+`v0.1.1`, refreshes its lockfiles and is pushed; then a Dunlin release through Roost's workflow
+is checked to update an installed copy.
 
 ## Phases
 

@@ -2,6 +2,8 @@ import { Button, ConfirmDialog, ContextMenu, type ContextMenuItem } from "@roost
 import { type MouseEvent, useEffect, useState } from "react";
 
 import type { CollectionView, Node } from "../../ipc";
+import { AuthDialog } from "../auth/AuthDialog";
+import { TlsDialog } from "../auth/TlsDialog";
 import { EnvironmentEditor } from "../environments/EnvironmentEditor";
 import { NO_ENVIRONMENTS, useEnvironments } from "../environments/environmentsStore";
 import { fileTabId } from "../tabs/model";
@@ -23,6 +25,8 @@ import { NameDialog } from "./NameDialog";
 type Menu = { x: number; y: number; label: string; items: ContextMenuItem[] };
 
 type Dialog =
+  | { kind: "auth"; root: string; folder: string; name: string }
+  | { kind: "tls"; root: string }
   | { kind: "name"; title: string; initial: string; confirm: string; run: (name: string) => void }
   | { kind: "confirm"; title: string; message: string; run: () => void };
 
@@ -255,6 +259,18 @@ function EnvironmentPicker({ root }: { root: string }) {
 function CollectionItem({ view, ui }: { view: CollectionView; ui: Ui }) {
   const items = [
     ...containerItems(ui, view.root, ""),
+    {
+      label: "Auth…",
+      onSelect: () => {
+        ui.ask({ kind: "auth", root: view.root, folder: "", name: view.collection.name });
+      },
+    },
+    {
+      label: "TLS…",
+      onSelect: () => {
+        ui.ask({ kind: "tls", root: view.root });
+      },
+    },
     { label: "Close collection", onSelect: () => void closeCollection(view.root) },
   ];
   return (
@@ -336,6 +352,24 @@ export function CollectionTree() {
           onSubmit={(name) => {
             setDialog(null);
             dialog.run(name);
+          }}
+        />
+      )}
+      {dialog?.kind === "auth" && (
+        <AuthDialog
+          root={dialog.root}
+          folder={dialog.folder}
+          name={dialog.name}
+          onClose={() => {
+            setDialog(null);
+          }}
+        />
+      )}
+      {dialog?.kind === "tls" && (
+        <TlsDialog
+          root={dialog.root}
+          onClose={() => {
+            setDialog(null);
           }}
         />
       )}

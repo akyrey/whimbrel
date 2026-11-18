@@ -185,8 +185,14 @@ pub async fn oauth_authorize(
                 .map_err(|e| format!("Could not open the browser: {e}"))
         };
         let show = |device: &DeviceCode| {
-            // A closed window cannot be told; polling goes on.
+            // A closed window cannot be told, and a browser that does not open leaves the code
+            // on screen: polling goes on either way.
             let _ = on_device.send(device.clone());
+            let page = device
+                .verification_uri_complete
+                .as_deref()
+                .unwrap_or(&device.verification_uri);
+            let _ = app.opener().open_url(page, None::<&str>);
         };
         let result = authorize(&state.oauth, &secrets, &context, &ticket.token, open, show).await;
         state.in_flight.finish(&id, &ticket)?;

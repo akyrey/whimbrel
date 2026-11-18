@@ -23,8 +23,8 @@ wbl-format = { path = "crates/wbl-format" }
 wbl-store = { path = "crates/wbl-store" }
 wbl-auth = { path = "crates/wbl-auth" }
 # The kit shared with Dunlin (D-H09). scripts/link-roost.sh points these at a local checkout.
-roost-keychain = { git = "https://github.com/akyrey/roost", tag = "v0.1.0" }
-roost-shell = { git = "https://github.com/akyrey/roost", tag = "v0.1.0" }
+roost-keychain = { git = "https://github.com/akyrey/roost", tag = "v0.1.1" }
+roost-shell = { git = "https://github.com/akyrey/roost", tag = "v0.1.1" }
 
 rstest = "0.28"
 serde = { version = "1", features = ["derive"] }
