@@ -1,11 +1,16 @@
 import { Button } from "@roost/ui";
 
-import { useRequest } from "./requestStore";
+import type { StoredRequest } from "../../ipc";
+import type { Tab } from "../tabs/model";
+import { useTabs } from "../tabs/tabsStore";
+import { addHeader, removeHeader, updateHeader } from "./editing";
 
 /** The request's headers: name, value, on/off; order is kept, duplicates allowed. */
-export function HeadersEditor() {
-  const headers = useRequest((s) => s.request.headers);
-  const { addHeader, updateHeader, removeHeader } = useRequest.getState();
+export function HeadersEditor({ tab }: { tab: Tab }) {
+  const { headers } = tab.draft.request;
+  const edit = (change: (draft: StoredRequest) => StoredRequest) => {
+    useTabs.getState().edit(tab.id, change);
+  };
 
   return (
     <div className="flex flex-col gap-1 text-sm">
@@ -16,7 +21,7 @@ export function HeadersEditor() {
             aria-label={`Send header ${String(index + 1)}`}
             checked={header.enabled}
             onChange={(e) => {
-              updateHeader(index, { enabled: e.target.checked });
+              edit(updateHeader(index, { enabled: e.target.checked }));
             }}
           />
           <input
@@ -25,7 +30,7 @@ export function HeadersEditor() {
             className="input w-56 font-mono"
             value={header.name}
             onChange={(e) => {
-              updateHeader(index, { name: e.target.value });
+              edit(updateHeader(index, { name: e.target.value }));
             }}
           />
           <input
@@ -34,13 +39,13 @@ export function HeadersEditor() {
             className="input min-w-0 flex-1 font-mono"
             value={header.value}
             onChange={(e) => {
-              updateHeader(index, { value: e.target.value });
+              edit(updateHeader(index, { value: e.target.value }));
             }}
           />
           <Button
             aria-label={`Remove header ${String(index + 1)}`}
             onClick={() => {
-              removeHeader(index);
+              edit(removeHeader(index));
             }}
           >
             ✕
@@ -48,7 +53,13 @@ export function HeadersEditor() {
         </div>
       ))}
       <div>
-        <Button onClick={addHeader}>Add header</Button>
+        <Button
+          onClick={() => {
+            edit(addHeader);
+          }}
+        >
+          Add header
+        </Button>
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ are the seeds for those briefs.
 - [ ] Phase 0: Extract the shared kit from Dunlin — 0a–0d done locally; waiting on publishing
       `akyrey/roost` and `akyrey/whimbrel` and refreshing the lockfiles (see "Publishing" below)
 - [x] Phase 1: Skeleton — send a request ([brief](phases/phase-1-skeleton.md))
-- [ ] Phase 2: Collections on disk
+- [x] Phase 2: Collections on disk ([brief](phases/phase-2-collections.md))
 - [ ] Phase 3: Environments, variables and secrets
 - [ ] Phase 4: Responses, history, streaming
 - [ ] Phase 5: Auth

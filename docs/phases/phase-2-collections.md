@@ -24,11 +24,18 @@ Design: [FILE_FORMAT.md](../FILE_FORMAT.md), [PRD.md](../PRD.md) FR-1, FR-2.7, D
 - [x] 2.6 File watcher (`notify`, debounced): a `collection_changed` event with the changed
       paths (hidden files and the writer's temporary files left out). The app's own saves are
       reported too and recognised in the frontend: the tab already holds the file's new hash.
-- [ ] 2.7 Frontend: the collection tree in the sidebar, tabs for open requests with an unsaved
+- [x] 2.7 Frontend: the collection tree in the sidebar, tabs for open requests with an unsaved
       marker, save (Mod-s), a keep-mine / take-theirs prompt when an unsaved tab's file changes
       on disk, context menus for the operations, the open collections and tabs restored on start.
-- [ ] 2.8 E2E against the mocked backend: open a collection, edit and save, create, rename,
+- [x] 2.8 E2E against the mocked backend: open a collection, edit and save, create, rename,
       delete, and an external change while a tab is unsaved.
+
+## Notes
+
+- Renaming and reordering folders, and drag-and-drop moves, have commands but no UI yet; the
+  tree's menus cover new, rename, duplicate and delete. Picked up with Phase 8 polish.
+- The `git diff` and `git checkout` acceptance checks need the real app on a real folder:
+  covered by `wbl-format`'s byte-level tests and the watcher test, not yet by hand.
 
 ## Acceptance
 

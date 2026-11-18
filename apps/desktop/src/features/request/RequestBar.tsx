@@ -1,7 +1,9 @@
 import { Button } from "@roost/ui";
 
 import { shortcutLabel } from "../shortcuts/registry";
-import { useRequest } from "./requestStore";
+import type { Tab } from "../tabs/model";
+import { useTabs } from "../tabs/tabsStore";
+import { setMethod, setUrl } from "./editing";
 
 /** Methods offered in the list; any other token can be typed (QUERY, PROPFIND, …). */
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "QUERY"];
@@ -9,18 +11,17 @@ const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "QU
 export const URL_INPUT_ID = "request-url";
 
 /** Method, URL and Send/Cancel. */
-export function RequestBar() {
-  const method = useRequest((s) => s.request.method);
-  const url = useRequest((s) => s.request.url);
-  const sending = useRequest((s) => s.status.kind === "sending");
-  const { setMethod, setUrl, send, cancel } = useRequest.getState();
+export function RequestBar({ tab }: { tab: Tab }) {
+  const { method, url } = tab.draft.request;
+  const sending = tab.status.kind === "sending";
+  const { edit, send, cancel } = useTabs.getState();
 
   return (
     <form
       className="flex items-center gap-2"
       onSubmit={(e) => {
         e.preventDefault();
-        void send();
+        void send(tab.id);
       }}
     >
       <input
@@ -29,7 +30,7 @@ export function RequestBar() {
         className="input w-28 font-mono font-semibold uppercase"
         value={method}
         onChange={(e) => {
-          setMethod(e.target.value);
+          edit(tab.id, setMethod(e.target.value));
         }}
       />
       <datalist id="request-methods">
@@ -45,13 +46,13 @@ export function RequestBar() {
         value={url}
         spellCheck={false}
         onChange={(e) => {
-          setUrl(e.target.value);
+          edit(tab.id, setUrl(e.target.value));
         }}
       />
       {/* Distinct keys: if React reused one <button>, a click on Cancel that ends the request
           could still submit the form once the button turns back into Send. */}
       {sending ? (
-        <Button key="cancel" onClick={() => void cancel()} title={shortcutLabel("cancel")}>
+        <Button key="cancel" onClick={() => void cancel(tab.id)} title={shortcutLabel("cancel")}>
           Cancel
         </Button>
       ) : (

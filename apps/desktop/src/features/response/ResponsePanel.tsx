@@ -2,7 +2,7 @@ import { Skeleton } from "@roost/ui";
 import { Suspense, lazy, useState } from "react";
 
 import type { Response } from "../../ipc";
-import { useRequest } from "../request/requestStore";
+import type { SendStatus } from "../tabs/model";
 import { formatSize, showBody, statusTone } from "./format";
 
 const ReadOnlyCode = lazy(async () => ({ default: (await import("@roost/editor")).ReadOnlyCode }));
@@ -61,8 +61,7 @@ function HeadersView({ response }: { response: Response }) {
 
 type View = "body" | "headers";
 
-export function ResponsePanel() {
-  const status = useRequest((s) => s.status);
+export function ResponsePanel({ status }: { status: SendStatus }) {
   const [view, setView] = useState<View>("body");
 
   if (status.kind === "idle") {

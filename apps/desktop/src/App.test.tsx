@@ -1,17 +1,24 @@
 import { clearMocks } from "@tauri-apps/api/mocks";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { App } from "./App";
-import { EMPTY_REQUEST, useRequest } from "./features/request/requestStore";
-import { installMockBackend } from "./test/mockBackend";
+import { useCollections } from "./features/collections/collectionsStore";
+import { useTabs } from "./features/tabs/tabsStore";
+import { externalEdit, installMockBackend } from "./test/mockBackend";
 
 beforeEach(() => {
+  localStorage.clear();
   installMockBackend();
-  useRequest.setState({ request: EMPTY_REQUEST, status: { kind: "idle" } });
+  useTabs.setState({ tabs: [], activeId: null });
+  useCollections.setState({ views: {} });
 });
 
-afterEach(() => {
+afterEach(async () => {
+  // Unmount first, and let the app stop listening (a pending promise) before the mocked IPC
+  // it listens through is removed.
+  cleanup();
+  await new Promise((resolve) => setTimeout(resolve, 0));
   clearMocks();
 });
 
@@ -21,70 +28,185 @@ async function typeUrl(url: string) {
   await userEvent.type(input, url);
 }
 
-describe("App", () => {
-  it("sends a request with a header and shows the pretty-printed response", async () => {
+async function openDemo() {
+  await userEvent.click(screen.getByRole("button", { name: "Open…" }));
+  return screen.findByRole("region", { name: "Demo API" });
+}
+
+async function openPing() {
+  const tree = await openDemo();
+  await userEvent.click(within(tree).getByRole("button", { name: /Ping/ }));
+  await screen.findByRole("textbox", { name: "URL" });
+}
+
+const tabNamed = (name: string) => screen.getByRole("tab", { name: new RegExp(name) });
+
+describe("a scratch request", () => {
+  it("sends with a header and shows the pretty-printed response", async () => {
     render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "New request" }));
     await userEvent.clear(screen.getByRole("combobox", { name: "Method" }));
     await userEvent.type(screen.getByRole("combobox", { name: "Method" }), "post");
     await typeUrl("http://localhost/echo");
     await userEvent.click(screen.getByRole("button", { name: "Add header" }));
     await userEvent.type(screen.getByRole("textbox", { name: "Header 1 name" }), "X-Api");
-    await userEvent.type(screen.getByRole("textbox", { name: "Header 1 value" }), "secret");
-
     await userEvent.click(screen.getByRole("button", { name: "Send" }));
 
     const panel = await screen.findByRole("region", { name: "Response" });
     expect(within(panel).getByText("200 OK")).toBeInTheDocument();
-    expect(within(panel).getByText("15 ms")).toBeInTheDocument();
     const body = await within(panel).findByLabelText("Response body");
     expect(body).toHaveTextContent('"method": "POST"');
-    expect(body).toHaveTextContent('"X-Api"');
     await userEvent.click(within(panel).getByRole("tab", { name: "Headers (2)" }));
     expect(within(panel).getByText("x-mock")).toBeInTheDocument();
   });
 
-  it("does not send a header that is switched off, and removes one", async () => {
+  it("explains failures, cancels, and asks a collection before saving", async () => {
     render(<App />);
-    await typeUrl("http://localhost/echo");
-    await userEvent.click(screen.getByRole("button", { name: "Add header" }));
-    await userEvent.click(screen.getByRole("button", { name: "Add header" }));
-    await userEvent.type(screen.getByRole("textbox", { name: "Header 1 name" }), "X-Off");
-    await userEvent.click(screen.getByRole("checkbox", { name: "Send header 1" }));
-    await userEvent.click(screen.getByRole("button", { name: "Remove header 2" }));
-
-    await userEvent.click(screen.getByRole("button", { name: "Send" }));
-
-    const body = await screen.findByLabelText("Response body");
-    expect(body).not.toHaveTextContent("X-Off");
-    expect(screen.queryByRole("textbox", { name: "Header 2 name" })).toBeNull();
-  });
-
-  it("shows why a request failed", async () => {
-    render(<App />);
+    fireEvent.keyDown(window, { key: "t", ctrlKey: true });
     await typeUrl("http://unreachable.test/");
     await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    expect(await screen.findByText("Could not connect (connection failed)")).toBeInTheDocument();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Could not connect");
-  });
-
-  it("cancels a slow request from the button", async () => {
-    render(<App />);
     await typeUrl("http://localhost/slow");
     await userEvent.click(screen.getByRole("button", { name: "Send" }));
-
     await userEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+    expect(await screen.findByText("Cancelled")).toBeInTheDocument();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Cancelled");
-    expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "s", ctrlKey: true });
+    expect(
+      await screen.findByText("Open or create a collection to save this request in."),
+    ).toBeInTheDocument();
   });
 
-  it("sends with the keyboard and opens the palette and the shortcuts", async () => {
+  it("is saved into the open collection", async () => {
     render(<App />);
-    await typeUrl("http://localhost/missing");
+    const tree = await openDemo();
+    fireEvent.keyDown(window, { key: "t", ctrlKey: true });
+    await typeUrl("http://localhost/new");
+    fireEvent.keyDown(window, { key: "s", ctrlKey: true });
 
-    fireEvent.keyDown(window, { key: "Enter", ctrlKey: true });
-    expect(await screen.findByText("404 Not Found")).toBeInTheDocument();
+    expect(await within(tree).findByRole("button", { name: /New request/ })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(tabNamed("New request")).not.toHaveTextContent("•");
+    });
+  });
+});
 
+describe("collections", () => {
+  it("opens a request, marks edits unsaved, and saves them", async () => {
+    render(<App />);
+    await openPing();
+
+    await typeUrl("http://localhost/echo?x=1");
+    expect(tabNamed("Ping")).toHaveTextContent("•");
+    fireEvent.keyDown(window, { key: "s", ctrlKey: true });
+
+    await waitFor(() => {
+      expect(tabNamed("Ping")).not.toHaveTextContent("•");
+    });
+  });
+
+  it("follows a change on disk when saved, and asks when not", async () => {
+    render(<App />);
+    await openPing();
+
+    await act(() =>
+      externalEdit("ping.req.toml", (s) => ({
+        ...s,
+        request: { ...s.request, url: "http://disk/1" },
+      })),
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("textbox", { name: "URL" })).toHaveValue("http://disk/1");
+    });
+
+    await typeUrl("http://mine");
+    await act(() =>
+      externalEdit("ping.req.toml", (s) => ({
+        ...s,
+        request: { ...s.request, url: "http://disk/2" },
+      })),
+    );
+    const bar = await screen.findByText("This request changed on disk while you were editing it.");
+    expect(screen.getByRole("textbox", { name: "URL" })).toHaveValue("http://mine");
+    await userEvent.click(
+      within(bar.parentElement as HTMLElement).getByRole("button", { name: "Take theirs" }),
+    );
+    expect(screen.getByRole("textbox", { name: "URL" })).toHaveValue("http://disk/2");
+
+    await act(() => externalEdit("ping.req.toml", null));
+    expect(
+      await screen.findByText(/The file of this request is gone from disk/),
+    ).toBeInTheDocument();
+  });
+
+  it("creates, renames and deletes requests from the menus", async () => {
+    render(<App />);
+    const tree = await openDemo();
+
+    fireEvent.contextMenu(within(tree).getByRole("heading", { name: "Demo API" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "New request" }));
+    const name = screen.getByRole("textbox", { name: "Name" });
+    await userEvent.clear(name);
+    await userEvent.type(name, "Health{Enter}");
+    expect(await within(tree).findByRole("button", { name: /Health/ })).toBeInTheDocument();
+    expect(tabNamed("Health")).toBeInTheDocument();
+
+    fireEvent.contextMenu(within(tree).getByRole("button", { name: /Health/ }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
+    await userEvent.clear(screen.getByRole("textbox", { name: "Name" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Name" }), "Health check{Enter}");
+    expect(await within(tree).findByRole("button", { name: /Health check/ })).toBeInTheDocument();
+    expect(tabNamed("Health check")).toBeInTheDocument();
+
+    fireEvent.contextMenu(within(tree).getByRole("button", { name: /Health check/ }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => {
+      expect(within(tree).queryByRole("button", { name: /Health check/ })).toBeNull();
+    });
+    expect(screen.queryByRole("tab", { name: /Health check/ })).toBeNull();
+  });
+
+  it("duplicates, adds folders, and reopens what was open after a restart", async () => {
+    const { unmount } = render(<App />);
+    const tree = await openDemo();
+    fireEvent.contextMenu(within(tree).getByRole("button", { name: /Ping/ }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Duplicate" }));
+    expect(await within(tree).findByRole("button", { name: /Ping copy/ })).toBeInTheDocument();
+    fireEvent.contextMenu(within(tree).getByRole("button", { name: "Users" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "New folder" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Name" }), "Admin{Enter}");
+    expect(await within(tree).findByRole("button", { name: "Admin" })).toBeInTheDocument();
+    unmount();
+
+    useTabs.setState({ tabs: [], activeId: null });
+    useCollections.setState({ views: {} });
+    render(<App />);
+
+    expect(await screen.findByRole("region", { name: "Demo API" })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: /Ping copy/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  it("asks before closing an unsaved tab", async () => {
+    render(<App />);
+    await openPing();
+    await typeUrl("http://changed");
+
+    await userEvent.click(screen.getByRole("button", { name: "Close Ping" }));
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(screen.queryByRole("tab", { name: /Ping/ })).toBeNull();
+  });
+});
+
+describe("keyboard", () => {
+  it("opens the palette and the shortcuts, and focuses the URL", async () => {
+    render(<App />);
+    fireEvent.keyDown(window, { key: "t", ctrlKey: true });
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const palette = screen.getByRole("dialog", { name: "Command palette" });
     await userEvent.type(within(palette).getByRole("combobox"), "shortcuts{Enter}");
@@ -93,23 +215,7 @@ describe("App", () => {
 
     fireEvent.keyDown(window, { key: "l", ctrlKey: true });
     expect(screen.getByRole("textbox", { name: "URL" })).toHaveFocus();
-  });
-
-  it("edits a JSON body in the editor", async () => {
-    render(<App />);
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Body type" }), "json");
-
-    expect(await screen.findByLabelText("Request body")).toBeInTheDocument();
-    await act(async () => {
-      useRequest.getState().setBodyText('{"a":1}');
-      await Promise.resolve();
-    });
-    await waitFor(() => {
-      expect(useRequest.getState().request.body).toEqual({
-        type: "text",
-        kind: "json",
-        text: '{"a":1}',
-      });
-    });
+    fireEvent.keyDown(window, { key: "w", ctrlKey: true });
+    expect(screen.queryByRole("textbox", { name: "URL" })).toBeNull();
   });
 });

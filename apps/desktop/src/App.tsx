@@ -1,19 +1,24 @@
 import { CommandPalette, type PaletteItem } from "@roost/palette";
 import { ShortcutsView } from "@roost/shortcuts";
 import {
+  Button,
   EditorSettingsProvider,
   PanelBoundary,
   Toaster,
   resolveTheme,
+  toast,
   useApplyResolvedTheme,
   usePrefersDark,
 } from "@roost/ui";
 import { useEffect, useMemo, useState } from "react";
 
+import { onCollectionChanged, toAppError } from "./ipc";
+import { openCollection } from "./features/collections/actions";
+import { CollectionTree } from "./features/collections/CollectionTree";
+import { useCollections } from "./features/collections/collectionsStore";
 import { BodyEditor } from "./features/request/BodyEditor";
 import { HeadersEditor } from "./features/request/HeadersEditor";
 import { RequestBar, URL_INPUT_ID } from "./features/request/RequestBar";
-import { useRequest } from "./features/request/requestStore";
 import { ResponsePanel } from "./features/response/ResponsePanel";
 import {
   SHORTCUT_GROUPS,
@@ -22,16 +27,43 @@ import {
   registry,
   shortcutLabel,
 } from "./features/shortcuts/registry";
+import { ConflictBar } from "./features/tabs/ConflictBar";
+import type { Tab } from "./features/tabs/model";
+import { TabStrip } from "./features/tabs/TabStrip";
+import { useActiveTab, useTabs } from "./features/tabs/tabsStore";
 
 type Overlay = "palette" | "shortcuts" | null;
 
 const EDITOR_FONT = { family: "ui-monospace, SFMono-Regular, Menlo, monospace", size: 13 };
 
-function focusUrl() {
-  document.getElementById(URL_INPUT_ID)?.focus();
+const activeId = () => useTabs.getState().activeId;
+
+/** Saves the active tab; a scratch tab goes to the top of the first open collection. */
+async function saveActive(): Promise<void> {
+  const id = activeId();
+  if (!id) return;
+  const tab = useTabs.getState().tabs.find((t) => t.id === id);
+  const firstRoot = Object.keys(useCollections.getState().views)[0];
+  if (tab?.file === null && firstRoot === undefined) {
+    toast.info("Open or create a collection to save this request in.");
+    return;
+  }
+  try {
+    await useTabs
+      .getState()
+      .save(id, firstRoot === undefined ? undefined : { root: firstRoot, path: "" });
+    const root = useTabs.getState().tabs.find((t) => t.id === activeId())?.file?.root;
+    if (root) await useCollections.getState().refresh(root);
+  } catch (caught) {
+    const error = toAppError(caught);
+    toast.error(
+      error.code === "conflict"
+        ? "The file changed on disk since it was opened; it is shown again in a moment."
+        : `Could not save: ${error.message}`,
+    );
+  }
 }
 
-/** Runs a shortcut; returns whether it did anything. */
 function useShortcutActions(setOverlay: (overlay: Overlay) => void) {
   return useMemo(
     (): Record<ShortcutId, () => void> => ({
@@ -41,9 +73,25 @@ function useShortcutActions(setOverlay: (overlay: Overlay) => void) {
       shortcuts: () => {
         setOverlay("shortcuts");
       },
-      send: () => void useRequest.getState().send(),
-      cancel: () => void useRequest.getState().cancel(),
-      "focus-url": focusUrl,
+      "new-tab": () => {
+        useTabs.getState().newScratch();
+      },
+      "close-tab": () => {
+        const id = activeId();
+        if (id) useTabs.getState().close(id);
+      },
+      save: () => void saveActive(),
+      send: () => {
+        const id = activeId();
+        if (id) void useTabs.getState().send(id);
+      },
+      cancel: () => {
+        const id = activeId();
+        if (id) void useTabs.getState().cancel(id);
+      },
+      "focus-url": () => {
+        document.getElementById(URL_INPUT_ID)?.focus();
+      },
     }),
     [setOverlay],
   );
@@ -59,10 +107,69 @@ function paletteItems(actions: Record<ShortcutId, () => void>): PaletteItem[] {
   });
   return [
     item("send", "Send the request"),
+    item("save", "Save the request"),
+    item("new-tab", "New request tab"),
     item("cancel", "Cancel the request"),
     item("focus-url", "Go to the URL"),
     item("shortcuts", "Keyboard shortcuts"),
+    {
+      id: "open-collection",
+      group: "Collections",
+      label: "Open a collection",
+      run: () => void openCollection(),
+    },
   ];
+}
+
+/** Reopens what was open at the last quit, and follows changes on disk. */
+function useCollectionsLifecycle() {
+  useEffect(() => {
+    void (async () => {
+      const failed = await useCollections.getState().restore();
+      if (failed.length > 0) toast.error(`Could not reopen: ${failed.join(", ")}`);
+      await useTabs.getState().restore();
+    })();
+    const stop = onCollectionChanged((changed) => {
+      void useCollections.getState().refresh(changed.root);
+      void useTabs.getState().changedOnDisk(changed.root, changed.paths);
+    });
+    return () => {
+      void stop.then((unlisten) => {
+        unlisten();
+      });
+    };
+  }, []);
+}
+
+function RequestView({ tab }: { tab: Tab }) {
+  return (
+    <>
+      <section aria-label="Request" className="flex flex-col gap-3 border-b border-zinc-800 p-4">
+        <ConflictBar tab={tab} />
+        <RequestBar tab={tab} />
+        <PanelBoundary name="Headers">
+          <HeadersEditor tab={tab} />
+        </PanelBoundary>
+        <div className="flex h-56 flex-col">
+          <PanelBoundary name="Body">
+            <BodyEditor tab={tab} />
+          </PanelBoundary>
+        </div>
+      </section>
+      <PanelBoundary name="Response">
+        <ResponsePanel status={tab.status} />
+      </PanelBoundary>
+    </>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-zinc-400">
+      <p>Open a request from a collection, or start a new one.</p>
+      <Button onClick={useTabs.getState().newScratch}>New request</Button>
+    </div>
+  );
 }
 
 export function App() {
@@ -71,6 +178,8 @@ export function App() {
   useApplyResolvedTheme(theme);
   const actions = useShortcutActions(setOverlay);
   const editorSettings = useMemo(() => ({ theme, font: EDITOR_FONT }), [theme]);
+  const tab = useActiveTab();
+  useCollectionsLifecycle();
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -91,22 +200,17 @@ export function App() {
 
   return (
     <EditorSettingsProvider settings={editorSettings}>
-      <main className="flex h-full flex-col">
-        <section aria-label="Request" className="flex flex-col gap-3 border-b border-zinc-800 p-4">
-          <RequestBar />
-          <PanelBoundary name="Headers">
-            <HeadersEditor />
+      <div className="flex h-full">
+        <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-800 bg-zinc-900">
+          <PanelBoundary name="Collections">
+            <CollectionTree />
           </PanelBoundary>
-          <div className="flex h-56 flex-col">
-            <PanelBoundary name="Body">
-              <BodyEditor />
-            </PanelBoundary>
-          </div>
-        </section>
-        <PanelBoundary name="Response">
-          <ResponsePanel />
-        </PanelBoundary>
-      </main>
+        </aside>
+        <main className="flex min-w-0 flex-1 flex-col">
+          <TabStrip />
+          {tab ? <RequestView key={tab.id} tab={tab} /> : <EmptyState />}
+        </main>
+      </div>
       {overlay === "palette" && <CommandPalette commands={paletteItems(actions)} onClose={close} />}
       {overlay === "shortcuts" && (
         <ShortcutsView registry={registry} groups={SHORTCUT_GROUPS} onClose={close} />

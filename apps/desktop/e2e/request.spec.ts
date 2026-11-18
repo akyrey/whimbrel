@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("send a POST with a JSON body and read the response", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "New request", exact: true }).click();
   await page.getByRole("combobox", { name: "Method" }).fill("POST");
   await page.getByRole("textbox", { name: "URL" }).fill("http://localhost/echo");
   await page.getByRole("combobox", { name: "Body type" }).selectOption("json");
@@ -19,6 +20,7 @@ test("send a POST with a JSON body and read the response", async ({ page }) => {
 
 test("cancel a slow request, then send another", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "New request", exact: true }).click();
   await page.getByRole("textbox", { name: "URL" }).fill("http://localhost/slow");
   await page.getByRole("button", { name: "Send" }).click();
   await page.getByRole("button", { name: "Cancel" }).click();
@@ -31,6 +33,7 @@ test("cancel a slow request, then send another", async ({ page }) => {
 
 test("an invalid URL is explained", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "New request", exact: true }).click();
   await page.getByRole("textbox", { name: "URL" }).fill("localhost/users");
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByRole("alert")).toContainText("The URL needs http:// or https://");
@@ -38,6 +41,7 @@ test("an invalid URL is explained", async ({ page }) => {
 
 test("the palette runs commands", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "New request", exact: true }).click();
   await page.keyboard.press("ControlOrMeta+k");
   await page.getByRole("combobox", { name: "Search commands" }).fill("shortcuts");
   await page.keyboard.press("Enter");

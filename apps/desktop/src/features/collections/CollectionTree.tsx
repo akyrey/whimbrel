@@ -1,0 +1,282 @@
+import { Button, ConfirmDialog, ContextMenu, type ContextMenuItem } from "@roost/ui";
+import { type MouseEvent, useState } from "react";
+
+import type { CollectionView, Node } from "../../ipc";
+import { useTabs } from "../tabs/tabsStore";
+import {
+  chooseCollectionFolder,
+  closeCollection,
+  createCollection,
+  deleteNode,
+  duplicateRequest,
+  newFolder,
+  newRequest,
+  openCollection,
+  renameRequest,
+} from "./actions";
+import { useCollections } from "./collectionsStore";
+import { NameDialog } from "./NameDialog";
+
+type Menu = { x: number; y: number; label: string; items: ContextMenuItem[] };
+
+type Dialog =
+  | { kind: "name"; title: string; initial: string; confirm: string; run: (name: string) => void }
+  | { kind: "confirm"; title: string; message: string; run: () => void };
+
+type Ui = {
+  menu: (event: MouseEvent, label: string, items: ContextMenuItem[]) => void;
+  ask: (dialog: Dialog) => void;
+};
+
+const METHOD_CLASS: Record<string, string> = {
+  GET: "text-emerald-400",
+  POST: "text-amber-300",
+  PUT: "text-sky-300",
+  PATCH: "text-violet-300",
+  DELETE: "text-rose-400",
+};
+
+function containerItems(ui: Ui, root: string, folder: string): ContextMenuItem[] {
+  return [
+    {
+      label: "New request",
+      onSelect: () => {
+        ui.ask({
+          kind: "name",
+          title: "New request",
+          initial: "New request",
+          confirm: "Create",
+          run: (name) => void newRequest(root, folder, name),
+        });
+      },
+    },
+    {
+      label: "New folder",
+      onSelect: () => {
+        ui.ask({
+          kind: "name",
+          title: "New folder",
+          initial: "",
+          confirm: "Create",
+          run: (name) => void newFolder(root, folder, name),
+        });
+      },
+    },
+  ];
+}
+
+function deleteItem(ui: Ui, root: string, path: string, name: string, folder: boolean) {
+  return {
+    label: "Delete",
+    destructive: true,
+    onSelect: () => {
+      ui.ask({
+        kind: "confirm",
+        title: folder ? "Delete folder?" : "Delete request?",
+        message: folder
+          ? `"${name}" and everything in it are deleted from disk.`
+          : `"${name}" is deleted from disk.`,
+        run: () => void deleteNode(root, path),
+      });
+    },
+  };
+}
+
+function NodeItem({ node, root, ui, depth }: { node: Node; root: string; ui: Ui; depth: number }) {
+  const [open, setOpen] = useState(true);
+  const indent = { paddingLeft: `${String(depth * 12 + 8)}px` };
+  if (node.kind === "broken") {
+    return (
+      <li
+        className="truncate py-0.5 text-sm text-rose-400"
+        style={indent}
+        title={node.error}
+        aria-label={`${node.path} cannot be read: ${node.error}`}
+      >
+        ⚠ {node.path}
+      </li>
+    );
+  }
+  if (node.kind === "request") {
+    const items: ContextMenuItem[] = [
+      {
+        label: "Rename",
+        onSelect: () => {
+          ui.ask({
+            kind: "name",
+            title: "Rename request",
+            initial: node.name,
+            confirm: "Rename",
+            run: (name) => void renameRequest(root, node.path, name),
+          });
+        },
+      },
+      { label: "Duplicate", onSelect: () => void duplicateRequest(root, node.path) },
+      deleteItem(ui, root, node.path, node.name, false),
+    ];
+    return (
+      <li>
+        <button
+          type="button"
+          className="flex w-full items-center gap-2 py-0.5 text-left text-sm text-zinc-300 hover:bg-zinc-800"
+          style={indent}
+          onClick={() => void useTabs.getState().openFile({ root, path: node.path })}
+          onContextMenu={(e) => {
+            ui.menu(e, `Actions for ${node.name}`, items);
+          }}
+        >
+          <span
+            className={`w-12 shrink-0 font-mono text-[10px] ${METHOD_CLASS[node.method] ?? "text-zinc-400"}`}
+          >
+            {node.method}
+          </span>
+          <span className="truncate">{node.name}</span>
+        </button>
+      </li>
+    );
+  }
+  const items = [
+    ...containerItems(ui, root, node.path),
+    deleteItem(ui, root, node.path, node.name, true),
+  ];
+  return (
+    <li>
+      <button
+        type="button"
+        aria-expanded={open}
+        className="flex w-full items-center gap-1 py-0.5 text-left text-sm text-zinc-200 hover:bg-zinc-800"
+        style={indent}
+        onClick={() => {
+          setOpen(!open);
+        }}
+        onContextMenu={(e) => {
+          ui.menu(e, `Actions for ${node.name}`, items);
+        }}
+      >
+        <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+        {node.name}
+      </button>
+      {open && <Nodes nodes={node.children} root={root} ui={ui} depth={depth + 1} />}
+    </li>
+  );
+}
+
+function Nodes({ nodes, root, ui, depth }: { nodes: Node[]; root: string; ui: Ui; depth: number }) {
+  return (
+    <ul>
+      {nodes.map((node) => (
+        <NodeItem
+          key={node.kind === "broken" ? node.path : node.path}
+          node={node}
+          root={root}
+          ui={ui}
+          depth={depth}
+        />
+      ))}
+    </ul>
+  );
+}
+
+function CollectionItem({ view, ui }: { view: CollectionView; ui: Ui }) {
+  const items = [
+    ...containerItems(ui, view.root, ""),
+    { label: "Close collection", onSelect: () => void closeCollection(view.root) },
+  ];
+  return (
+    <section aria-label={view.collection.name} className="py-1">
+      <h2
+        className="truncate px-2 py-1 text-xs font-semibold uppercase tracking-wide text-zinc-400"
+        title={view.root}
+        onContextMenu={(e) => {
+          ui.menu(e, `Actions for ${view.collection.name}`, items);
+        }}
+      >
+        {view.collection.name}
+      </h2>
+      {view.collection.children.length === 0 ? (
+        <p className="px-2 text-xs text-zinc-500">Empty. Right-click the name to add a request.</p>
+      ) : (
+        <Nodes nodes={view.collection.children} root={view.root} ui={ui} depth={0} />
+      )}
+    </section>
+  );
+}
+
+/** The open collections, with menus for their requests and folders (Phase 2, task 2.7). */
+export function CollectionTree() {
+  const views = useCollections((s) => s.views);
+  const [menu, setMenu] = useState<Menu | null>(null);
+  const [dialog, setDialog] = useState<Dialog | null>(null);
+  const ui: Ui = {
+    menu: (event, label, items) => {
+      event.preventDefault();
+      setMenu({ x: event.clientX, y: event.clientY, label, items });
+    },
+    ask: setDialog,
+  };
+  const startCollection = async () => {
+    const root = await chooseCollectionFolder();
+    if (!root) return;
+    ui.ask({
+      kind: "name",
+      title: "New collection",
+      initial: "",
+      confirm: "Create",
+      run: (name) => void createCollection(root, name),
+    });
+  };
+
+  return (
+    <nav aria-label="Collections" className="flex min-h-0 flex-1 flex-col">
+      <div className="flex gap-1 p-2">
+        <Button onClick={() => void openCollection()}>Open…</Button>
+        <Button onClick={() => void startCollection()}>New collection…</Button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {Object.values(views).map((view) => (
+          <CollectionItem key={view.root} view={view} ui={ui} />
+        ))}
+      </div>
+      {menu && (
+        <ContextMenu
+          label={menu.label}
+          x={menu.x}
+          y={menu.y}
+          items={menu.items}
+          onClose={() => {
+            setMenu(null);
+          }}
+        />
+      )}
+      {dialog?.kind === "name" && (
+        <NameDialog
+          title={dialog.title}
+          label="Name"
+          initial={dialog.initial}
+          confirmLabel={dialog.confirm}
+          onCancel={() => {
+            setDialog(null);
+          }}
+          onSubmit={(name) => {
+            setDialog(null);
+            dialog.run(name);
+          }}
+        />
+      )}
+      {dialog?.kind === "confirm" && (
+        <ConfirmDialog
+          title={dialog.title}
+          message={dialog.message}
+          confirmLabel="Delete"
+          onCancel={() => {
+            setDialog(null);
+          }}
+          onConfirm={() => {
+            setDialog(null);
+            dialog.run();
+          }}
+        />
+      )}
+    </nav>
+  );
+}
