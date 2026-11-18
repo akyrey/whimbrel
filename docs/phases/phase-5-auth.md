@@ -17,10 +17,10 @@ Design: [PRD.md](../PRD.md) FR-5; D-H04, D-H12.
       a loopback redirect on 127.0.0.1), device authorization; refresh with the refresh token;
       tokens cached in the keychain per collection and configuration. Tested against a fake
       authorization server.
-- [ ] 5.4 Backend: sending and previewing apply the effective auth (OAuth: the cached token,
+- [x] 5.4 Backend: sending and previewing apply the effective auth (OAuth: the cached token,
       refreshed when expired, else `oauth_required`); commands to get, show and forget a token;
       the device code reaches the frontend while the flow waits.
-- [ ] 5.5 Per-collection TLS: a CA (PEM) added to the trusted roots and a client certificate
+- [x] 5.5 Per-collection TLS: a CA (PEM) added to the trusted roots and a client certificate
       (PEM, certificate and key) for the collection's requests.
 - [ ] 5.6 Frontend: an Auth tab on requests, auth for folders and the collection, OAuth "Get
       token" (browser or device code shown), token status and "Forget", the collection's TLS.

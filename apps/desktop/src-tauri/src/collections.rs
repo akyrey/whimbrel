@@ -240,6 +240,63 @@ macro_rules! command {
     };
 }
 
+pub fn auth_read(state: &Collections, args: &NodeArgs) -> Result<wbl_core::auth::Auth, AppError> {
+    Ok(wbl_format::collection::auth::auth_of(
+        &state.opened(&args.root)?,
+        &args.path,
+    )?)
+}
+
+/// Saves a folder's or the collection's auth, refusing literal secret values like a request.
+pub fn auth_save(
+    state: &Collections,
+    secrets: &Secrets,
+    args: &crate::ipc::AuthSaveArgs,
+) -> Result<(), AppError> {
+    let root = state.opened(&args.root)?;
+    let text = serde_json::to_string(&args.auth).map_err(|e| AppError::internal(e.to_string()))?;
+    guard(&root, &text, secrets)?;
+    Ok(wbl_format::collection::auth::save_auth(
+        &root, &args.path, &args.auth,
+    )?)
+}
+
+pub fn tls_read(
+    state: &Collections,
+    args: &CollectionArgs,
+) -> Result<wbl_format::CollectionTls, AppError> {
+    Ok(wbl_format::collection::auth::tls(
+        &state.opened(&args.root)?,
+    )?)
+}
+
+pub fn tls_save(state: &Collections, args: &crate::ipc::TlsSaveArgs) -> Result<(), AppError> {
+    Ok(wbl_format::collection::auth::save_tls(
+        &state.opened(&args.root)?,
+        &args.tls,
+    )?)
+}
+
+#[tauri::command]
+pub async fn node_auth_save(
+    state: State<'_, Collections>,
+    secrets: State<'_, Secrets>,
+    args: crate::ipc::AuthSaveArgs,
+) -> Result<(), AppError> {
+    logged("node_auth_save", async {
+        auth_save(&state, &secrets, &args)
+    })
+    .await
+}
+
+command!(node_auth_read, NodeArgs, wbl_core::auth::Auth, auth_read);
+command!(
+    collection_tls_read,
+    CollectionArgs,
+    wbl_format::CollectionTls,
+    tls_read
+);
+command!(collection_tls_save, crate::ipc::TlsSaveArgs, (), tls_save);
 command!(collection_tree, CollectionArgs, CollectionView, tree);
 command!(request_read, NodeArgs, ReadRequest, read);
 #[tauri::command]

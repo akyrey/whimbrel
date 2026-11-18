@@ -24,6 +24,12 @@ pub struct RequestSendArgs {
     /// The request's name, for the history.
     #[ts(optional)]
     pub name: Option<String>,
+    /// The request's file in the collection: its folders' auth is inherited.
+    #[ts(optional)]
+    pub path: Option<String>,
+    /// The request's own auth (inherit when absent).
+    #[ts(optional)]
+    pub auth: Option<wbl_core::auth::Auth>,
 }
 
 #[derive(Debug, Clone, Deserialize, TS)]
@@ -219,4 +225,20 @@ pub struct CurlImported {
     pub request: Request,
     pub settings: wbl_core::RequestSettings,
     pub ignored: Vec<String>,
+}
+
+/// The auth of a folder (`path`), or of the collection (`path` empty).
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthSaveArgs {
+    pub root: String,
+    pub path: String,
+    pub auth: wbl_core::auth::Auth,
+}
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct TlsSaveArgs {
+    pub root: String,
+    pub tls: wbl_format::CollectionTls,
 }

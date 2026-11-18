@@ -56,12 +56,22 @@ impl Default for SendOptions {
     }
 }
 
+/// A collection's own TLS (FR-5.3), as PEM bytes.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+pub struct TlsFiles {
+    /// Certificates trusted besides the system's.
+    pub ca_pem: Option<Vec<u8>>,
+    /// A client certificate and its private key.
+    pub client_pem: Option<Vec<u8>>,
+}
+
 /// What one send needs besides the request.
 #[derive(Debug, Clone, Default)]
 pub struct Exchange {
     pub settings: RequestSettings,
     /// The cookie jar to use (one per collection); `None`: no cookies kept.
     pub jar: Option<String>,
+    pub tls: TlsFiles,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -69,6 +79,42 @@ struct ClientKey {
     jar: Option<String>,
     follow_redirects: bool,
     verify_tls: bool,
+    tls: TlsFiles,
+}
+
+fn tls_error(what: &str, error: &reqwest::Error) -> HttpError {
+    HttpError::new(
+        HttpErrorCode::Tls,
+        format!(
+            "The collection's {what} is not usable PEM ({})",
+            error::describe(error)
+        ),
+    )
+}
+
+fn with_tls(
+    mut builder: reqwest::ClientBuilder,
+    tls: &TlsFiles,
+) -> Result<reqwest::ClientBuilder, HttpError> {
+    if let Some(pem) = &tls.ca_pem {
+        let certificates =
+            reqwest::Certificate::from_pem_bundle(pem).map_err(|e| tls_error("CA file", &e))?;
+        if certificates.is_empty() {
+            return Err(HttpError::new(
+                HttpErrorCode::Tls,
+                "The collection's CA file holds no certificate",
+            ));
+        }
+        for certificate in certificates {
+            builder = builder.add_root_certificate(certificate);
+        }
+    }
+    if let Some(pem) = &tls.client_pem {
+        builder = builder.identity(
+            reqwest::Identity::from_pem(pem).map_err(|e| tls_error("client certificate", &e))?,
+        );
+    }
+    Ok(builder)
 }
 
 pub struct Sender {
@@ -101,6 +147,7 @@ impl Sender {
             jar: exchange.jar.clone(),
             follow_redirects: exchange.settings.follow_redirects,
             verify_tls: exchange.settings.verify_tls,
+            tls: exchange.tls.clone(),
         };
         let mut clients = self.clients.lock().map_err(|_| poisoned())?;
         if let Some(client) = clients.get(&key) {
@@ -116,6 +163,7 @@ impl Sender {
             .redirect(redirects)
             .danger_accept_invalid_certs(!key.verify_tls)
             .user_agent(concat!("Whimbrel/", env!("CARGO_PKG_VERSION")));
+        builder = with_tls(builder, &key.tls)?;
         if let Some(name) = &key.jar {
             let jar = Arc::clone(
                 self.jars

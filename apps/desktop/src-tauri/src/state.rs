@@ -12,6 +12,7 @@ pub struct AppState {
     spill_dir: Option<std::path::PathBuf>,
     /// Sent requests (FR-8); `None` in tests that do not need it.
     pub history: Option<wbl_store::History>,
+    pub oauth: wbl_auth::OAuthClient,
 }
 
 impl AppState {
@@ -26,6 +27,7 @@ impl AppState {
             in_flight: InFlight::default(),
             spill_dir,
             history: None,
+            oauth: wbl_auth::OAuthClient::new(),
         })
     }
 

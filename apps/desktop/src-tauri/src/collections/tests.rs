@@ -176,3 +176,41 @@ fn folders_rename_duplicate_move_order_and_delete() {
         "invalid_path"
     );
 }
+
+#[test]
+fn folder_and_collection_auth_and_tls_are_read_and_saved() {
+    let (_dir, state, root) = created();
+    let auth = wbl_core::auth::Auth::Bearer {
+        token: "{{token}}".into(),
+    };
+
+    auth_save(
+        &state,
+        &secrets(),
+        &crate::ipc::AuthSaveArgs {
+            root: root.clone(),
+            path: String::new(),
+            auth: auth.clone(),
+        },
+    )
+    .unwrap();
+    tls_save(
+        &state,
+        &crate::ipc::TlsSaveArgs {
+            root: root.clone(),
+            tls: wbl_format::CollectionTls {
+                ca_file: "ca.pem".into(),
+                client_cert_file: String::new(),
+            },
+        },
+    )
+    .unwrap();
+
+    assert_eq!(auth_read(&state, &node(&root, "")).unwrap(), auth);
+    assert_eq!(
+        tls_read(&state, &CollectionArgs { root: root.clone() })
+            .unwrap()
+            .ca_file,
+        "ca.pem"
+    );
+}

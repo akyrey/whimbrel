@@ -12,12 +12,18 @@ use crate::resolve::{masked, resolved, scopes};
 use crate::secrets::Secrets;
 use crate::state::AppState;
 
-/// The request as it will be sent, variables resolved.
-fn prepare(
+/// What resolving a request needs: its scopes and its auth.
+pub struct Parts {
+    pub scopes: Vec<wbl_core::interpolate::Scope>,
+    pub auth: crate::auth_apply::AuthContext,
+    root: Option<std::path::PathBuf>,
+}
+
+pub fn parts(
     collections: &Collections,
     secrets: &Secrets,
     args: &RequestSendArgs,
-) -> Result<wbl_core::interpolate::Resolved, AppError> {
+) -> Result<Parts, AppError> {
     let root = args
         .root
         .as_deref()
@@ -29,7 +35,53 @@ fn prepare(
         args.example.as_ref(),
         secrets,
     )?;
-    resolved(&args.request, args.example.as_ref(), &scopes)
+    let auth = crate::auth_apply::context(root.as_deref(), args, &scopes)?;
+    Ok(Parts { scopes, auth, root })
+}
+
+/// The request as it will be sent: example, variables and auth applied.
+fn build(
+    args: &RequestSendArgs,
+    parts: &Parts,
+    token: Option<&wbl_auth::Token>,
+) -> Result<wbl_core::interpolate::Resolved, AppError> {
+    let resolved = resolved(&args.request, args.example.as_ref(), &parts.scopes)?;
+    crate::auth_apply::finish(resolved, &parts.auth, token)
+}
+
+/// For showing (preview, cURL): the cached token as it is, not refreshed.
+fn prepare(
+    collections: &Collections,
+    secrets: &Secrets,
+    args: &RequestSendArgs,
+) -> Result<wbl_core::interpolate::Resolved, AppError> {
+    let parts = parts(collections, secrets, args)?;
+    let token = crate::oauth::cached(secrets, &parts.auth)?;
+    build(args, &parts, token.as_ref())
+}
+
+/// The collection's own TLS files, read for each send (they are small, and may change).
+fn tls_of(parts: &Parts) -> Result<wbl_http::TlsFiles, AppError> {
+    let Some(root) = &parts.root else {
+        return Ok(wbl_http::TlsFiles::default());
+    };
+    let settings = wbl_format::collection::auth::tls(root)?;
+    let read = |name: &str| -> Result<Option<Vec<u8>>, AppError> {
+        if name.is_empty() {
+            return Ok(None);
+        }
+        let path = wbl_format::collection::auth::tls_file(root, name);
+        std::fs::read(&path).map(Some).map_err(|e| {
+            AppError::new(
+                "tls",
+                format!("Cannot read the collection's TLS file {name}: {e}"),
+            )
+        })
+    };
+    Ok(wbl_http::TlsFiles {
+        ca_pem: read(&settings.ca_file)?,
+        client_pem: read(&settings.client_cert_file)?,
+    })
 }
 
 /// The cookie jar of the collection a request belongs to (by its stable id).
@@ -49,10 +101,13 @@ pub async fn send(
     on_event: &mut (dyn FnMut(StreamEvent) + Send),
     args: RequestSendArgs,
 ) -> Result<Response, AppError> {
-    let resolved = prepare(collections, secrets, &args)?;
+    let parts = parts(collections, secrets, &args)?;
+    let token = crate::oauth::usable(&state.oauth, secrets, &parts.auth).await?;
+    let resolved = build(&args, &parts, token.as_ref())?;
     let exchange = Exchange {
         settings: args.settings.unwrap_or_default(),
         jar: jar_of(collections, &args),
+        tls: tls_of(&parts)?,
     };
     let sent_at_ms = crate::history::now_ms();
     let ticket = state.in_flight.start(&args.request_id)?;

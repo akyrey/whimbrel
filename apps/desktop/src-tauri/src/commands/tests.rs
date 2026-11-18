@@ -28,6 +28,8 @@ fn args(id: &str, url: String) -> RequestSendArgs {
         example: None,
         settings: None,
         name: None,
+        path: None,
+        auth: None,
     }
 }
 

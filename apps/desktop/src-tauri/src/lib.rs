@@ -1,5 +1,6 @@
 //! Whimbrel desktop backend: Tauri commands over the HTTP engine.
 
+pub mod auth_apply;
 pub mod collections;
 pub mod commands;
 pub mod environments;
@@ -7,6 +8,7 @@ pub mod error;
 pub mod history;
 pub mod ipc;
 pub mod logging;
+pub mod oauth;
 pub mod registry;
 pub mod resolve;
 pub mod secrets;
@@ -41,6 +43,7 @@ pub fn run() -> Result<(), tauri::Error> {
                 .build(),
         )
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(collections::Collections::default())
         .setup(|app| {
             let spill_dir = app.path().app_cache_dir()?.join("bodies");
@@ -71,6 +74,9 @@ pub fn run() -> Result<(), tauri::Error> {
             commands::request_preview,
             commands::response_save,
             commands::curl_export,
+            oauth::oauth_status,
+            oauth::oauth_authorize,
+            oauth::oauth_forget,
             commands::curl_import,
             history::history_list,
             history::history_get,
@@ -99,6 +105,10 @@ pub fn run() -> Result<(), tauri::Error> {
             collections::request_move,
             collections::node_order,
             collections::node_delete,
+            collections::node_auth_read,
+            collections::node_auth_save,
+            collections::collection_tls_read,
+            collections::collection_tls_save,
         ])
         .run(tauri::generate_context!())
 }

@@ -90,6 +90,8 @@ fn send_args(
         example,
         settings: None,
         name: None,
+        path: None,
+        auth: None,
     }
 }
 
