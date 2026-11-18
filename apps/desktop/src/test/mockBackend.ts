@@ -13,14 +13,25 @@
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC } from "@tauri-apps/api/mocks";
 
+import {
+  apply,
+  environmentCommand,
+  guard,
+  overlay,
+  resolveFor,
+  seedEnvironments,
+} from "./mockEnvironments";
+
 import type {
   AppError,
+  Example,
   CollectionView,
   Node,
   Request,
   RequestCreateArgs,
   RequestMoveArgs,
   RequestSaveArgs,
+  RequestSendArgs,
   Response,
   StoredRequest,
 } from "../ipc/generated";
@@ -43,6 +54,7 @@ const get = (stored: Partial<StoredRequest> & { name: string; url?: string }): S
     headers: [],
     body: { type: "none" },
   },
+  examples: [],
 });
 
 function seed(): void {
@@ -99,6 +111,7 @@ function nodes(fs: Fs, folder: string): Node[] {
       name: f.stored.name,
       order: f.stored.order,
       method: f.stored.request.method,
+      examples: f.stored.examples.map((e) => ({ id: e.id, name: e.name })),
     }));
   return [...files, ...folders];
 }
@@ -148,12 +161,16 @@ function fileCommand(fs: Fs, command: string, a: Args): Promise<unknown> {
       if (!file) return fail("io", "No such file");
       if (file.hash !== hash)
         return fail("conflict", "The file changed on disk since it was opened");
+      const leak = guard(DEMO_ROOT, JSON.stringify(stored));
+      if (leak) return Promise.reject(leak);
       const saved = { stored, hash: nextHash() };
       fs.files.set(a.path, saved);
       return Promise.resolve(saved.hash);
     }
     case "request_create": {
       const { folder, stored } = a as unknown as RequestCreateArgs;
+      const leak = guard(DEMO_ROOT, JSON.stringify(stored));
+      if (leak) return Promise.reject(leak);
       const path = unique(fs, folder, stored.name, ".req.toml");
       fs.files.set(path, { stored: { ...stored, order: 100 }, hash: nextHash() });
       return Promise.resolve(path);
@@ -255,13 +272,19 @@ const isError = (value: Response | AppError): value is AppError => "code" in val
 
 export function installMockBackend(): void {
   seed();
+  seedEnvironments(DEMO_ROOT);
   const pending = new Map<string, (error: AppError) => void>();
   mockIPC(
     (command, payload) => {
       const args = (payload as { args?: Args } | undefined)?.args ?? ({} as Args);
       if (command === "plugin:dialog|open") return Promise.resolve(DEMO_ROOT);
-      if (command === "request_send") {
-        const { requestId, request } = args as unknown as { requestId: string; request: Request };
+      if (command === "request_preview" || command === "request_send") {
+        const sendArgs = args as unknown as RequestSendArgs;
+        const resolved = resolveFor(sendArgs, command === "request_preview");
+        if ("code" in resolved) return Promise.reject(resolved);
+        if (command === "request_preview") return Promise.resolve(resolved);
+        const { requestId } = sendArgs;
+        const request = resolved;
         if (request.url.includes("/slow")) {
           return new Promise((_, reject: (error: AppError) => void) => {
             pending.set(requestId, reject);
@@ -270,6 +293,20 @@ export function installMockBackend(): void {
         const result = answer(request);
         return isError(result) ? Promise.reject(result) : Promise.resolve(result);
       }
+      if (command === "example_apply") {
+        const { request, example } = args as unknown as { request: Request; example: Example };
+        return Promise.resolve(apply(request, example));
+      }
+      if (command === "example_overlay") {
+        const o = args as unknown as { base: Request; draft: Request; id: string; name: string };
+        const result = overlay(o.base, o.draft, o.id, o.name);
+        return "code" in result ? Promise.reject(result) : Promise.resolve(result);
+      }
+      const environment = environmentCommand(
+        command,
+        args as unknown as Parameters<typeof environmentCommand>[1],
+      );
+      if (environment) return environment;
       if (command === "request_cancel") {
         const id = (args as unknown as { requestId: string }).requestId;
         const reject = pending.get(id);

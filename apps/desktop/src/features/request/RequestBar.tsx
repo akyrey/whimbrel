@@ -2,6 +2,10 @@ import { Button } from "@roost/ui";
 
 import { shortcutLabel } from "../shortcuts/registry";
 import type { Tab } from "../tabs/model";
+import { useState } from "react";
+
+import { PreviewDialog } from "../send/PreviewDialog";
+import { sendTab } from "../send/sendFlow";
 import { useTabs } from "../tabs/tabsStore";
 import { setMethod, setUrl } from "./editing";
 
@@ -14,14 +18,15 @@ export const URL_INPUT_ID = "request-url";
 export function RequestBar({ tab }: { tab: Tab }) {
   const { method, url } = tab.draft.request;
   const sending = tab.status.kind === "sending";
-  const { edit, send, cancel } = useTabs.getState();
+  const { edit, cancel } = useTabs.getState();
+  const [previewing, setPreviewing] = useState(false);
 
   return (
     <form
       className="flex items-center gap-2"
       onSubmit={(e) => {
         e.preventDefault();
-        void send(tab.id);
+        sendTab(tab.id);
       }}
     >
       <input
@@ -59,6 +64,21 @@ export function RequestBar({ tab }: { tab: Tab }) {
         <Button key="send" type="submit" variant="primary" title={shortcutLabel("send")}>
           Send
         </Button>
+      )}
+      <Button
+        onClick={() => {
+          setPreviewing(true);
+        }}
+      >
+        Preview
+      </Button>
+      {previewing && (
+        <PreviewDialog
+          tab={tab}
+          onClose={() => {
+            setPreviewing(false);
+          }}
+        />
       )}
     </form>
   );

@@ -2,6 +2,7 @@ import { CommandPalette, type PaletteItem } from "@roost/palette";
 import { ShortcutsView } from "@roost/shortcuts";
 import {
   Button,
+  ConfirmDialog,
   EditorSettingsProvider,
   PanelBoundary,
   Toaster,
@@ -27,6 +28,9 @@ import {
   registry,
   shortcutLabel,
 } from "./features/shortcuts/registry";
+import { useEnvironments } from "./features/environments/environmentsStore";
+import { ExamplesBar } from "./features/examples/ExamplesBar";
+import { cancelSend, confirmSend, sendTab, useSendConfirm } from "./features/send/sendFlow";
 import { ConflictBar } from "./features/tabs/ConflictBar";
 import type { Tab } from "./features/tabs/model";
 import { TabStrip } from "./features/tabs/TabStrip";
@@ -83,7 +87,7 @@ function useShortcutActions(setOverlay: (overlay: Overlay) => void) {
       save: () => void saveActive(),
       send: () => {
         const id = activeId();
-        if (id) void useTabs.getState().send(id);
+        if (id) sendTab(id);
       },
       cancel: () => {
         const id = activeId();
@@ -95,6 +99,21 @@ function useShortcutActions(setOverlay: (overlay: Overlay) => void) {
     }),
     [setOverlay],
   );
+}
+
+/** "Send with <example>" for the active tab's examples. */
+function exampleItems(): PaletteItem[] {
+  const tab = useTabs.getState().tabs.find((t) => t.id === activeId());
+  if (!tab) return [];
+  return tab.draft.examples.map((example) => ({
+    id: `example:${example.id}`,
+    group: "Examples",
+    label: `Send ${tab.draft.name} › ${example.name}`,
+    run: () => {
+      useTabs.getState().pickExample(tab.id, example.id);
+      sendTab(tab.id);
+    },
+  }));
 }
 
 function paletteItems(actions: Record<ShortcutId, () => void>): PaletteItem[] {
@@ -118,6 +137,7 @@ function paletteItems(actions: Record<ShortcutId, () => void>): PaletteItem[] {
       label: "Open a collection",
       run: () => void openCollection(),
     },
+    ...exampleItems(),
   ];
 }
 
@@ -131,6 +151,9 @@ function useCollectionsLifecycle() {
     })();
     const stop = onCollectionChanged((changed) => {
       void useCollections.getState().refresh(changed.root);
+      if (changed.paths.some((p) => p.startsWith("environments/"))) {
+        void useEnvironments.getState().load(changed.root);
+      }
       void useTabs.getState().changedOnDisk(changed.root, changed.paths);
     });
     return () => {
@@ -147,6 +170,7 @@ function RequestView({ tab }: { tab: Tab }) {
       <section aria-label="Request" className="flex flex-col gap-3 border-b border-zinc-800 p-4">
         <ConflictBar tab={tab} />
         <RequestBar tab={tab} />
+        <ExamplesBar tab={tab} />
         <PanelBoundary name="Headers">
           <HeadersEditor tab={tab} />
         </PanelBoundary>
@@ -169,6 +193,21 @@ function EmptyState() {
       <p>Open a request from a collection, or start a new one.</p>
       <Button onClick={useTabs.getState().newScratch}>New request</Button>
     </div>
+  );
+}
+
+/** Asks before sending with a protected environment (FR-4.6). */
+function SendConfirm() {
+  const pending = useSendConfirm((s) => s.pending);
+  if (!pending) return null;
+  return (
+    <ConfirmDialog
+      title="Send to a protected environment?"
+      message={`${pending.environment} is protected. Send the request anyway?`}
+      confirmLabel="Send"
+      onCancel={cancelSend}
+      onConfirm={confirmSend}
+    />
   );
 }
 
@@ -215,6 +254,7 @@ export function App() {
       {overlay === "shortcuts" && (
         <ShortcutsView registry={registry} groups={SHORTCUT_GROUPS} onClose={close} />
       )}
+      <SendConfirm />
       <Toaster />
     </EditorSettingsProvider>
   );

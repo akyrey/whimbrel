@@ -157,3 +157,17 @@ causes, never its Display. TLS failures arrive as connection errors; they are re
 their causes (certificate, handshake). An HTTP error status is a response, not an error.
 **Consequences.** A message can be less specific than reqwest's. The TLS check is a heuristic,
 covered by a network test against a self-signed host (`--ignored`).
+
+## D-H12 Variables resolve in the backend; the frontend never holds a secret value (2026-11-18)
+
+**Context.** Previews, sending and the save guard all need secret values; the webview is the
+part most exposed to what a response contains.
+**Decision.** The frontend sends the request as written, with the collection, environment and
+example; the backend lays the example over it, resolves variables (secrets from the
+keychain), sends, and masks secrets in previews. Secret values travel only one way: from the
+editor's password field to `secret_set`. Saving refuses text holding the value of any of the
+collection's secrets. Example overlays are computed by `wbl-core` through two pure commands,
+so the rules exist once.
+**Consequences.** Variable autocomplete and hover (Phase 8) will need names and plain values
+from the backend, secrets masked. A response that echoes a secret shows it: that is the
+server's answer, not a store of ours.

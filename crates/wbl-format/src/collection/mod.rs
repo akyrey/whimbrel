@@ -61,6 +61,15 @@ pub struct RequestNode {
     #[cfg_attr(feature = "ts", ts(type = "number"))]
     pub order: i64,
     pub method: String,
+    /// Its saved examples, for the tree.
+    pub examples: Vec<ExampleNode>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct ExampleNode {
+    pub id: String,
+    pub name: String,
 }
 
 /// A file that could not be read: listed so the user can fix it, never rewritten.
@@ -176,6 +185,14 @@ fn request(root: &Path, file: &Path) -> Node {
             name: stored.name,
             order: stored.order,
             method: stored.request.method,
+            examples: stored
+                .examples
+                .iter()
+                .map(|e| ExampleNode {
+                    id: e.id.clone(),
+                    name: e.name.clone(),
+                })
+                .collect(),
         }),
         Err(error) => Node::Broken(BrokenNode {
             path,

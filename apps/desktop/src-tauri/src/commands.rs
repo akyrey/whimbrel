@@ -90,5 +90,29 @@ pub async fn request_cancel(
     logged("request_cancel", async { cancel(&state, &args) }).await
 }
 
+/// The request with the example laid over it ("apply to the editor").
+#[tauri::command]
+pub async fn example_apply(
+    args: crate::ipc::ExampleApplyArgs,
+) -> Result<wbl_core::Request, AppError> {
+    logged("example_apply", async {
+        Ok(wbl_core::example::apply(&args.request, &args.example))
+    })
+    .await
+}
+
+/// The current edits as an example ("save as example"); `invalid_example` when they change the
+/// method or path.
+#[tauri::command]
+pub async fn example_overlay(
+    args: crate::ipc::ExampleOverlayArgs,
+) -> Result<wbl_core::example::Example, AppError> {
+    logged("example_overlay", async {
+        wbl_core::example::overlay_of(&args.base, &args.draft, &args.id, &args.name)
+            .map_err(|e| AppError::new("invalid_example", e.to_string()))
+    })
+    .await
+}
+
 #[cfg(test)]
 mod tests;

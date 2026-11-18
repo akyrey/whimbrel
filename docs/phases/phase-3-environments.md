@@ -24,13 +24,24 @@ D-H04, D-H08.
 - [x] 3.5 Sending resolves in the backend with the chosen environment and example; a preview
       command returns the resolved request with secret values masked. Saving a request or an
       example whose text holds the value of one of the collection's secrets is refused.
-- [ ] 3.6 Frontend: environment picker per collection, environment editor (variables, secret
+- [x] 3.6 Frontend: environment picker per collection, environment editor (variables, secret
       names with set / clear), the resolved preview, unknown and unset names shown before
       sending, a confirmation before sending with a protected environment.
-- [ ] 3.7 Frontend: examples (pick, save the current edits as an example, update, delete,
+- [x] 3.7 Frontend: examples (pick, save the current edits as an example, update, delete,
       send with one), listed under their request in the tree and in the palette.
 - [x] 3.8 Sentinel test: a secret set, used, sent, previewed and refused on save never appears
       in any file under the collection or the app's log folder.
+
+## Notes
+
+- A saved reference response per example (FR-2.8.4) is not built: it belongs with response
+  history (Phase 4).
+- "Save as example" puts the request back as saved and saves the file; "Delete example" saves
+  too. Editing the base request with an example picked edits the base.
+- Secrets shorter than 4 characters are not looked for by the save guard (they would match
+  ordinary text).
+- Manual check still to do in the real app: a secret set in the editor shows in the macOS
+  keychain under service `whimbrel`, and only there.
 
 ## Not in this phase
 

@@ -143,3 +143,20 @@ pub struct SecretArgs {
     pub environment: String,
     pub name: String,
 }
+
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ExampleApplyArgs {
+    pub request: Request,
+    pub example: wbl_core::example::Example,
+}
+
+/// The example that turns `base` into `draft`, named `name`.
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ExampleOverlayArgs {
+    pub base: Request,
+    pub draft: Request,
+    pub id: String,
+    pub name: String,
+}

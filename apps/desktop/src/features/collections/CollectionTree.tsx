@@ -1,7 +1,10 @@
 import { Button, ConfirmDialog, ContextMenu, type ContextMenuItem } from "@roost/ui";
-import { type MouseEvent, useState } from "react";
+import { type MouseEvent, useEffect, useState } from "react";
 
 import type { CollectionView, Node } from "../../ipc";
+import { EnvironmentEditor } from "../environments/EnvironmentEditor";
+import { NO_ENVIRONMENTS, useEnvironments } from "../environments/environmentsStore";
+import { fileTabId } from "../tabs/model";
 import { useTabs } from "../tabs/tabsStore";
 import {
   chooseCollectionFolder,
@@ -35,6 +38,12 @@ const METHOD_CLASS: Record<string, string> = {
   PATCH: "text-violet-300",
   DELETE: "text-rose-400",
 };
+
+/** Opens the request with the example picked for sending. */
+async function openExample(root: string, path: string, exampleId: string) {
+  await useTabs.getState().openFile({ root, path });
+  useTabs.getState().pickExample(fileTabId({ root, path }), exampleId);
+}
 
 function containerItems(ui: Ui, root: string, folder: string): ContextMenuItem[] {
   return [
@@ -132,6 +141,22 @@ function NodeItem({ node, root, ui, depth }: { node: Node; root: string; ui: Ui;
           </span>
           <span className="truncate">{node.name}</span>
         </button>
+        {node.examples.length > 0 && (
+          <ul aria-label={`Examples of ${node.name}`}>
+            {node.examples.map((example) => (
+              <li key={example.id}>
+                <button
+                  type="button"
+                  className="w-full truncate py-0.5 text-left text-xs text-zinc-400 hover:bg-zinc-800"
+                  style={{ paddingLeft: `${String(depth * 12 + 64)}px` }}
+                  onClick={() => void openExample(root, node.path, example.id)}
+                >
+                  ↳ {example.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </li>
     );
   }
@@ -177,6 +202,56 @@ function Nodes({ nodes, root, ui, depth }: { nodes: Node[]; root: string; ui: Ui
   );
 }
 
+function EnvironmentPicker({ root }: { root: string }) {
+  const entries = useEnvironments((s) => s.entries[root] ?? NO_ENVIRONMENTS);
+  const active = useEnvironments((s) => s.active[root] ?? null);
+  const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    void useEnvironments.getState().load(root);
+  }, [root]);
+  return (
+    <div className="flex items-center gap-1 px-2 pb-1">
+      <select
+        aria-label="Environment"
+        className="input min-w-0 flex-1 py-0 text-xs"
+        value={active ?? ""}
+        onChange={(e) => {
+          useEnvironments.getState().setActive(root, e.target.value === "" ? null : e.target.value);
+        }}
+      >
+        <option value="">No environment</option>
+        {entries
+          .filter((entry) => entry.error === null)
+          .map((entry) => (
+            <option key={entry.id} value={entry.id}>
+              {entry.name}
+              {entry.protected ? " 🔒" : ""}
+            </option>
+          ))}
+      </select>
+      <button
+        type="button"
+        aria-label="Edit environments"
+        title="Environments, secrets and variables"
+        className="px-1 text-xs text-zinc-400 hover:text-zinc-100"
+        onClick={() => {
+          setEditing(true);
+        }}
+      >
+        ⚙
+      </button>
+      {editing && (
+        <EnvironmentEditor
+          root={root}
+          onClose={() => {
+            setEditing(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 function CollectionItem({ view, ui }: { view: CollectionView; ui: Ui }) {
   const items = [
     ...containerItems(ui, view.root, ""),
@@ -193,6 +268,7 @@ function CollectionItem({ view, ui }: { view: CollectionView; ui: Ui }) {
       >
         {view.collection.name}
       </h2>
+      <EnvironmentPicker root={view.root} />
       {view.collection.children.length === 0 ? (
         <p className="px-2 text-xs text-zinc-500">Empty. Right-click the name to add a request.</p>
       ) : (

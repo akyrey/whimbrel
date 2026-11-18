@@ -59,6 +59,8 @@ pub fn run() -> Result<(), tauri::Error> {
             commands::request_send,
             commands::request_cancel,
             commands::request_preview,
+            commands::example_apply,
+            commands::example_overlay,
             environments::environment_list,
             environments::environment_read,
             environments::environment_create,

@@ -1,6 +1,9 @@
 import { create } from "zustand";
 
+import { useCollections } from "../collections/collectionsStore";
+import { activeEnvironment } from "../environments/environmentsStore";
 import {
+  type RequestSendArgs,
   type StoredRequest,
   requestCancel,
   requestCreate,
@@ -18,6 +21,7 @@ import {
   fileTabId,
   isUnder,
   moved,
+  pickedExample,
   resolved,
   savedAs,
   scratchTab,
@@ -39,6 +43,8 @@ type TabsState = {
   save: (id: string, target?: FileRef) => Promise<void>;
   resolve: (id: string, keep: "mine" | "theirs") => void;
   send: (id: string) => Promise<void>;
+  /** Picks the example sending uses (`null`: the request as it is). */
+  pickExample: (id: string, exampleId: string | null) => void;
   cancel: (id: string) => Promise<void>;
   changedOnDisk: (root: string, paths: string[]) => Promise<void>;
   renamed: (root: string, from: string, to: string, name: string) => void;
@@ -47,6 +53,26 @@ type TabsState = {
 };
 
 let scratchCount = 0;
+
+/** The collection a tab's variables come from: its own, or the first open one for a scratch
+ * request. */
+export function rootOf(tab: Tab): string | undefined {
+  return tab.file?.root ?? Object.keys(useCollections.getState().views)[0];
+}
+
+/** What sending (or previewing) the tab needs. */
+export function sendArgs(tab: Tab): RequestSendArgs {
+  const root = rootOf(tab);
+  const environment = activeEnvironment(root)?.id;
+  const example = pickedExample(tab);
+  return {
+    requestId: tab.id,
+    request: tab.draft.request,
+    ...(root === undefined ? {} : { root }),
+    ...(environment === undefined ? {} : { environment }),
+    ...(example === null ? {} : { example }),
+  };
+}
 
 export const useTabs = create<TabsState>()((set, get) => {
   const replace = (id: string, change: (tab: Tab) => Tab) => {
@@ -130,11 +156,14 @@ export const useTabs = create<TabsState>()((set, get) => {
       if (!tab || tab.status.kind === "sending") return;
       replace(id, (t) => ({ ...t, status: { kind: "sending" } }));
       try {
-        const response = await requestSend(id, tab.draft.request);
+        const response = await requestSend(sendArgs(tab));
         replace(id, (t) => ({ ...t, status: { kind: "done", response } }));
       } catch (caught) {
         replace(id, (t) => ({ ...t, status: { kind: "failed", error: toAppError(caught) } }));
       }
+    },
+    pickExample: (id, exampleId) => {
+      replace(id, (t) => ({ ...t, exampleId }));
     },
     cancel: async (id) => {
       if (find(id)?.status.kind !== "sending") return;

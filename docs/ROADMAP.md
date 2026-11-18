@@ -10,7 +10,7 @@ are the seeds for those briefs.
       `akyrey/roost` and `akyrey/whimbrel` and refreshing the lockfiles (see "Publishing" below)
 - [x] Phase 1: Skeleton — send a request ([brief](phases/phase-1-skeleton.md))
 - [x] Phase 2: Collections on disk ([brief](phases/phase-2-collections.md))
-- [ ] Phase 3: Environments, variables and secrets
+- [x] Phase 3: Environments, variables and secrets ([brief](phases/phase-3-environments.md))
 - [ ] Phase 4: Responses, history, streaming
 - [ ] Phase 5: Auth
 - [ ] Phase 6: OpenAPI import and spec browser

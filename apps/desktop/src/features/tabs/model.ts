@@ -24,12 +24,15 @@ export type Tab = {
   conflict: { disk: StoredRequest; hash: string } | null;
   /** The file is gone (deleted or moved outside the app). */
   missing: boolean;
+  /** The example sending uses, if one is picked. */
+  exampleId: string | null;
 };
 
 export const NEW_REQUEST: StoredRequest = {
   name: "New request",
   order: 0,
   request: { method: "GET", url: "", headers: [], body: { type: "none" } },
+  examples: [],
 };
 
 export const fileTabId = (file: FileRef): string => `${file.root}\u0000${file.path}`;
@@ -44,6 +47,7 @@ export function fileTab(file: FileRef, read: ReadRequest): Tab {
     status: { kind: "idle" },
     conflict: null,
     missing: false,
+    exampleId: null,
   };
 }
 
@@ -57,6 +61,7 @@ export function scratchTab(id: string): Tab {
     status: { kind: "idle" },
     conflict: null,
     missing: false,
+    exampleId: null,
   };
 }
 
@@ -116,4 +121,9 @@ export function moved(tab: Tab, file: FileRef, name: string): Tab {
 export function isUnder(tab: Tab, root: string, path: string): boolean {
   if (!tab.file || tab.file.root !== root) return false;
   return tab.file.path === path || tab.file.path.startsWith(`${path}/`);
+}
+
+/** The tab's picked example, if it still exists. */
+export function pickedExample(tab: Tab) {
+  return tab.draft.examples.find((e) => e.id === tab.exampleId) ?? null;
 }
