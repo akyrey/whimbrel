@@ -51,7 +51,7 @@ url = "{{baseUrl}}/users"
 [[query]]
 name = "notify"
 value = "true"
-enabled = false
+enabled = false               # written only when false
 
 [[headers]]
 name = "Content-Type"
@@ -59,12 +59,12 @@ value = "application/json"
 
 [body]
 kind = "json"
-text = '''
+text = """
 {
   "name": "user-{{$randomInt}}",
   "email": "test@example.com"
 }
-'''
+"""
 
 [auth]
 type = "inherit"
@@ -101,9 +101,9 @@ value = "{{tenantId}}"    # references are fine; secret values are refused on sa
 
 [examples.body]            # if present, replaces the whole body
 kind = "json"
-text = '''
+text = """
 { "name": "Ada", "email": "ada@example.com", "role": "{{userRole}}" }
-'''
+"""
 
 [examples.response]        # optional saved reference response (FR-2.8.4)
 status = 201
@@ -134,6 +134,9 @@ apiKey = { description = "From 1Password: Example API prod" }
 ```
 
 ## Rules
+
+- Multi-line text is written as a TOML `"""` string (what `toml_edit` produces; quotes and
+  backslashes are escaped only where TOML needs it).
 
 - Unknown keys are preserved on rewrite (`toml_edit`), so newer versions do not lose data in
   older ones and hand-added comments survive.

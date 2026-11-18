@@ -1,0 +1,82 @@
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+//! Task 2.2: whatever the request, a file round-trips, an unchanged save is byte-identical, and
+//! an edit touches only its own line.
+
+use proptest::prelude::*;
+use wbl_core::{Body, BodyKind, Header, Request};
+use wbl_format::{RequestFile, StoredRequest};
+
+/// Any text, including quotes, backslashes, line breaks, tabs and non-ASCII.
+fn text() -> impl Strategy<Value = String> {
+    prop::string::string_regex("[a-zA-Z0-9 \"'\\\\\\n\\r\\t{}:,é漢🙂]{0,40}").unwrap()
+}
+
+fn header() -> impl Strategy<Value = Header> {
+    ("[A-Za-z][A-Za-z0-9-]{0,15}", text(), any::<bool>())
+        .prop_map(|(name, value, enabled)| Header { name, value, enabled })
+}
+
+fn body() -> impl Strategy<Value = Body> {
+    prop_oneof![
+        Just(Body::None),
+        (prop_oneof![Just(BodyKind::Json), Just(BodyKind::Xml), Just(BodyKind::Text)], text())
+            .prop_map(|(kind, text)| Body::Text { kind, text }),
+    ]
+}
+
+/// URLs are one line (a line break would make the request invalid).
+fn url() -> impl Strategy<Value = String> {
+    "[a-zA-Z0-9:/.{}?=&%_ -]{0,40}"
+}
+
+fn stored() -> impl Strategy<Value = StoredRequest> {
+    (text(), any::<i64>(), "[A-Z]{1,8}", url(), prop::collection::vec(header(), 0..4), body())
+        .prop_map(|(name, order, method, url, headers, body)| StoredRequest {
+            name,
+            order,
+            request: Request { method, url, headers, body },
+        })
+}
+
+proptest! {
+    #[test]
+    fn written_files_read_back_the_same(request in stored()) {
+        let text = RequestFile::new(&request).to_string();
+        prop_assert_eq!(RequestFile::parse(&text).unwrap().read().unwrap(), request);
+    }
+
+    #[test]
+    fn an_unchanged_save_is_byte_identical(request in stored()) {
+        let text = RequestFile::new(&request).to_string();
+        let file = RequestFile::parse(&text).unwrap();
+        prop_assert_eq!(file.updated(&request).to_string(), text);
+    }
+
+    #[test]
+    fn changing_the_url_changes_one_line(request in stored(), url in "[a-z:/.{}]{1,30}") {
+        prop_assume!(url != request.request.url);
+        let before = RequestFile::new(&request).to_string();
+        let edited = StoredRequest {
+            request: Request { url: url.clone(), ..request.request.clone() },
+            ..request.clone()
+        };
+
+        let after = RequestFile::parse(&before).unwrap().updated(&edited).to_string();
+
+        let changed: Vec<_> = before
+            .lines()
+            .zip(after.lines())
+            .filter(|(a, b)| a != b)
+            .collect();
+        prop_assert_eq!(before.lines().count(), after.lines().count());
+        prop_assert_eq!(changed.len(), 1);
+        prop_assert!(changed[0].1.starts_with("url = "));
+    }
+
+    #[test]
+    fn any_edit_reads_back(request in stored(), other in stored()) {
+        let file = RequestFile::new(&request);
+        let text = file.updated(&other).to_string();
+        prop_assert_eq!(RequestFile::parse(&text).unwrap().read().unwrap(), other);
+    }
+}

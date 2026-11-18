@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 9156bb6327143b08c68af06860dafc4d8861656ce2fd5d9e2a6410b552e4616f # shrinks to request = StoredRequest { name: "", order: 0, request: Request { method: "A", url: "\n", headers: [], body: None } }, url = "a"
