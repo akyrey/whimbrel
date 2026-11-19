@@ -73,7 +73,11 @@ const get = (stored: Partial<StoredRequest> & { name: string; url?: string }): S
 /** Session: a login that captures a token, and a call that needs it (Phase 7). */
 const LOGIN: StoredRequest = {
   ...get({ name: "Get a token", order: 10, url: "http://localhost/login" }),
-  request: { ...get({ name: "Get a token" }).request, method: "POST", url: "http://localhost/login" },
+  request: {
+    ...get({ name: "Get a token" }).request,
+    method: "POST",
+    url: "http://localhost/login",
+  },
   captures: [{ var: "token", from: "body", path: "$.token", regex: null, secret: true }],
 };
 const ME: StoredRequest = {

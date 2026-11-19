@@ -286,21 +286,43 @@ fn checks_read_every_toml_shape_and_refuse_bad_ones() {
     let read = RequestFile::parse(&text).unwrap().read().unwrap();
     assert_eq!(read.captures[0].from, CaptureFrom::Header);
     assert!(read.captures[0].secret);
-    assert_eq!(read.assertions[0], Assertion::Json { path: "$.a".into(), equals: Some(serde_json::json!(1.5)) });
+    assert_eq!(
+        read.assertions[0],
+        Assertion::Json {
+            path: "$.a".into(),
+            equals: Some(serde_json::json!(1.5))
+        }
+    );
     assert_eq!(
         read.assertions[1],
-        Assertion::Json { path: "$.b".into(), equals: Some(serde_json::json!({"x": "1979-05-27", "y": [true]})) }
+        Assertion::Json {
+            path: "$.b".into(),
+            equals: Some(serde_json::json!({"x": "1979-05-27", "y": [true]}))
+        }
     );
-    assert_eq!(read.assertions[2], Assertion::Header { name: "ETag".into(), equals: None });
+    assert_eq!(
+        read.assertions[2],
+        Assertion::Header {
+            name: "ETag".into(),
+            equals: None
+        }
+    );
 
     let written = RequestFile::new(&read).to_string();
     assert!(written.contains("secret = true"), "{written}");
     assert_eq!(RequestFile::parse(&written).unwrap().read().unwrap(), read);
     let null = StoredRequest {
-        assertions: vec![Assertion::Json { path: "$".into(), equals: Some(serde_json::Value::Null) }],
+        assertions: vec![Assertion::Json {
+            path: "$".into(),
+            equals: Some(serde_json::Value::Null),
+        }],
         ..read
     };
-    assert!(RequestFile::new(&null).to_string().contains("equals = \"null\""));
+    assert!(
+        RequestFile::new(&null)
+            .to_string()
+            .contains("equals = \"null\"")
+    );
 
     for bad in [
         "[[captures]]\nvar = \"v\"\nfrom = \"cookie\"\n",
