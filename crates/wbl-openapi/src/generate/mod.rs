@@ -17,7 +17,7 @@ use crate::model::{Api, Server, Tag};
 const NON_GROUPING_KINDS: [&str; 2] = ["badge", "audience"];
 const DEFAULT_BASE_URL: &str = "http://localhost";
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct GeneratedRequest {
@@ -27,7 +27,7 @@ pub struct GeneratedRequest {
     pub stored: StoredRequest,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Generated {
     pub name: String,

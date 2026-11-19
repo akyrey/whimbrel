@@ -4,6 +4,7 @@
  * environment (secrets from the "keychain") → collection; previews mask secrets; saving text
  * that holds a secret value is refused.
  */
+import { runtimeScope } from "./mockChecks";
 import type {
   AppError,
   Environment,
@@ -161,6 +162,7 @@ function scopes(args: RequestSendArgs): Record<string, Value>[] {
     Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, { plain: v }]));
   if (args.example) out.push(plain(args.example.variables));
   if (args.variables) out.push(plain(args.variables));
+  out.push(runtimeScope(args.root));
   if (args.root === undefined) return out;
   const env =
     args.environment === undefined ? undefined : environments.get(args.root)?.get(args.environment);

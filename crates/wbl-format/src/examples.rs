@@ -57,7 +57,7 @@ fn to_table(like: &dyn TableLike) -> Table {
     table
 }
 
-fn tables(item: Option<&Item>, field: &str) -> Result<Vec<Table>, FormatError> {
+pub(crate) fn tables(item: Option<&Item>, field: &str) -> Result<Vec<Table>, FormatError> {
     let Some(item) = item else {
         return Ok(Vec::new());
     };

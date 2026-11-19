@@ -102,6 +102,8 @@ fn stored_with_examples() -> StoredRequest {
         },
         auth: Default::default(),
         variables: Default::default(),
+        captures: vec![],
+        assertions: vec![],
     }
 }
 

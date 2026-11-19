@@ -25,6 +25,8 @@ use crate::watch::{CollectionChanged, Watchers};
 pub struct Collections {
     open: Mutex<HashSet<PathBuf>>,
     pub watchers: Watchers,
+    /// Captured values per collection (keyed by its canonical root).
+    pub runtime: crate::runtime::Runtime,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -68,6 +70,7 @@ impl Collections {
     pub fn close(&self, root: &str) -> Result<PathBuf, AppError> {
         let path = self.opened(root)?;
         self.open.lock().map_err(|_| poisoned())?.remove(&path);
+        self.runtime.clear(&path.to_string_lossy())?;
         Ok(path)
     }
 

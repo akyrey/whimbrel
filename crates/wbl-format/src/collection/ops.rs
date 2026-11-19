@@ -37,7 +37,7 @@ pub fn create(root: &Path, name: &str) -> Result<CollectionInfo, FormatError> {
     Ok(info)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ReadRequest {
     pub stored: StoredRequest,

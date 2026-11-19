@@ -1,12 +1,19 @@
 /** Tabs as data: what is open, what is unsaved, and what a change on disk does to a tab. Pure;
  * every function returns a new tab. */
-import type { AppError, ReadRequest, Response, StoredRequest, StreamEvent } from "../../ipc";
+import type {
+  AppError,
+  Checks,
+  ReadRequest,
+  Response,
+  StoredRequest,
+  StreamEvent,
+} from "../../ipc";
 
 /** Stream events (SSE, JSON Lines) arrive while sending and stay with the result. */
 export type SendStatus =
   | { kind: "idle" }
   | { kind: "sending"; events: StreamEvent[] }
-  | { kind: "done"; response: Response; events: StreamEvent[] }
+  | { kind: "done"; response: Response; events: StreamEvent[]; checks: Checks | null }
   | { kind: "failed"; error: AppError; events: StreamEvent[] };
 
 export type FileRef = { root: string; path: string };
@@ -37,6 +44,8 @@ export const NEW_REQUEST: StoredRequest = {
   settings: { timeoutMs: null, followRedirects: true, verifyTls: true },
   auth: { type: "inherit" },
   variables: {},
+  captures: [],
+  assertions: [],
 };
 
 export const fileTabId = (file: FileRef): string => `${file.root}\u0000${file.path}`;

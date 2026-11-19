@@ -39,6 +39,7 @@ import { HistoryPanel } from "./features/history/HistoryPanel";
 import { AuthPanel } from "./features/request/AuthPanel";
 import { SettingsPanel } from "./features/request/SettingsPanel";
 import { VariablesPanel } from "./features/request/VariablesPanel";
+import { ChecksEditor } from "./features/checks/ChecksEditor";
 import { ExamplesBar } from "./features/examples/ExamplesBar";
 import { cancelSend, confirmSend, sendTab, useSendConfirm } from "./features/send/sendFlow";
 import { ConflictBar } from "./features/tabs/ConflictBar";
@@ -198,6 +199,7 @@ function RequestView({ tab }: { tab: Tab }) {
         <ExamplesBar tab={tab} />
         <AuthPanel tab={tab} />
         <VariablesPanel tab={tab} />
+        <ChecksEditor tab={tab} />
         <SettingsPanel tab={tab} />
         <PanelBoundary name="Headers">
           <HeadersEditor tab={tab} />

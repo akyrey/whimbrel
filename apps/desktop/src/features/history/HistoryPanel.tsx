@@ -13,7 +13,7 @@ async function reopen(id: number) {
     const entry = await historyGet(id);
     const status: SendStatus =
       entry.outcome.kind === "completed"
-        ? { kind: "done", response: entry.outcome.response, events: [] }
+        ? { kind: "done", response: entry.outcome.response, events: [], checks: null }
         : {
             kind: "failed",
             error: { code: entry.outcome.code, message: entry.outcome.message },

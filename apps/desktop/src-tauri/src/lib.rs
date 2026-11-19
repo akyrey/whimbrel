@@ -1,6 +1,7 @@
 //! Whimbrel desktop backend: Tauri commands over the HTTP engine.
 
 pub mod auth_apply;
+pub mod checks;
 pub mod collections;
 pub mod commands;
 pub mod environments;
@@ -11,6 +12,7 @@ pub mod logging;
 pub mod oauth;
 pub mod registry;
 pub mod resolve;
+pub mod runtime;
 pub mod secrets;
 pub mod spec;
 pub mod state;
@@ -114,6 +116,8 @@ pub fn run() -> Result<(), tauri::Error> {
             spec::spec_import,
             spec::spec_list,
             spec::spec_open,
+            runtime::runtime_list,
+            runtime::runtime_clear,
         ])
         .run(tauri::generate_context!())
 }

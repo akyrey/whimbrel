@@ -68,6 +68,9 @@ fn export_all(dir: &Path) {
     crate::spec::SpecImported::export_all(&config).unwrap();
     wbl_openapi::Api::export_all(&config).unwrap();
     wbl_openapi::StoredSpec::export_all(&config).unwrap();
+    crate::runtime::RuntimeArgs::export_all(&config).unwrap();
+    crate::runtime::RuntimeVariable::export_all(&config).unwrap();
+    crate::checks::Sent::export_all(&config).unwrap();
     write_index(dir);
 }
 

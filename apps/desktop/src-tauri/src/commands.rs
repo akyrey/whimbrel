@@ -2,7 +2,7 @@
 //! without a running app. Each is logged by name, duration and error code only.
 
 use tauri::State;
-use wbl_http::{Exchange, Response, StreamEvent};
+use wbl_http::{Exchange, StreamEvent};
 
 use crate::collections::Collections;
 use crate::error::AppError;
@@ -29,15 +29,25 @@ pub fn parts(
         .as_deref()
         .map(|r| collections.opened(r))
         .transpose()?;
+    let runtime = collections.runtime.scope(&runtime_key(root.as_deref()))?;
     let scopes = scopes(
         root.as_deref(),
         args.environment.as_deref(),
         args.example.as_ref(),
         args.variables.as_ref(),
+        runtime,
         secrets,
     )?;
     let auth = crate::auth_apply::context(root.as_deref(), args, &scopes)?;
     Ok(Parts { scopes, auth, root })
+}
+
+/// The runtime variables of a collection are keyed by its canonical root.
+pub fn runtime_key(root: Option<&std::path::Path>) -> String {
+    root.map_or_else(
+        || crate::runtime::LOOSE.to_owned(),
+        |r| r.to_string_lossy().into_owned(),
+    )
 }
 
 /// The request as it will be sent: example, variables and auth applied.
@@ -101,7 +111,7 @@ pub async fn send(
     secrets: &Secrets,
     on_event: &mut (dyn FnMut(StreamEvent) + Send),
     args: RequestSendArgs,
-) -> Result<Response, AppError> {
+) -> Result<crate::checks::Sent, AppError> {
     let parts = parts(collections, secrets, &args)?;
     let token = crate::oauth::usable(&state.oauth, secrets, &parts.auth).await?;
     let resolved = build(&args, &parts, token.as_ref())?;
@@ -131,7 +141,9 @@ pub async fn send(
             outcome: crate::history::outcome(&result, &resolved.secrets),
         },
     );
-    result
+    let response = result?;
+    let checks = crate::checks::after_send(collections, secrets, &args, &response)?;
+    Ok(crate::checks::Sent { response, checks })
 }
 
 /// What would be sent, secrets masked (FR-2.5).
@@ -155,7 +167,7 @@ pub async fn request_send(
     secrets: State<'_, Secrets>,
     args: RequestSendArgs,
     on_event: tauri::ipc::Channel<StreamEvent>,
-) -> Result<Response, AppError> {
+) -> Result<crate::checks::Sent, AppError> {
     let mut forward = move |event: StreamEvent| {
         // A closed window cannot be told; the response still completes.
         let _ = on_event.send(event);

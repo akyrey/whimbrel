@@ -70,14 +70,21 @@ text = """
 [auth]
 type = "inherit"
 
-[[captures]]
+[[captures]]                 # FR-6.1: into a runtime variable (D-H17)
 var = "userId"
-from = "body"
-path = "$.id"
+from = "body"                # or "header" (path is then the header name)
+path = "$.id"                # JSONPath, RFC 9535; "" is the whole body
+# regex = "(\\d+)"          # optional: first group, else the whole match
+# secret = true              # masked; saved to the keychain if the environment declares it
 
-[[assertions]]
+[[assertions]]               # FR-6.2
 check = "status"
 equals = 201
+
+[[assertions]]
+check = "json"               # also "header" (name, equals?) and "time" (below_ms)
+path = "$.email"
+equals = "test@example.com"  # left out: the value only has to exist
 
 [openapi]                  # present only on generated requests
 operationId = "createUser"

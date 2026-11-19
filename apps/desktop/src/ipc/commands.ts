@@ -1,5 +1,7 @@
 import type {
   Api,
+  RuntimeVariable,
+  Sent,
   SpecImportArgs,
   SpecImported,
   SpecReadArgs,
@@ -25,7 +27,6 @@ import type {
   RequestCreateArgs,
   RequestMoveArgs,
   RequestSaveArgs,
-  Response,
   StoredRequest,
 } from "./generated";
 import { Channel } from "@tauri-apps/api/core";
@@ -38,7 +39,7 @@ import { call, callWith } from "./invoke";
 export function requestSend(
   args: RequestSendArgs,
   onEvent: (event: StreamEvent) => void = () => undefined,
-): Promise<Response> {
+): Promise<Sent> {
   const channel = new Channel<StreamEvent>();
   channel.onmessage = onEvent;
   return callWith("request_send", args, { onEvent: channel });
@@ -202,3 +203,10 @@ export const specList = (root: string): Promise<StoredSpec[]> => call("spec_list
 /** The model of a spec kept in a collection, for the spec browser. */
 export const specOpen = (root: string, dir: string): Promise<Api> =>
   call("spec_open", { root, dir });
+
+/** The runtime variables captures set in a collection (no root: loose requests). */
+export const runtimeList = (root?: string): Promise<RuntimeVariable[]> =>
+  call("runtime_list", root === undefined ? {} : { root });
+
+export const runtimeClear = (root?: string): Promise<null> =>
+  call("runtime_clear", root === undefined ? {} : { root });

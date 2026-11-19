@@ -104,6 +104,8 @@ fn args(f: &Fixture, url: String, path: Option<&str>) -> RequestSendArgs {
         path: path.map(str::to_owned),
         auth: None,
         variables: None,
+        captures: None,
+        assertions: None,
     }
 }
 
@@ -120,7 +122,9 @@ fn oauth(base: &str) -> Auth {
 }
 
 async fn sent(f: &Fixture, a: RequestSendArgs) -> Result<wbl_http::Response, AppError> {
-    send(&f.state, &f.collections, &f.secrets, &mut |_| {}, a).await
+    send(&f.state, &f.collections, &f.secrets, &mut |_| {}, a)
+        .await
+        .map(|sent| sent.response)
 }
 
 #[tokio::test]

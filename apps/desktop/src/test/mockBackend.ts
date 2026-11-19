@@ -14,6 +14,7 @@ import { emit } from "@tauri-apps/api/event";
 import { mockIPC } from "@tauri-apps/api/mocks";
 
 import { applyAuth, authCommand, resetAuth } from "./mockAuth";
+import { checksFor, resetRuntime, runtimeCommand } from "./mockChecks";
 import { resetSpecs, specCommand } from "./mockSpecs";
 import { phase4Command, phase4Route, recordHistory, resetHistory } from "./mockExtras";
 import {
@@ -61,6 +62,8 @@ const get = (stored: Partial<StoredRequest> & { name: string; url?: string }): S
   settings: { timeoutMs: null, followRedirects: true, verifyTls: true },
   auth: { type: "inherit" },
   variables: {},
+  captures: [],
+  assertions: [],
 });
 
 function seed(): void {
@@ -311,6 +314,7 @@ export function installMockBackend(): void {
   resetHistory();
   resetAuth();
   resetSpecs();
+  resetRuntime();
   const pending = new Map<string, (error: AppError) => void>();
   mockIPC(
     (command, payload) => {
@@ -333,7 +337,9 @@ export function installMockBackend(): void {
         }
         const result = answer(request);
         recordHistory(resolveFor(sendArgs, true) as Request, result, sendArgs.name);
-        return isError(result) ? Promise.reject(result) : Promise.resolve(result);
+        return isError(result)
+          ? Promise.reject(result)
+          : Promise.resolve({ response: result, checks: checksFor(sendArgs, result) });
       }
       if (command === "example_apply") {
         const { request, example } = args as unknown as { request: Request; example: Example };
@@ -344,6 +350,8 @@ export function installMockBackend(): void {
         const result = overlay(o.base, o.draft, o.id, o.name);
         return "code" in result ? Promise.reject(result) : Promise.resolve(result);
       }
+      const runtimeAnswer = runtimeCommand(command, args);
+      if (runtimeAnswer) return runtimeAnswer;
       const spec = specCommand(command, args);
       if (spec) return spec;
       const auth = authCommand(command, args);

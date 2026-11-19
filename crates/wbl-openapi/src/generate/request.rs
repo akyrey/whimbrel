@@ -269,5 +269,7 @@ pub fn request(api: &Api, op: &Operation, warnings: &mut Vec<String>) -> StoredR
         settings: wbl_core::RequestSettings::default(),
         auth: wbl_core::auth::Auth::Inherit,
         variables: parts.variables(),
+        captures: Vec::new(),
+        assertions: Vec::new(),
     }
 }

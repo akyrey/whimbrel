@@ -225,3 +225,20 @@ stored requests and environments); `install` writes them through `wbl-format`'s 
 operations (one batch per folder, `create_requests`, so a 3000-operation spec is not quadratic).
 `wbl-format` still depends only on `wbl-core`, so there is no cycle.
 **Consequences.** Re-import (Phase 7) reads and rewrites the same files through the same crate.
+
+## D-H17 Chaining: runtime variables, RFC 9535 JSONPath, re-import from the kept spec (2026-11-19)
+
+**Context.** FR-6 asks for captures, assertions and runs without scripts; FR-7.5 asks for a
+re-import that keeps the user's edits, which needs what was generated last time.
+**Decision.** Captured values are *runtime variables*: per collection, in memory, between the
+request's own variables and the environment (example → request → runtime → `.local` →
+environment → collection). A capture marked secret is masked like any secret and, when the
+active environment declares a secret of that name, saved to the keychain. JSONPath is RFC 9535
+(`serde_json_path`), regexes are the `regex` crate (no look-around, linear time). Response
+validation uses `jsonschema` (2020-12, the model's schema table as `$defs`). Re-import
+regenerates the *old* collection from the spec kept in `openapi/<name>/source.*`, so the three
+versions (old generated, new generated, current file) are compared field by field; the manifest
+hash says whether a file was touched at all.
+**Consequences.** Runtime variables are lost on restart (by design: tokens expire); secrets that
+must survive go to the keychain. A change in the generator between versions shows up as a
+change on re-import.

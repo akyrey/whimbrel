@@ -30,10 +30,12 @@ pub fn scopes(
     environment: Option<&str>,
     example: Option<&Example>,
     request_variables: Option<&std::collections::BTreeMap<String, String>>,
+    runtime: Scope,
     secrets: &Secrets,
 ) -> Result<Vec<Scope>, AppError> {
     let mut scopes: Vec<Scope> = example.map(Example::scope).into_iter().collect();
     scopes.extend(request_variables.map(plain));
+    scopes.push(runtime);
     let Some(root) = root else { return Ok(scopes) };
     if let Some(id) = environment {
         let read = environments::read(root, id)?;

@@ -38,7 +38,9 @@ expression: generated
         "auth": {
           "type": "inherit"
         },
-        "variables": {}
+        "variables": {},
+        "captures": [],
+        "assertions": []
       }
     }
   ],

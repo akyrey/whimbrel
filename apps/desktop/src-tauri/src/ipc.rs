@@ -33,6 +33,12 @@ pub struct RequestSendArgs {
     /// The request's `[variables]`: after the example, before the environment.
     #[ts(optional)]
     pub variables: Option<std::collections::BTreeMap<String, String>>,
+    /// Values to take from the response into runtime variables.
+    #[ts(optional)]
+    pub captures: Option<Vec<wbl_core::check::Capture>>,
+    /// Checks of the response.
+    #[ts(optional)]
+    pub assertions: Option<Vec<wbl_core::check::Assertion>>,
 }
 
 #[derive(Debug, Clone, Deserialize, TS)]

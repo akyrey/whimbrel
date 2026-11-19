@@ -3,6 +3,7 @@
 //! and unknown keys.
 
 mod auth_file;
+mod checks;
 pub mod collection;
 mod environment;
 mod error;

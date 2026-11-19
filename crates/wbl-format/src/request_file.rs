@@ -7,7 +7,7 @@ use crate::fields::{optional_bool, optional_integer, set, string};
 use crate::{FORMAT, FormatError};
 
 /// A request as stored: its name and place in the tree, and the request itself.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct StoredRequest {
     pub name: String,
@@ -27,6 +27,12 @@ pub struct StoredRequest {
     /// (FR-4.4); path parameters of imported requests default here.
     #[serde(default)]
     pub variables: std::collections::BTreeMap<String, String>,
+    /// `[[captures]]`: values taken from the response into runtime variables (FR-6.1).
+    #[serde(default)]
+    pub captures: Vec<wbl_core::check::Capture>,
+    /// `[[assertions]]`: checks of the response (FR-6.2).
+    #[serde(default)]
+    pub assertions: Vec<wbl_core::check::Assertion>,
 }
 
 /// A parsed request file. Keeps the document so writing preserves what it does not know.
@@ -72,6 +78,8 @@ impl RequestFile {
             settings: read_settings(root)?,
             auth: crate::auth_file::read_auth(root)?,
             variables: crate::fields::string_map(root, "variables")?,
+            captures: crate::checks::read_captures(root)?,
+            assertions: crate::checks::read_assertions(root)?,
         })
     }
 
@@ -92,6 +100,8 @@ impl RequestFile {
         if crate::fields::string_map(root, "variables").ok().as_ref() != Some(&stored.variables) {
             crate::fields::set_string_map(root, "variables", &stored.variables);
         }
+        crate::checks::write_captures(root, &stored.captures);
+        crate::checks::write_assertions(root, &stored.assertions);
         Self { doc }
     }
 }

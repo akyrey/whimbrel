@@ -98,6 +98,47 @@ fn auth() -> impl Strategy<Value = wbl_core::auth::Auth> {
     ]
 }
 
+fn capture() -> impl Strategy<Value = wbl_core::check::Capture> {
+    use wbl_core::check::{Capture, CaptureFrom};
+    (
+        "[a-zA-Z][a-zA-Z0-9_]{0,8}",
+        any::<bool>(),
+        text(),
+        prop::option::of(text()),
+        any::<bool>(),
+    )
+        .prop_map(|(var, header, path, regex, secret)| Capture {
+            var,
+            from: if header {
+                CaptureFrom::Header
+            } else {
+                CaptureFrom::Body
+            },
+            path,
+            regex,
+            secret,
+        })
+}
+
+fn assertion() -> impl Strategy<Value = wbl_core::check::Assertion> {
+    use serde_json::json;
+    use wbl_core::check::Assertion;
+    let json_value = prop_oneof![
+        any::<i64>().prop_map(|n| json!(n)),
+        any::<bool>().prop_map(|b| json!(b)),
+        text().prop_map(|s| json!(s)),
+        prop::collection::vec(any::<i32>(), 0..3).prop_map(|v| json!(v)),
+    ];
+    prop_oneof![
+        (100u16..600).prop_map(|equals| Assertion::Status { equals }),
+        ("[A-Za-z-]{1,12}", prop::option::of(text()))
+            .prop_map(|(name, equals)| Assertion::Header { name, equals }),
+        (text(), prop::option::of(json_value))
+            .prop_map(|(path, equals)| Assertion::Json { path, equals }),
+        (1u64..100_000).prop_map(|below_ms| Assertion::Time { below_ms }),
+    ]
+}
+
 fn stored() -> impl Strategy<Value = StoredRequest> {
     (
         (text(), any::<i64>(), "[A-Z]{1,8}", url()),
@@ -111,9 +152,22 @@ fn stored() -> impl Strategy<Value = StoredRequest> {
         ),
         auth(),
         prop::collection::btree_map("[a-zA-Z][a-zA-Z0-9_]{0,8}", text(), 0..3),
+        (
+            prop::collection::vec(capture(), 0..3),
+            prop::collection::vec(assertion(), 0..3),
+        ),
     )
         .prop_map(
-            |((name, order, method, url), headers, body, examples, settings, auth, variables)| {
+            |(
+                (name, order, method, url),
+                headers,
+                body,
+                examples,
+                settings,
+                auth,
+                variables,
+                (captures, assertions),
+            )| {
                 let (timeout_ms, follow_redirects, verify_tls) = settings;
                 StoredRequest {
                     name,
@@ -132,6 +186,8 @@ fn stored() -> impl Strategy<Value = StoredRequest> {
                     },
                     auth,
                     variables,
+                    captures,
+                    assertions,
                 }
             },
         )

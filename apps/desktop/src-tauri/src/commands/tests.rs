@@ -31,6 +31,8 @@ fn args(id: &str, url: String) -> RequestSendArgs {
         path: None,
         auth: None,
         variables: None,
+        captures: None,
+        assertions: None,
     }
 }
 
@@ -151,8 +153,8 @@ async fn a_finished_request_leaves_nothing_in_flight() {
     .await
     .unwrap();
 
-    assert_eq!(response.status, 200);
-    assert_eq!(response.body.text.as_deref(), Some("ok"));
+    assert_eq!(response.response.status, 200);
+    assert_eq!(response.response.body.text.as_deref(), Some("ok"));
     assert!(state.in_flight.is_empty());
 }
 

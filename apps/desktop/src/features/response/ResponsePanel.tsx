@@ -5,6 +5,8 @@ import type { Response } from "../../ipc";
 import type { SendStatus } from "../tabs/model";
 import { BodyView } from "./BodyView";
 import { EventsView } from "./EventsView";
+import { ChecksView } from "../checks/ChecksView";
+import { summary } from "../checks/checks";
 import { cookiesOf, formatSize, statusTone } from "./format";
 
 const TONE_CLASS = {
@@ -43,7 +45,7 @@ function Pairs({ label, pairs }: { label: string; pairs: [string, string][] }) {
   );
 }
 
-type View = "body" | "headers" | "cookies" | "events";
+type View = "body" | "headers" | "cookies" | "events" | "checks";
 
 function Tabs({
   views,
@@ -100,7 +102,8 @@ export function ResponsePanel({ status }: { status: SendStatus }) {
       </div>
     );
   }
-  const { response, events } = status;
+  const { response, events, checks } = status;
+  const result = summary(checks);
   const cookies = cookiesOf(response.headers);
   const views: [View, string][] = [
     ["body", "Body"],
@@ -110,6 +113,9 @@ export function ResponsePanel({ status }: { status: SendStatus }) {
       : []),
     ...(events.length > 0
       ? [["events", `Events (${String(events.length)})`] as [View, string]]
+      : []),
+    ...(result
+      ? [["checks", `Checks (${String(result.passed)}/${String(result.total)})`] as [View, string]]
       : []),
   ];
   return (
@@ -131,6 +137,7 @@ export function ResponsePanel({ status }: { status: SendStatus }) {
           />
         )}
         {view === "events" && <EventsView events={events} live={false} />}
+        {view === "checks" && checks && <ChecksView checks={checks} />}
       </div>
     </section>
   );

@@ -31,6 +31,8 @@ fn stored() -> StoredRequest {
         settings: Default::default(),
         auth: Default::default(),
         variables: Default::default(),
+        captures: vec![],
+        assertions: vec![],
     }
 }
 
@@ -218,6 +220,8 @@ fn request_variables_round_trip() {
     assert_eq!(RequestFile::parse(&text).unwrap().read().unwrap(), stored);
     let cleared = StoredRequest {
         variables: Default::default(),
+        captures: vec![],
+        assertions: vec![],
         ..stored
     };
     assert!(
@@ -227,4 +231,43 @@ fn request_variables_round_trip() {
             .to_string()
             .contains("[variables]")
     );
+}
+
+#[test]
+fn captures_and_assertions_are_written_as_documented() {
+    use wbl_core::check::{Assertion, Capture, CaptureFrom};
+    let stored = StoredRequest {
+        captures: vec![Capture {
+            var: "userId".into(),
+            from: CaptureFrom::Body,
+            path: "$.id".into(),
+            regex: None,
+            secret: false,
+        }],
+        assertions: vec![
+            Assertion::Status { equals: 201 },
+            Assertion::Json {
+                path: "$.tags".into(),
+                equals: Some(serde_json::json!(["a", 1])),
+            },
+            Assertion::Time { below_ms: 500 },
+        ],
+        ..stored()
+    };
+
+    let text = RequestFile::new(&stored).to_string();
+
+    assert!(
+        text.contains("[[captures]]\nvar = \"userId\"\nfrom = \"body\"\npath = \"$.id\"\n"),
+        "{text}"
+    );
+    assert!(
+        text.contains("[[assertions]]\ncheck = \"status\"\nequals = 201\n"),
+        "{text}"
+    );
+    assert!(text.contains("equals = [\"a\", 1]"), "{text}");
+    assert!(text.contains("below_ms = 500"), "{text}");
+    assert_eq!(RequestFile::parse(&text).unwrap().read().unwrap(), stored);
+    let bad = format!("{text}\n[[assertions]]\ncheck = \"nope\"\n");
+    assert!(RequestFile::parse(&bad).unwrap().read().is_err());
 }

@@ -93,6 +93,8 @@ fn send_args(
         path: None,
         auth: None,
         variables: None,
+        captures: None,
+        assertions: None,
     }
 }
 
@@ -473,6 +475,8 @@ async fn the_sentinel_secret_never_reaches_a_file_or_the_log() {
         settings: Default::default(),
         auth: Default::default(),
         variables: Default::default(),
+        captures: vec![],
+        assertions: vec![],
     };
     let refused = logged("request_create", async {
         create_request(
@@ -515,7 +519,7 @@ async fn the_sentinel_secret_never_reaches_a_file_or_the_log() {
     )
     .unwrap_err();
 
-    assert_eq!(response.status, 204);
+    assert_eq!(response.response.status, 204);
     assert!(
         seen.lock().unwrap().contains(SENTINEL),
         "the secret was sent"

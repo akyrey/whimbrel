@@ -40,7 +40,9 @@ expression: generated
         },
         "variables": {
           "eventId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-        }
+        },
+        "captures": [],
+        "assertions": []
       }
     },
     {
@@ -78,7 +80,9 @@ expression: generated
         },
         "variables": {
           "eventId": "string"
-        }
+        },
+        "captures": [],
+        "assertions": []
       }
     }
   ],

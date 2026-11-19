@@ -77,6 +77,8 @@ export function sendArgs(tab: Tab): RequestSendArgs {
     settings: tab.draft.settings,
     auth: tab.draft.auth,
     variables: tab.draft.variables,
+    captures: tab.draft.captures,
+    assertions: tab.draft.assertions,
     ...(tab.file === null ? {} : { path: tab.file.path }),
     ...(root === undefined ? {} : { root }),
     ...(environment === undefined ? {} : { environment }),
@@ -177,8 +179,11 @@ export const useTabs = create<TabsState>()((set, get) => {
         );
       };
       try {
-        const response = await requestSend(sendArgs(tab), onEvent);
-        replace(id, (t) => ({ ...t, status: { kind: "done", response, events: events() } }));
+        const { response, checks } = await requestSend(sendArgs(tab), onEvent);
+        replace(id, (t) => ({
+          ...t,
+          status: { kind: "done", response, events: events(), checks },
+        }));
       } catch (caught) {
         replace(id, (t) => ({
           ...t,

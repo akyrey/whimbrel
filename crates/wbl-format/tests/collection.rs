@@ -21,6 +21,8 @@ fn request(name: &str, order: i64) -> StoredRequest {
         settings: Default::default(),
         auth: Default::default(),
         variables: Default::default(),
+        captures: vec![],
+        assertions: vec![],
     }
 }
 

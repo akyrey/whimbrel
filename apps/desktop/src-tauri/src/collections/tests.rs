@@ -19,6 +19,8 @@ fn stored(name: &str) -> StoredRequest {
         settings: Default::default(),
         auth: Default::default(),
         variables: Default::default(),
+        captures: vec![],
+        assertions: vec![],
     }
 }
 
