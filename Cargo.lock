@@ -6351,6 +6351,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "wbl-interop"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "ts-rs",
+ "wbl-core",
+ "wbl-format",
+]
+
+[[package]]
 name = "wbl-openapi"
 version = "0.1.0"
 dependencies = [
@@ -6544,6 +6557,7 @@ dependencies = [
  "wbl-core",
  "wbl-format",
  "wbl-http",
+ "wbl-interop",
  "wbl-openapi",
  "wbl-store",
 ]

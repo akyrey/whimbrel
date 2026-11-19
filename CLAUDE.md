@@ -29,7 +29,7 @@ Roost checkout and run `scripts/link-roost.sh ../roost`; run `scripts/unlink-roo
 committing (CI refuses a linked manifest). Code only Whimbrel uses stays here.
 
 Dependency rule: `wbl-core` depends on no other workspace crate. Other `wbl-*` crates depend only
-on `wbl-core` and Roost, except `wbl-openapi`, which also uses `wbl-format` (D-H16). Only
+on `wbl-core` and Roost, except `wbl-openapi` and `wbl-interop`, which also use `wbl-format` (D-H16, D-H19). Only
 `src-tauri` depends on everything.
 
 ## Rust conventions

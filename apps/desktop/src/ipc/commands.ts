@@ -1,5 +1,9 @@
 import type {
   Api,
+  HttpExportArgs,
+  InteropImportArgs,
+  InteropImported,
+  InteropSummary,
   ScopeVariable,
   Plan,
   SpecReimportArgs,
@@ -245,3 +249,13 @@ export const specReimportApply = (args: SpecReimportArgs): Promise<Plan> =>
 /** The variables a request can use, each once, with where it comes from (FR-2.4). */
 export const variablesInScope = (args: RequestSendArgs): Promise<ScopeVariable[]> =>
   call("variables_in_scope", args);
+
+/** Reads a Postman collection or environment, or a `.http` file, and says what it holds. */
+export const interopRead = (path: string): Promise<InteropSummary> =>
+  call("interop_read", { path });
+
+export const interopImport = (args: InteropImportArgs): Promise<InteropImported> =>
+  call("interop_import", args);
+
+/** Writes a folder's requests as a `.http` file; resolves with how many. */
+export const httpExport = (args: HttpExportArgs): Promise<number> => call("http_export", args);

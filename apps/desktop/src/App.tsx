@@ -29,6 +29,7 @@ import {
   shortcutLabel,
 } from "./features/shortcuts/registry";
 import { CurlImportDialog } from "./features/curl/CurlImportDialog";
+import { InteropImportDialog } from "./features/interop/InteropImportDialog";
 import { SchemaCheck } from "./features/openapi/SchemaCheck";
 import { ShowInSpec } from "./features/openapi/ShowInSpec";
 import { SpecBrowser } from "./features/openapi/SpecBrowser";
@@ -240,7 +241,7 @@ type Side = "collections" | "history";
 /** Collections or history, and the cURL import. */
 function Sidebar() {
   const [side, setSide] = useState<Side>("collections");
-  const [importing, setImporting] = useState<"curl" | "openapi" | null>(null);
+  const [importing, setImporting] = useState<"curl" | "openapi" | "interop" | null>(null);
   return (
     <>
       <div
@@ -280,6 +281,15 @@ function Sidebar() {
         >
           OpenAPI…
         </button>
+        <button
+          type="button"
+          className="text-xs text-zinc-400 hover:text-zinc-100"
+          onClick={() => {
+            setImporting("interop");
+          }}
+        >
+          Postman…
+        </button>
       </div>
       <PanelBoundary name={side === "collections" ? "Collections" : "History"}>
         {side === "collections" ? <CollectionTree /> : <HistoryPanel />}
@@ -291,6 +301,13 @@ function Sidebar() {
       )}
       {importing === "curl" && (
         <CurlImportDialog
+          onClose={() => {
+            setImporting(null);
+          }}
+        />
+      )}
+      {importing === "interop" && (
+        <InteropImportDialog
           onClose={() => {
             setImporting(null);
           }}

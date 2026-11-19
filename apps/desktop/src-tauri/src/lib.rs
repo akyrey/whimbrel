@@ -7,6 +7,7 @@ pub mod commands;
 pub mod environments;
 pub mod error;
 pub mod history;
+pub mod interop;
 pub mod ipc;
 pub mod logging;
 pub mod oauth;
@@ -124,6 +125,9 @@ pub fn run() -> Result<(), tauri::Error> {
             spec::spec_validate,
             spec::spec_reimport_plan,
             spec::spec_reimport_apply,
+            interop::interop_read,
+            interop::interop_import,
+            interop::http_export,
             runtime::runtime_list,
             runtime::runtime_clear,
             runner::run_start,

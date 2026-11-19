@@ -63,6 +63,7 @@ crates/wbl-format        read/write collection files (TOML), deterministic write
 crates/wbl-http          send requests: reqwest/hyper, TLS, proxies, cookies, streaming, timings
 crates/wbl-auth          auth schemes, OAuth 2 flows, token cache (via roost-keychain)
 crates/wbl-openapi       parse 2.0/3.0/3.1/3.2, resolve refs, normalise, generate, diff
+crates/wbl-interop       Postman v2.1 and .http in, .http out
 crates/wbl-store         app SQLite: history, workspace state, settings (not collections)
 src-tauri               Tauri commands, file watcher, in-flight request registry (thin)
 src                     React frontend by feature: collections, request, examples,
@@ -70,8 +71,8 @@ src                     React frontend by feature: collections, request, example
 ```
 
 Dependency rule: `wbl-core` depends on no workspace crate. `wbl-format`, `wbl-http`, `wbl-auth`,
-`wbl-store` depend only on `wbl-core` (and `roost-*`). `wbl-openapi` depends on `wbl-core` and
-`wbl-format` (D-H16): it generates stored requests and environments and writes them into a
+`wbl-store` depend only on `wbl-core` (and `roost-*`). `wbl-openapi` and `wbl-interop` depend on `wbl-core` and
+`wbl-format` (D-H16, D-H19): it generates stored requests and environments and writes them into a
 collection with `wbl-format`'s operations. Only `src-tauri` depends on everything.
 
 ## Data flow: sending a request

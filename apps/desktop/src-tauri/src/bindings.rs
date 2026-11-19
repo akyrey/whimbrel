@@ -80,6 +80,11 @@ fn export_all(dir: &Path) {
     crate::spec::SpecReimportArgs::export_all(&config).unwrap();
     wbl_openapi::Plan::export_all(&config).unwrap();
     crate::resolve::ScopeVariable::export_all(&config).unwrap();
+    crate::interop::InteropReadArgs::export_all(&config).unwrap();
+    crate::interop::InteropImportArgs::export_all(&config).unwrap();
+    crate::interop::HttpExportArgs::export_all(&config).unwrap();
+    crate::interop::InteropSummary::export_all(&config).unwrap();
+    crate::interop::InteropImported::export_all(&config).unwrap();
     write_index(dir);
 }
 

@@ -1,0 +1,9 @@
+{
+  "name": "Staging",
+  "values": [
+    {"key": "baseUrl", "value": "https://staging.shop.test", "enabled": true},
+    {"key": "shopKey", "value": "real-secret", "type": "secret", "enabled": true},
+    {"key": "old", "value": "x", "enabled": false}
+  ],
+  "_postman_variable_scope": "environment"
+}

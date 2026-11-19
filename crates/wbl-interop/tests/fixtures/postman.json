@@ -1,0 +1,75 @@
+{
+  "info": {"name": "Shop", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "pasted-real-token", "type": "string"}]},
+  "variable": [
+    {"key": "baseUrl", "value": "https://shop.test"},
+    {"key": "apiSecret", "value": "do-not-copy", "type": "secret"}
+  ],
+  "item": [
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "List orders",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('ok')"]}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}, {"key": "X-Debug", "value": "1", "disabled": true}],
+            "url": {"raw": "{{baseUrl}}/orders?page=1&id={{$guid}}", "host": ["{{baseUrl}}"], "path": ["orders"]}
+          },
+          "response": [
+            {
+              "name": "Second page",
+              "originalRequest": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": {"raw": "{{baseUrl}}/orders?page=2&id={{$guid}}"}}
+            },
+            {
+              "name": "Other path",
+              "originalRequest": {"method": "GET", "url": "{{baseUrl}}/other"}
+            }
+          ]
+        },
+        {
+          "name": "Nested",
+          "item": [
+            {
+              "name": "Create order",
+              "request": {
+                "method": "post",
+                "auth": {"type": "apikey", "apikey": [{"key": "key", "value": "X-Key"}, {"key": "value", "value": "{{shopKey}}"}, {"key": "in", "value": "header"}]},
+                "body": {"mode": "raw", "raw": "{\"sku\": \"{{sku}}\"}", "options": {"raw": {"language": "json"}}},
+                "url": "{{baseUrl}}/orders"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Upload",
+      "request": {
+        "method": "POST",
+        "auth": {"type": "noauth"},
+        "body": {"mode": "formdata", "formdata": [{"key": "title", "value": "Hi", "type": "text"}, {"key": "doc", "type": "file", "src": "/tmp/a.pdf"}]},
+        "url": {"protocol": "https", "host": ["shop", "test"], "path": ["upload"], "query": [{"key": "v", "value": "2"}]}
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "auth": {"type": "hawk", "hawk": []},
+        "body": {"mode": "urlencoded", "urlencoded": [{"key": "user", "value": "ada"}, {"key": "pass", "value": "{{password}}"}]},
+        "url": "{{baseUrl}}/login"
+      }
+    },
+    {
+      "name": "Query",
+      "request": {
+        "method": "POST",
+        "body": {"mode": "graphql", "graphql": {"query": "{ me { id } }", "variables": "{\"a\": 1}"}},
+        "url": "{{baseUrl}}/graphql"
+      }
+    },
+    {"name": "Bare", "request": "https://shop.test/health"}
+  ]
+}

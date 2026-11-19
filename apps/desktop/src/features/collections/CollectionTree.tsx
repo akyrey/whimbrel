@@ -18,6 +18,7 @@ import {
   newRequest,
   openCollection,
   renameRequest,
+  exportHttp,
 } from "./actions";
 import { useCollections } from "./collectionsStore";
 import { NameDialog } from "./NameDialog";
@@ -58,6 +59,7 @@ function containerItems(ui: Ui, root: string, folder: string, name: string): Con
         useRunner.getState().open({ root, folder, name });
       },
     },
+    { label: "Export as .http…", onSelect: () => void exportHttp(root, folder, name) },
     {
       label: "New request",
       onSelect: () => {

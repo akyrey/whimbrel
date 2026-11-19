@@ -209,6 +209,43 @@ export function specCommand(
       return Promise.resolve(specs.get(args.root as string) ?? []);
     case "spec_open":
       return Promise.resolve(PETS_API);
+    case "interop_read": {
+      if (String(args.path).includes("broken")) {
+        return reject("interop_unknown", "This is not a Postman v2 collection or environment");
+      }
+      return Promise.resolve({
+        name: "Shop",
+        requests: 1,
+        folders: ["Orders"],
+        environments: ["Imported"],
+        variables: 1,
+        warnings: ["Pre-request and test scripts are not run in Whimbrel"],
+      });
+    }
+    case "interop_import": {
+      const target = args.target as { kind: string; root?: string; folderName?: string };
+      if (target.kind === "new")
+        return reject("invalid_file", "That folder already holds a collection");
+      const done = mockInstall(target.root ?? "", target.folderName ?? "", [
+        {
+          id: "listOrders",
+          folder: "Orders",
+          stored: mockStored("List orders", "http://localhost/echo"),
+        },
+      ]);
+      if (!done) return reject("not_open", "Open the collection first");
+      return Promise.resolve({
+        root: target.root,
+        folder: done.folder,
+        installed: {
+          requests: Object.values(done.files),
+          environments: ["imported"],
+          warnings: [],
+        },
+      });
+    }
+    case "http_export":
+      return Promise.resolve(2);
     case "spec_reimport_plan":
     case "spec_reimport_apply": {
       const source = args.source as { kind: string; url?: string; path?: string };

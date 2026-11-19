@@ -256,3 +256,20 @@ one is used as it is. The engine reads the files when sending; a missing file fa
 naming the path. Multipart gets its `Content-Type` (with the boundary) from the engine, so an
 import does not set one. This replaces D-H15's "multipart bodies are not generated".
 **Consequences.** Files are read whole into memory before sending (no streaming upload yet).
+
+## D-H19 Interop: Postman and `.http` through one import shape; secrets never copied (2026-11-19)
+
+**Context.** People arrive with Postman collections and environments, or `.http` files; some
+leave with `.http` files. Postman exports hold credentials typed into auth fields and
+"secret" variables; scripts have no Whimbrel equivalent.
+**Decision.** A crate `wbl-interop` (depending on `wbl-core` and `wbl-format`, like
+`wbl-openapi`, D-H16) reads Postman v2.0/v2.1 collections and environments and `.http` files into
+one shape (folders, stored requests, collection variables, environments), and an installer
+writes it. A credential typed into Postman auth becomes a `{{variable}}` and a secret name in an
+"Imported" environment, never a value; secret variables become secret names. Saved responses
+whose request differs only in query, headers or body become saved examples. Scripts and
+response handlers are reported, not run. `.http` export writes each request with the auth it
+inherits as a header (with its variables); examples, captures and assertions have no `.http`
+form and are left out.
+**Consequences.** Users set imported secrets once in the keychain. Postman's dynamic variables
+other than `$guid`, `$randomUUID`, `$timestamp`, `$isoTimestamp` stay as written, with a warning.

@@ -4,6 +4,8 @@ import { toast } from "@roost/ui";
 
 import {
   chooseFolder,
+  chooseSaveFile,
+  httpExport,
   folderCreate,
   nodeDelete,
   requestCreate,
@@ -77,4 +79,13 @@ export const deleteNode = (root: string, path: string) =>
     await nodeDelete(root, path);
     useTabs.getState().removed(root, path);
     await refresh(root);
+  });
+
+/** Writes the folder (`""`: the collection) as a `.http` file the user picks. */
+export const exportHttp = (root: string, folder: string, name: string) =>
+  attempt("export the requests", async () => {
+    const destination = await chooseSaveFile("Export as .http", `${name}.http`);
+    if (!destination) return;
+    const count = await httpExport({ root, folder, destination });
+    toast.success(`Exported ${String(count)} request${count === 1 ? "" : "s"}`);
   });
