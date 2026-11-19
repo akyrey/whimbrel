@@ -1,11 +1,13 @@
 //! Example values for parameters and bodies, and how they are written on the wire.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::Value;
 use url::form_urlencoded;
 
-use crate::model::{MediaType, NamedExample, Parameter};
+use wbl_core::{Body, BodyKind, FormField};
+
+use crate::model::{MediaType, Parameter};
 use crate::synth::{Direction, example};
 
 /// Text of a scalar; arrays joined with commas; objects as JSON.
@@ -95,62 +97,155 @@ pub fn form(value: &Value) -> String {
     }
 }
 
-/// How a body of this media type is written, or `None` when it cannot be text.
+/// How a body of this media type is written.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Wire {
     Json,
     Form,
     Xml,
     Text,
+    Multipart,
+    /// Anything else: a file sent as it is.
+    Binary,
 }
 
-pub fn wire(media_type: &str) -> Option<Wire> {
+pub fn wire(media_type: &str) -> Wire {
     let essence = media_type
         .split(';')
         .next()
         .unwrap_or("")
         .trim()
         .to_ascii_lowercase();
-    Some(match essence.as_str() {
+    match essence.as_str() {
         m if m == "application/json" || m.ends_with("+json") || m == "*/*" => Wire::Json,
         "application/x-www-form-urlencoded" => Wire::Form,
+        m if m.starts_with("multipart/") => Wire::Multipart,
         m if m.ends_with("/xml") || m.ends_with("+xml") => Wire::Xml,
         m if m.starts_with("text/") || m == "application/jsonl" || m == "application/x-ndjson" => {
             Wire::Text
         }
-        _ => return None,
-    })
+        _ => Wire::Binary,
+    }
 }
 
 /// The media type a request is generated with: JSON first, then forms, text, XML.
 pub fn preferred(content: &[MediaType]) -> Option<&MediaType> {
     let rank = |m: &MediaType| match wire(&m.media_type) {
-        Some(Wire::Json) => 0,
-        Some(Wire::Form) => 1,
-        Some(Wire::Text) => 2,
-        Some(Wire::Xml) => 3,
-        None => 4,
+        Wire::Json => 0,
+        Wire::Form => 1,
+        Wire::Multipart => 2,
+        Wire::Text => 3,
+        Wire::Xml => 4,
+        Wire::Binary => 5,
     };
     content.iter().min_by_key(|m| rank(m))
 }
 
-/// A body's text for `value`.
-pub fn body_text(wire: Wire, value: &Value) -> String {
+/// A text body's text for `value`.
+fn body_text(wire: Wire, value: &Value) -> String {
     match (wire, value) {
         (Wire::Json, v) => serde_json::to_string_pretty(v).unwrap_or_default(),
-        (Wire::Form, v) => form(v),
         (_, Value::String(s)) => s.clone(),
         (Wire::Xml, _) => String::new(),
-        (Wire::Text, v) => text_of(v),
+        (_, v) => text_of(v),
     }
 }
 
-/// A named example's text as sent: its serialized form, else its value written for `wire`.
-pub fn example_text(wire: Wire, example: &NamedExample) -> Option<String> {
-    example
-        .serialized
-        .clone()
-        .or_else(|| example.value.as_ref().map(|v| body_text(wire, v)))
+fn kind_of(wire: Wire) -> BodyKind {
+    match wire {
+        Wire::Json => BodyKind::Json,
+        Wire::Xml => BodyKind::Xml,
+        _ => BodyKind::Text,
+    }
+}
+
+/// Form fields of an object value (`files`: the ones sent as files, left without a path).
+fn fields_of(value: Option<&Value>, files: &BTreeSet<String>) -> Vec<FormField> {
+    let Some(Value::Object(map)) = value else {
+        return Vec::new();
+    };
+    map.iter()
+        .map(|(name, v)| {
+            let file = files.contains(name);
+            FormField {
+                name: name.clone(),
+                value: if file { String::new() } else { text_of(v) },
+                enabled: true,
+                file,
+            }
+        })
+        .collect()
+}
+
+/// Fields from a serialized form (`a=1&b=2`).
+fn fields_from_query(text: &str) -> Vec<FormField> {
+    form_urlencoded::parse(text.as_bytes())
+        .map(|(name, value)| FormField {
+            name: name.into_owned(),
+            value: value.into_owned(),
+            enabled: true,
+            file: false,
+        })
+        .collect()
+}
+
+/// A body of `wire` for `value` (or its serialized form); `files` names multipart file parts.
+pub fn body_for(
+    wire: Wire,
+    value: Option<&Value>,
+    serialized: Option<&str>,
+    files: &BTreeSet<String>,
+) -> Body {
+    match wire {
+        Wire::Form => Body::Form {
+            fields: serialized.map_or_else(|| fields_of(value, files), fields_from_query),
+        },
+        Wire::Multipart => Body::Multipart {
+            fields: fields_of(value, files),
+        },
+        Wire::Binary => Body::File {
+            path: String::new(),
+        },
+        text => Body::Text {
+            kind: kind_of(text),
+            text: serialized
+                .map(str::to_owned)
+                .or_else(|| value.map(|v| body_text(text, v)))
+                .unwrap_or_default(),
+        },
+    }
+}
+
+/// Properties of an object schema that are files (`format: binary`), following one `$ref`.
+pub fn file_properties(
+    schema: Option<&Value>,
+    schemas: &BTreeMap<String, Value>,
+) -> BTreeSet<String> {
+    let resolved = schema.and_then(|s| {
+        s.get("$ref")
+            .and_then(Value::as_str)
+            .and_then(|r| r.strip_prefix("#/schemas/"))
+            .and_then(|name| schemas.get(name))
+            .or(Some(s))
+    });
+    resolved
+        .and_then(|s| s.get("properties"))
+        .and_then(Value::as_object)
+        .map(|props| {
+            props
+                .iter()
+                .filter(|(_, p)| {
+                    let format = p.get("format").and_then(Value::as_str);
+                    let items = p
+                        .get("items")
+                        .and_then(|i| i.get("format"))
+                        .and_then(Value::as_str);
+                    matches!(format, Some("binary" | "base64")) || items == Some("binary")
+                })
+                .map(|(k, _)| k.clone())
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// The body's default value: the first named example, the media type's example, else one from

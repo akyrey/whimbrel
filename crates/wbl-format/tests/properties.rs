@@ -34,7 +34,21 @@ fn body() -> impl Strategy<Value = Body> {
             text()
         )
             .prop_map(|(kind, text)| Body::Text { kind, text }),
+        prop::collection::vec(form_field(), 0..3).prop_map(|fields| Body::Form { fields }),
+        prop::collection::vec(form_field(), 0..3).prop_map(|fields| Body::Multipart { fields }),
+        text().prop_map(|path| Body::File { path }),
     ]
+}
+
+fn form_field() -> impl Strategy<Value = wbl_core::FormField> {
+    (text(), text(), any::<bool>(), any::<bool>()).prop_map(|(name, value, enabled, file)| {
+        wbl_core::FormField {
+            name,
+            value,
+            enabled,
+            file,
+        }
+    })
 }
 
 /// URLs are one line (a line break would make the request invalid).

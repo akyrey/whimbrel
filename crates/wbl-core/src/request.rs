@@ -33,12 +33,78 @@ impl BodyKind {
     }
 }
 
+/// A field of a form body. In a multipart body, `file` makes `value` a path whose contents are
+/// sent as a file part.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct FormField {
+    pub name: String,
+    pub value: String,
+    pub enabled: bool,
+    #[serde(default)]
+    pub file: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Body {
     None,
-    Text { kind: BodyKind, text: String },
+    Text {
+        kind: BodyKind,
+        text: String,
+    },
+    /// `application/x-www-form-urlencoded`.
+    Form {
+        fields: Vec<FormField>,
+    },
+    /// `multipart/form-data`: text fields and files.
+    Multipart {
+        fields: Vec<FormField>,
+    },
+    /// A file sent as it is (`application/octet-stream` unless a header says otherwise).
+    File {
+        path: String,
+    },
+}
+
+impl Body {
+    /// The body with relative file paths taken from `base` (a collection's folder, D-H18).
+    pub fn with_files_under(&self, base: &std::path::Path) -> Body {
+        let anchor = |path: &str| {
+            if path.is_empty() || std::path::Path::new(path).is_absolute() {
+                path.to_owned()
+            } else {
+                base.join(path).to_string_lossy().into_owned()
+            }
+        };
+        match self {
+            Self::File { path } => Self::File { path: anchor(path) },
+            Self::Multipart { fields } => Self::Multipart {
+                fields: fields
+                    .iter()
+                    .map(|f| FormField {
+                        value: if f.file {
+                            anchor(&f.value)
+                        } else {
+                            f.value.clone()
+                        },
+                        ..f.clone()
+                    })
+                    .collect(),
+            },
+            other => other.clone(),
+        }
+    }
+
+    /// The fields of a form or multipart body that are sent.
+    pub fn enabled_fields(&self) -> impl Iterator<Item = &FormField> {
+        let fields: &[FormField] = match self {
+            Self::Form { fields } | Self::Multipart { fields } => fields,
+            _ => &[],
+        };
+        fields.iter().filter(|f| f.enabled)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -124,14 +190,18 @@ impl Request {
     }
 
     /// The `Content-Type` to add for the body, when the user has not set one.
+    /// A multipart body gets its own (with the boundary) from the engine.
     pub fn default_content_type(&self) -> Option<&'static str> {
-        let Body::Text { kind, .. } = &self.body else {
-            return None;
+        let content_type = match &self.body {
+            Body::Text { kind, .. } => kind.content_type(),
+            Body::Form { .. } => "application/x-www-form-urlencoded",
+            Body::File { .. } => "application/octet-stream",
+            Body::None | Body::Multipart { .. } => return None,
         };
         let has_one = self
             .enabled_headers()
             .any(|h| h.name.eq_ignore_ascii_case("content-type"));
-        (!has_one).then(|| kind.content_type())
+        (!has_one).then_some(content_type)
     }
 }
 

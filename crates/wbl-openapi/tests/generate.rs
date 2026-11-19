@@ -140,12 +140,19 @@ fn swagger_auth_folders_and_forms() {
             .any(|w| w.contains("petstore_auth"))
     );
     let upload = request(&generated, "uploadFile");
-    assert_eq!(upload.stored.request.body, Body::None);
+    let Body::Multipart { fields } = &upload.stored.request.body else {
+        panic!("{:?}", upload.stored.request.body)
+    };
+    let parts: Vec<_> = fields.iter().map(|f| (f.name.as_str(), f.file)).collect();
+    assert_eq!(parts, [("additionalMetadata", false), ("file", true)]);
     assert!(
-        generated
-            .warnings
+        upload
+            .stored
+            .request
+            .headers
             .iter()
-            .any(|w| w.contains("multipart/form-data"))
+            .all(|h| h.name != "Content-Type"),
+        "the engine sets a multipart Content-Type with its boundary"
     );
     let find = request(&generated, "findPetsByStatus");
     assert_eq!(

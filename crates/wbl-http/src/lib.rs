@@ -201,7 +201,8 @@ impl Sender {
     ) -> Result<Response, HttpError> {
         request.validate().map_err(HttpError::from)?;
         let client = self.client(exchange)?;
-        let built = build(&client, request, &exchange.settings)?;
+        let files = read_files(&request.body).await?;
+        let built = build(&client, request, &exchange.settings, &files)?;
         tokio::select! {
             () = cancel.cancelled() => Err(HttpError::new(HttpErrorCode::Cancelled, "The request was cancelled")),
             result = self.exchange(&client, built, on_event) => result,
@@ -224,10 +225,75 @@ impl Sender {
     }
 }
 
+/// The contents of every file the body sends, by path.
+async fn read_files(body: &Body) -> Result<HashMap<String, Vec<u8>>, HttpError> {
+    let paths: Vec<&str> = match body {
+        Body::File { path } => vec![path.as_str()],
+        Body::Multipart { .. } => body
+            .enabled_fields()
+            .filter(|f| f.file)
+            .map(|f| f.value.as_str())
+            .collect(),
+        _ => Vec::new(),
+    };
+    let mut files = HashMap::new();
+    for path in paths {
+        let bytes = tokio::fs::read(path).await.map_err(|e| {
+            HttpError::invalid("body", &format!("Cannot read the file {path}: {e}"))
+        })?;
+        files.insert(path.to_owned(), bytes);
+    }
+    Ok(files)
+}
+
+fn file_name(path: &str) -> String {
+    std::path::Path::new(path)
+        .file_name()
+        .map_or_else(|| "file".to_owned(), |n| n.to_string_lossy().into_owned())
+}
+
+fn multipart(body: &Body, files: &HashMap<String, Vec<u8>>) -> reqwest::multipart::Form {
+    body.enabled_fields()
+        .fold(reqwest::multipart::Form::new(), |form, f| {
+            if f.file {
+                let bytes = files.get(&f.value).cloned().unwrap_or_default();
+                form.part(
+                    f.name.clone(),
+                    reqwest::multipart::Part::bytes(bytes).file_name(file_name(&f.value)),
+                )
+            } else {
+                form.text(f.name.clone(), f.value.clone())
+            }
+        })
+}
+
+fn with_body(
+    builder: reqwest::RequestBuilder,
+    body: &Body,
+    files: &HashMap<String, Vec<u8>>,
+) -> reqwest::RequestBuilder {
+    match body {
+        Body::None => builder,
+        Body::Text { text, .. } => builder.body(text.clone()),
+        Body::Form { .. } => {
+            let encoded = url::form_urlencoded::Serializer::new(String::new())
+                .extend_pairs(
+                    body.enabled_fields()
+                        .map(|f| (f.name.as_str(), f.value.as_str())),
+                )
+                .finish();
+            builder.body(encoded)
+        }
+        Body::Multipart { .. } => builder.multipart(multipart(body, files)),
+        Body::File { path } => builder.body(files.get(path).cloned().unwrap_or_default()),
+    }
+}
+
 fn build(
     client: &reqwest::Client,
     request: &Request,
     settings: &RequestSettings,
+    files: &HashMap<String, Vec<u8>>,
 ) -> Result<reqwest::Request, HttpError> {
     let method = reqwest::Method::from_bytes(request.method.as_bytes())
         .map_err(|_| HttpError::invalid("method", "The method is not valid"))?;
@@ -241,9 +307,7 @@ fn build(
     if let Some(content_type) = request.default_content_type() {
         builder = builder.header(reqwest::header::CONTENT_TYPE, content_type);
     }
-    if let Body::Text { text, .. } = &request.body {
-        builder = builder.body(text.clone());
-    }
+    builder = with_body(builder, &request.body, files);
     builder
         .build()
         .map_err(|e| HttpError::new(HttpErrorCode::InvalidRequest, error::describe(&e)))

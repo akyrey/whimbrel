@@ -14,12 +14,13 @@ ts = ["dep:ts-rs", "wbl-core/ts"]
 [dependencies]
 wbl-core.workspace = true
 # rustls with the platform verifier (the OS trust store), HTTP/2, decompression, streaming.
-reqwest = { version = "0.13", features = ["gzip", "brotli", "deflate", "zstd", "stream", "cookies"] }
+reqwest = { version = "0.13", features = ["gzip", "brotli", "deflate", "zstd", "stream", "cookies", "multipart"] }
 base64 = "0.22"
 serde.workspace = true
 thiserror.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["fs"] }
 tokio-util = "0.7"
+url = "2.5"
 ts-rs = { workspace = true, optional = true }
 
 [dev-dependencies]

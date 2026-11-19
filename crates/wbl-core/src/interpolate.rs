@@ -3,7 +3,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::{Body, Header, Request};
+use crate::{Body, FormField, Header, Request};
 
 /// A variable's value. A secret is `None` when its name is declared but the keychain holds no
 /// value for it.
@@ -211,8 +211,15 @@ fn texts(request: &Request) -> Vec<&str> {
         texts.push(&header.name);
         texts.push(&header.value);
     }
-    if let Body::Text { text, .. } = &request.body {
-        texts.push(text);
+    match &request.body {
+        Body::Text { text, .. } => texts.push(text),
+        Body::File { path } => texts.push(path),
+        body => {
+            for field in body.enabled_fields() {
+                texts.push(&field.name);
+                texts.push(&field.value);
+            }
+        }
     }
     texts
 }
@@ -272,6 +279,13 @@ pub fn resolve(
                 kind: *kind,
                 text: run(text),
             },
+            Body::Form { fields } => Body::Form {
+                fields: resolve_fields(fields, &mut run),
+            },
+            Body::Multipart { fields } => Body::Multipart {
+                fields: resolve_fields(fields, &mut run),
+            },
+            Body::File { path } => Body::File { path: run(path) },
         },
     };
     if !all.undefined.is_empty() || !all.unset_secrets.is_empty() {
@@ -284,6 +298,61 @@ pub fn resolve(
         request: resolved,
         secrets: all.secrets,
     })
+}
+
+/// Enabled fields with their variables replaced; disabled ones as they are.
+fn resolve_fields(fields: &[FormField], run: &mut impl FnMut(&str) -> String) -> Vec<FormField> {
+    fields
+        .iter()
+        .map(|f| {
+            if !f.enabled {
+                return f.clone();
+            }
+            FormField {
+                name: run(&f.name),
+                value: run(&f.value),
+                ..f.clone()
+            }
+        })
+        .collect()
+}
+
+/// `request` with every secret value in `secrets` masked: URL, headers and every body kind.
+pub fn mask_request(request: &Request, secrets: &[String]) -> Request {
+    let m = |text: &str| mask(text, secrets);
+    let fields = |fields: &[FormField]| -> Vec<FormField> {
+        fields
+            .iter()
+            .map(|f| FormField {
+                name: m(&f.name),
+                value: m(&f.value),
+                ..f.clone()
+            })
+            .collect()
+    };
+    Request {
+        method: request.method.clone(),
+        url: m(&request.url),
+        headers: request
+            .headers
+            .iter()
+            .map(|h| Header {
+                name: m(&h.name),
+                value: m(&h.value),
+                enabled: h.enabled,
+            })
+            .collect(),
+        body: match &request.body {
+            Body::None => Body::None,
+            Body::Text { kind, text } => Body::Text {
+                kind: *kind,
+                text: m(text),
+            },
+            Body::Form { fields: f } => Body::Form { fields: fields(f) },
+            Body::Multipart { fields: f } => Body::Multipart { fields: fields(f) },
+            Body::File { path } => Body::File { path: m(path) },
+        },
+    }
 }
 
 /// What a secret looks like where it must not be read.

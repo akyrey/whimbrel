@@ -242,3 +242,17 @@ hash says whether a file was touched at all.
 **Consequences.** Runtime variables are lost on restart (by design: tokens expire); secrets that
 must survive go to the keychain. A change in the generator between versions shows up as a
 change on re-import.
+
+## D-H18 Form, multipart and file bodies; file paths relative to the collection (2026-11-19)
+
+**Context.** FR-2.2 asks for form-urlencoded, multipart (fields and files) and binary file
+bodies. Request files live in git and are shared, so a path to a file must mean the same thing
+on every machine.
+**Decision.** `Body` gains `Form { fields }`, `Multipart { fields }` (a field with `file = true`
+holds a path) and `File { path }`. In the file: `[body] kind = "form" | "multipart"` with
+`[[body.fields]]`, or `kind = "file"` with `path`. A relative path is taken from the
+collection's folder when sending (so files can be kept beside the requests in git); an absolute
+one is used as it is. The engine reads the files when sending; a missing file fails the send
+naming the path. Multipart gets its `Content-Type` (with the boundary) from the engine, so an
+import does not set one. This replaces D-H15's "multipart bodies are not generated".
+**Consequences.** Files are read whole into memory before sending (no streaming upload yet).

@@ -196,7 +196,7 @@ fn missing_or_wrong_fields_are_named() {
     assert_eq!(error(&bad_order), "`order` must be a whole number");
     assert_eq!(
         error(&bad_kind),
-        "`body.kind` must be one of json, xml, text"
+        "`body.kind` must be one of json, xml, text, form, multipart, file"
     );
 }
 
@@ -336,4 +336,69 @@ fn checks_read_every_toml_shape_and_refuse_bad_ones() {
         let text = format!("{BASE}{bad}");
         assert!(RequestFile::parse(&text).unwrap().read().is_err(), "{bad}");
     }
+}
+
+#[test]
+fn form_multipart_and_file_bodies_are_written_as_documented() {
+    use wbl_core::FormField;
+    let upload = StoredRequest {
+        request: Request {
+            body: Body::Multipart {
+                fields: vec![
+                    FormField {
+                        name: "title".into(),
+                        value: "{{title}}".into(),
+                        enabled: true,
+                        file: false,
+                    },
+                    FormField {
+                        name: "doc".into(),
+                        value: "files/a.pdf".into(),
+                        enabled: false,
+                        file: true,
+                    },
+                ],
+            },
+            ..stored().request
+        },
+        ..stored()
+    };
+
+    let text = RequestFile::new(&upload).to_string();
+
+    assert!(text.contains("[body]\nkind = \"multipart\""), "{text}");
+    assert!(
+        text.contains(
+            "[[body.fields]]\nname = \"doc\"\nvalue = \"files/a.pdf\"\nenabled = false\nfile = true"
+        ),
+        "{text}"
+    );
+    assert_eq!(RequestFile::parse(&text).unwrap().read().unwrap(), upload);
+    let as_file = StoredRequest {
+        request: Request {
+            body: Body::File {
+                path: "big.bin".into(),
+            },
+            ..upload.request.clone()
+        },
+        ..upload.clone()
+    };
+    let changed = RequestFile::parse(&text)
+        .unwrap()
+        .updated(&as_file)
+        .to_string();
+    assert!(
+        changed.contains("kind = \"file\"\npath = \"big.bin\""),
+        "{changed}"
+    );
+    assert!(!changed.contains("fields"), "{changed}");
+    let bad = format!("{BASE}[body]\nkind = \"zip\"\n");
+    assert!(
+        RequestFile::parse(&bad)
+            .unwrap()
+            .read()
+            .unwrap_err()
+            .to_string()
+            .contains("multipart")
+    );
 }

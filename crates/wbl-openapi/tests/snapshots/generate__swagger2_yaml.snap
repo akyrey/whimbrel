@@ -97,7 +97,21 @@ expression: generated
           "url": "{{baseUrl}}/pet/{{petId}}/uploadImage",
           "headers": [],
           "body": {
-            "type": "none"
+            "type": "multipart",
+            "fields": [
+              {
+                "name": "additionalMetadata",
+                "value": "string",
+                "enabled": true,
+                "file": false
+              },
+              {
+                "name": "file",
+                "value": "",
+                "enabled": true,
+                "file": true
+              }
+            ]
           }
         },
         "examples": [],
@@ -195,7 +209,6 @@ expression: generated
     }
   ],
   "warnings": [
-    "petstore_auth: only implicit or password flows, which Whimbrel does not run",
-    "uploadFile: a multipart/form-data body is not generated; add it by hand"
+    "petstore_auth: only implicit or password flows, which Whimbrel does not run"
   ]
 }

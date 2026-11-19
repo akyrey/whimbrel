@@ -115,6 +115,16 @@ pub async fn send(
     let parts = parts(collections, secrets, &args)?;
     let token = crate::oauth::usable(&state.oauth, secrets, &parts.auth).await?;
     let resolved = build(&args, &parts, token.as_ref())?;
+    let resolved = match &parts.root {
+        Some(root) => wbl_core::interpolate::Resolved {
+            request: wbl_core::Request {
+                body: resolved.request.body.with_files_under(root),
+                ..resolved.request
+            },
+            ..resolved
+        },
+        None => resolved,
+    };
     let exchange = Exchange {
         settings: args.settings.unwrap_or_default(),
         jar: jar_of(collections, &args),

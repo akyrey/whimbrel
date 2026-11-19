@@ -8,5 +8,5 @@ pub mod interpolate;
 pub mod request;
 pub mod settings;
 
-pub use request::{Body, BodyKind, Header, Request, RequestError};
+pub use request::{Body, BodyKind, FormField, Header, Request, RequestError};
 pub use settings::RequestSettings;

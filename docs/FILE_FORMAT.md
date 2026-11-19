@@ -125,6 +125,24 @@ Overlay rules: fields an example does not mention come from the base request. An
 query parameter or header, an example sets `enabled = false` on it. A body or response
 over 64 KB goes to a sidecar file in `<request>.examples/`.
 
+Other body kinds (D-H18):
+
+```toml
+[body]
+kind = "multipart"           # or "form" (URL-encoded; no file fields)
+[[body.fields]]
+name = "title"
+value = "{{title}}"
+[[body.fields]]
+name = "doc"
+value = "files/report.pdf"   # relative to the collection's folder
+file = true
+
+# [body]
+# kind = "file"              # the whole body is a file
+# path = "fixtures/upload.bin"
+```
+
 Lists are arrays of tables, not maps, so order and duplicate headers survive. Large bodies may
 live in a sidecar file: `[body] kind = "json" file = "create-user.body.json"`.
 

@@ -37,6 +37,7 @@ export type * from "./ExampleNode";
 export type * from "./ExampleOverlayArgs";
 export type * from "./Field";
 export type * from "./FolderNode";
+export type * from "./FormField";
 export type * from "./Grant";
 export type * from "./Header";
 export type * from "./HistoryEntry";

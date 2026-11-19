@@ -232,20 +232,17 @@ fn read_body(root: &Table) -> Result<Body, FormatError> {
 }
 
 fn write_body(root: &mut Table, body: &Body) {
-    let Body::Text { kind, text } = body else {
+    if read_body(root).ok().as_ref() == Some(body) {
+        return;
+    }
+    if matches!(body, Body::None) {
         root.remove("body");
         return;
-    };
-    let table = match root.get_mut("body").and_then(Item::as_table_mut) {
-        Some(table) => table,
-        None => {
-            root.insert("body", Item::Table(Table::new()));
-            match root.get_mut("body").and_then(Item::as_table_mut) {
-                Some(table) => table,
-                None => return,
-            }
-        }
-    };
-    set(table, "kind", crate::examples::kind_name(*kind));
-    set(table, "text", text.as_str());
+    }
+    if !matches!(root.get("body"), Some(Item::Table(_))) {
+        root.insert("body", Item::Table(Table::new()));
+    }
+    if let Some(Item::Table(table)) = root.get_mut("body") {
+        crate::examples::fill_body_table(table, body);
+    }
 }

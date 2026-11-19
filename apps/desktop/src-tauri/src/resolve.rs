@@ -72,28 +72,7 @@ pub fn resolved(
 
 /// `request` with every secret value replaced by the mask, for showing.
 pub fn masked(resolved: &Resolved) -> Request {
-    let m = |text: &str| mask(text, &resolved.secrets);
-    let r = &resolved.request;
-    Request {
-        method: r.method.clone(),
-        url: m(&r.url),
-        headers: r
-            .headers
-            .iter()
-            .map(|h| wbl_core::Header {
-                name: m(&h.name),
-                value: m(&h.value),
-                enabled: h.enabled,
-            })
-            .collect(),
-        body: match &r.body {
-            wbl_core::Body::None => wbl_core::Body::None,
-            wbl_core::Body::Text { kind, text } => wbl_core::Body::Text {
-                kind: *kind,
-                text: m(text),
-            },
-        },
-    }
+    wbl_core::interpolate::mask_request(&resolved.request, &resolved.secrets)
 }
 
 /// Refuses to write `text` into the collection when it holds the value of one of the

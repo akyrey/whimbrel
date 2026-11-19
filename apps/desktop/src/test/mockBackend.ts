@@ -322,6 +322,24 @@ function response(status: number, reason: string, contentType: string, text: str
   };
 }
 
+/** What the echo route reports as the body it received. */
+function bodyText(body: Request["body"]): string {
+  switch (body.type) {
+    case "none":
+      return "";
+    case "text":
+      return body.text;
+    case "file":
+      return `file ${body.path}`;
+    case "form":
+    case "multipart":
+      return body.fields
+        .filter((f) => f.enabled)
+        .map((f) => `${f.name}=${f.file ? `@${f.value}` : f.value}`)
+        .join("&");
+  }
+}
+
 function answer(request: Request): Response | AppError {
   if (!/^https?:\/\//i.test(request.url)) {
     return {
@@ -350,7 +368,7 @@ function answer(request: Request): Response | AppError {
     const sent = {
       method: request.method,
       headers: request.headers.filter((h) => h.enabled).map((h) => [h.name, h.value]),
-      body: request.body.type === "text" ? request.body.text : "",
+      body: bodyText(request.body),
     };
     return { ...response(200, "OK", "application/json", JSON.stringify(sent)), url: request.url };
   }

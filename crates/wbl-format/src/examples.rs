@@ -2,7 +2,7 @@
 
 use toml_edit::{ArrayOfTables, Item, Table, TableLike};
 use wbl_core::example::{Example, Param};
-use wbl_core::{Body, BodyKind, Header};
+use wbl_core::{Body, BodyKind, FormField, Header};
 
 use crate::FormatError;
 use crate::fields::{optional_bool, optional_integer, set, set_string_map, string, string_map};
@@ -24,7 +24,8 @@ pub(crate) fn kind_name(kind: BodyKind) -> &'static str {
     }
 }
 
-/// A `[body]` table: `kind` and `text`; in an example, `kind = "none"` removes the body.
+/// A `[body]` table: `kind` and `text` (json, xml, text), `fields` (form, multipart) or `path`
+/// (file); in an example, `kind = "none"` removes the body.
 pub(crate) fn read_body_table(
     table: &dyn TableLike,
     field: &str,
@@ -32,20 +33,88 @@ pub(crate) fn read_body_table(
 ) -> Result<Body, FormatError> {
     let as_table = to_table(table);
     let kind = string(&as_table, "kind", &format!("{field}.kind"))?;
-    if allow_none && kind == "none" {
-        return Ok(Body::None);
+    let fields = || read_fields(&as_table, field);
+    match kind.as_str() {
+        "none" if allow_none => Ok(Body::None),
+        "form" => Ok(Body::Form { fields: fields()? }),
+        "multipart" => Ok(Body::Multipart { fields: fields()? }),
+        "file" => Ok(Body::File {
+            path: string(&as_table, "path", &format!("{field}.path"))?,
+        }),
+        other => {
+            let expected = if allow_none {
+                "one of json, xml, text, form, multipart, file, none"
+            } else {
+                "one of json, xml, text, form, multipart, file"
+            };
+            let kind = kind_of(other)
+                .ok_or_else(|| FormatError::invalid(&format!("{field}.kind"), expected))?;
+            Ok(Body::Text {
+                kind,
+                text: string(&as_table, "text", &format!("{field}.text"))?,
+            })
+        }
     }
-    let expected = if allow_none {
-        "one of json, xml, text, none"
-    } else {
-        "one of json, xml, text"
-    };
-    let kind =
-        kind_of(&kind).ok_or_else(|| FormatError::invalid(&format!("{field}.kind"), expected))?;
-    Ok(Body::Text {
-        kind,
-        text: string(&as_table, "text", &format!("{field}.text"))?,
-    })
+}
+
+fn read_fields(table: &Table, field: &str) -> Result<Vec<FormField>, FormatError> {
+    let at = format!("{field}.fields");
+    tables(table.get("fields"), &at)?
+        .iter()
+        .map(|f| {
+            Ok(FormField {
+                name: string(f, "name", &format!("{at}.name"))?,
+                value: string(f, "value", &format!("{at}.value"))?,
+                enabled: optional_bool(f, "enabled", &format!("{at}.enabled"), true)?,
+                file: optional_bool(f, "file", &format!("{at}.file"), false)?,
+            })
+        })
+        .collect()
+}
+
+/// `body` as the keys of a `[body]` table (into `t`, which keeps its decor).
+pub(crate) fn fill_body_table(t: &mut Table, body: &Body) {
+    for key in ["text", "fields", "path"] {
+        t.remove(key);
+    }
+    match body {
+        Body::None => set(t, "kind", "none"),
+        Body::Text { kind, text } => {
+            set(t, "kind", kind_name(*kind));
+            set(t, "text", text.as_str());
+        }
+        Body::Form { fields } | Body::Multipart { fields } => {
+            set(
+                t,
+                "kind",
+                if matches!(body, Body::Form { .. }) {
+                    "form"
+                } else {
+                    "multipart"
+                },
+            );
+            let mut aot = ArrayOfTables::new();
+            for f in fields {
+                let mut row = Table::new();
+                set(&mut row, "name", f.name.as_str());
+                set(&mut row, "value", f.value.as_str());
+                if !f.enabled {
+                    set(&mut row, "enabled", false);
+                }
+                if f.file {
+                    set(&mut row, "file", true);
+                }
+                aot.push(row);
+            }
+            if !aot.is_empty() {
+                t.insert("fields", Item::ArrayOfTables(aot));
+            }
+        }
+        Body::File { path } => {
+            set(t, "kind", "file");
+            set(t, "path", path.as_str());
+        }
+    }
 }
 
 /// Inline and standard tables read alike.
@@ -162,13 +231,7 @@ fn example_table(example: &Example) -> Table {
     }
     if let Some(body) = &example.body {
         let mut b = spaced(Table::new());
-        match body {
-            Body::None => set(&mut b, "kind", "none"),
-            Body::Text { kind, text } => {
-                set(&mut b, "kind", kind_name(*kind));
-                set(&mut b, "text", text.as_str());
-            }
-        }
+        fill_body_table(&mut b, body);
         t.insert("body", Item::Table(b));
     }
     t

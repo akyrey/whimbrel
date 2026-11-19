@@ -1,0 +1,31 @@
+# Phase 8: Polish, interop, release
+
+Goal: the request editor covers FR-2 completely, collections move in and out of other tools,
+the shell matches Dunlin's, and Whimbrel ships as signed, self-updating packages.
+
+Design: [PRD.md](../PRD.md) FR-2, FR-9; [FILE_FORMAT.md](../FILE_FORMAT.md); D-H15, D-H18,
+D-H19.
+
+## Tasks
+
+- [x] 8.1 Body kinds (FR-2.2): form-urlencoded and multipart (fields and files) and a binary
+      file, in the file format, the engine and the editor; imported specs generate them.
+- [ ] 8.2 Query parameters (FR-2.3): a table that stays in sync with the URL both ways.
+- [ ] 8.3 Variables in the editor (FR-2.4): `{{` completes the names in scope (example, request,
+      runtime, environment, collection, secrets by name), and hovering a variable shows its
+      value (secrets masked) and where it comes from.
+- [ ] 8.4 Interop: import Postman v2.1 collections (secrets as secret names) and `.http` files;
+      export a folder as `.http`.
+- [ ] 8.5 The tree: rename folders; move requests and folders up and down.
+- [ ] 8.6 The shell (FR-9.1, 9.4): palette commands for every action, settings (theme, editor
+      font size, default timeout), and the open tabs restored.
+- [ ] 8.7 Spec browser leftovers from Phase 6: links and callbacks shown, `$self` as the base of
+      references.
+- [ ] 8.8 Release (FR-9.2, 9.3): the updater (plugin, Roost's update commands and prompt), the
+      release workflow through Roost's `release-app.yml`, an updater key pair, RELEASING.md.
+
+## Acceptance
+
+A signed release installs on macOS and Linux and updates itself to the next one. This needs the
+user: the updater private key and signing certificates as repository secrets, and two tagged
+releases.

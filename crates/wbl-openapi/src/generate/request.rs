@@ -4,12 +4,12 @@ use std::collections::BTreeMap;
 
 use serde_json::Value;
 use wbl_core::example::{Example, Param};
-use wbl_core::{Body, BodyKind, Header, Request};
+use wbl_core::{Body, Header, Request};
 use wbl_format::StoredRequest;
 use wbl_format::collection::slug;
 
 use super::values::{
-    Wire, body_text, body_value, example_text, param_value, preferred, query_pairs, query_string,
+    Wire, body_for, body_value, file_properties, param_value, preferred, query_pairs, query_string,
     text_of, wire,
 };
 use crate::model::{Api, MediaType, Operation, ParamLocation, Parameter};
@@ -33,14 +33,6 @@ pub fn name_of(op: &Operation) -> String {
 fn url_of(path: &str) -> String {
     let templated = path.replace('{', "{{").replace('}', "}}");
     format!("{{{{baseUrl}}}}{templated}")
-}
-
-fn kind_of(wire: Wire) -> BodyKind {
-    match wire {
-        Wire::Json => BodyKind::Json,
-        Wire::Xml => BodyKind::Xml,
-        Wire::Form | Wire::Text => BodyKind::Text,
-    }
 }
 
 struct Parts<'a> {
@@ -108,7 +100,10 @@ impl Parts<'_> {
                 enabled: cookies.iter().any(|p| p.required),
             });
         }
-        if let Some((media, _)) = self.media {
+        // A multipart body's Content-Type carries its boundary: the engine sets it.
+        if let Some((media, wire)) = self.media
+            && wire != Wire::Multipart
+        {
             headers.push(Header {
                 name: "Content-Type".into(),
                 value: media.media_type.clone(),
@@ -118,14 +113,18 @@ impl Parts<'_> {
         headers
     }
 
+    fn files(&self) -> std::collections::BTreeSet<String> {
+        self.media
+            .map(|(m, _)| file_properties(m.schema.as_ref(), &self.api.schemas))
+            .unwrap_or_default()
+    }
+
     fn body(&self) -> Body {
         match self.media {
-            Some((media, wire)) => Body::Text {
-                kind: kind_of(wire),
-                text: body_value(media, &self.api.schemas)
-                    .map(|v| body_text(wire, &v))
-                    .unwrap_or_default(),
-            },
+            Some((media, wire)) => {
+                let value = body_value(media, &self.api.schemas);
+                body_for(wire, value.as_ref(), None, &self.files())
+            }
             None => Body::None,
         }
     }
@@ -199,16 +198,15 @@ fn named_example(parts: &Parts<'_>, name: &str, order: i64) -> Example {
         }
     }
     if let Some((media, wire)) = parts.media
-        && let Some(text) = media
-            .examples
-            .iter()
-            .find(|e| e.name == name)
-            .and_then(|e| example_text(wire, e))
+        && let Some(named) = media.examples.iter().find(|e| e.name == name)
+        && (named.value.is_some() || named.serialized.is_some())
     {
-        example.body = Some(Body::Text {
-            kind: kind_of(wire),
-            text,
-        });
+        example.body = Some(body_for(
+            wire,
+            named.value.as_ref(),
+            named.serialized.as_deref(),
+            &parts.files(),
+        ));
     }
     example
 }
@@ -238,12 +236,10 @@ pub fn request(api: &Api, op: &Operation, warnings: &mut Vec<String>) -> StoredR
         .as_ref()
         .map(|b| b.content.as_slice())
         .unwrap_or_default();
-    let media = preferred(content).and_then(|m| wire(&m.media_type).map(|w| (m, w)));
-    if media.is_none()
-        && let Some(m) = content.first()
-    {
+    let media = preferred(content).map(|m| (m, wire(&m.media_type)));
+    if let Some((m, Wire::Binary)) = media {
         warnings.push(format!(
-            "{}: a {} body is not generated; add it by hand",
+            "{}: the {} body is a file; choose it before sending",
             op.id, m.media_type
         ));
     }

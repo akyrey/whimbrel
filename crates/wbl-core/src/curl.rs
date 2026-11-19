@@ -4,7 +4,7 @@
 
 use base64::Engine;
 
-use crate::{Body, BodyKind, Header, Request, RequestSettings};
+use crate::{Body, BodyKind, FormField, Header, Request, RequestSettings};
 
 /// `text` quoted for a POSIX shell: single quotes, with `'` written as `'\''`.
 fn quote(text: &str) -> String {
@@ -13,7 +13,7 @@ fn quote(text: &str) -> String {
 
 /// The request as a cURL command, one option per line.
 pub fn to_curl(request: &Request) -> String {
-    let has_body = matches!(request.body, Body::Text { .. });
+    let has_body = !matches!(request.body, Body::None);
     let mut parts = Vec::new();
     let method = if request.method == "GET" && !has_body {
         String::new()
@@ -27,10 +27,36 @@ pub fn to_curl(request: &Request) -> String {
             quote(&format!("{}: {}", header.name, header.value))
         ));
     }
-    if let Body::Text { text, .. } = &request.body {
-        parts.push(format!("--data-raw {}", quote(text)));
-    }
+    parts.extend(body_options(&request.body));
     parts.join(" \\\n  ")
+}
+
+fn body_options(body: &Body) -> Vec<String> {
+    match body {
+        Body::None => Vec::new(),
+        Body::Text { text, .. } => vec![format!("--data-raw {}", quote(text))],
+        Body::File { path } => vec![format!("--data-binary {}", quote(&format!("@{path}")))],
+        Body::Form { .. } => body
+            .enabled_fields()
+            .map(|f| {
+                format!(
+                    "--data-urlencode {}",
+                    quote(&format!("{}={}", f.name, f.value))
+                )
+            })
+            .collect(),
+        Body::Multipart { .. } => body
+            .enabled_fields()
+            .map(|f| {
+                let value = if f.file {
+                    format!("@{}", f.value)
+                } else {
+                    f.value.clone()
+                };
+                format!("-F {}", quote(&format!("{}={value}", f.name)))
+            })
+            .collect(),
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -146,10 +172,24 @@ struct Draft {
     url: Option<String>,
     headers: Vec<Header>,
     data: Vec<String>,
+    form: Vec<FormField>,
+    multipart: Vec<FormField>,
+    file: Option<String>,
     head: bool,
     json: bool,
     settings: RequestSettings,
     ignored: Vec<String>,
+}
+
+/// `name=value` as one field (`--data-urlencode` without `=` is a value alone).
+fn field(text: &str) -> FormField {
+    let (name, value) = text.split_once('=').unwrap_or(("", text));
+    FormField {
+        name: name.to_owned(),
+        value: value.to_owned(),
+        enabled: true,
+        file: false,
+    }
 }
 
 fn header(name: &str, value: &str) -> Header {
@@ -170,12 +210,31 @@ fn option(draft: &mut Draft, flag: &str, value: Option<&str>) -> bool {
                 draft.headers.push(header(name.trim(), value.trim_start()));
             }
         }
+        "--data-binary" if v.starts_with('@') => draft.file = Some(v[1..].to_owned()),
         "-d" | "--data" | "--data-raw" | "--data-binary" | "--data-ascii" => {
             if v.starts_with('@') && flag != "--data-raw" {
                 draft.ignored.push(format!("{flag} {v}"));
             } else {
                 draft.data.push(v.to_owned());
             }
+        }
+        "--data-urlencode" => draft.form.push(field(v)),
+        "-F" | "--form" => {
+            let (name, value) = v.split_once('=').unwrap_or((v, ""));
+            let file = value.starts_with('@');
+            let value = if file { &value[1..] } else { value };
+            // `;type=…` and `;filename=…` after a file are cURL's own.
+            let value = if file {
+                value.split(';').next().unwrap_or(value)
+            } else {
+                value
+            };
+            draft.multipart.push(FormField {
+                name: name.to_owned(),
+                value: value.to_owned(),
+                enabled: true,
+                file,
+            });
         }
         "--json" => {
             draft.json = true;
@@ -223,6 +282,9 @@ fn takes_value(flag: &str) -> bool {
             | "--data-raw"
             | "--data-binary"
             | "--data-ascii"
+            | "--data-urlencode"
+            | "-F"
+            | "--form"
             | "--json"
             | "-u"
             | "--user"
@@ -268,7 +330,17 @@ fn finish(mut draft: Draft) -> Result<Imported, CurlError> {
             .push(header("Content-Type", "application/json"));
         draft.headers.push(header("Accept", "application/json"));
     }
-    let body = if draft.data.is_empty() {
+    let body = if !draft.multipart.is_empty() {
+        Body::Multipart {
+            fields: std::mem::take(&mut draft.multipart),
+        }
+    } else if !draft.form.is_empty() {
+        Body::Form {
+            fields: std::mem::take(&mut draft.form),
+        }
+    } else if let Some(path) = draft.file.take() {
+        Body::File { path }
+    } else if draft.data.is_empty() {
         Body::None
     } else {
         let text = draft.data.join("&");
@@ -287,8 +359,8 @@ fn finish(mut draft: Draft) -> Result<Imported, CurlError> {
     let method = match (&draft.method, draft.head, &body) {
         (Some(m), _, _) => m.clone(),
         (None, true, _) => "HEAD".to_owned(),
-        (None, false, Body::Text { .. }) => "POST".to_owned(),
         (None, false, Body::None) => "GET".to_owned(),
+        (None, false, _) => "POST".to_owned(),
     };
     Ok(Imported {
         request: Request {
