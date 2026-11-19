@@ -40,48 +40,43 @@ export function VariablesPanel({ tab }: { tab: Tab }) {
     useTabs.getState().edit(tab.id, (d) => ({ ...d, variables: next(d.variables) }));
   };
   return (
-    <details className="text-sm" open={entries.length > 0}>
-      <summary className="cursor-pointer text-zinc-400">
-        Variables{entries.length > 0 ? ` (${String(entries.length)})` : ""}
-      </summary>
-      <div className="mt-2 flex flex-col gap-1">
-        {entries.map(([name, value], i) => (
-          <div key={name} className="flex items-center gap-2">
-            <NameInput
-              index={i}
-              name={name}
-              onRename={(to) => {
-                change((v) => renamed(v, name, to));
-              }}
-            />
-            <input
-              aria-label={`Variable ${String(i + 1)} value`}
-              className="input min-w-0 flex-1 font-mono"
-              value={value}
-              onChange={(e) => {
-                change((v) => withValue(v, name, e.target.value));
-              }}
-            />
-            <Button
-              aria-label={`Remove variable ${name}`}
-              onClick={() => {
-                change((v) => without(v, name));
-              }}
-            >
-              ✕
-            </Button>
-          </div>
-        ))}
-        <div>
+    <div className="flex flex-col gap-1">
+      {entries.map(([name, value], i) => (
+        <div key={name} className="flex items-center gap-2">
+          <NameInput
+            index={i}
+            name={name}
+            onRename={(to) => {
+              change((v) => renamed(v, name, to));
+            }}
+          />
+          <input
+            aria-label={`Variable ${String(i + 1)} value`}
+            className="input min-w-0 flex-1 font-mono"
+            value={value}
+            onChange={(e) => {
+              change((v) => withValue(v, name, e.target.value));
+            }}
+          />
           <Button
+            aria-label={`Remove variable ${name}`}
             onClick={() => {
-              change((v) => withValue(v, freshName(v), ""));
+              change((v) => without(v, name));
             }}
           >
-            Add variable
+            ✕
           </Button>
         </div>
+      ))}
+      <div>
+        <Button
+          onClick={() => {
+            change((v) => withValue(v, freshName(v), ""));
+          }}
+        >
+          Add variable
+        </Button>
       </div>
-    </details>
+    </div>
   );
 }

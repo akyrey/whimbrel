@@ -5,6 +5,10 @@ test("send a POST with a JSON body and read the response", async ({ page }) => {
   await page.getByRole("button", { name: "New request", exact: true }).click();
   await page.getByRole("combobox", { name: "Method" }).fill("POST");
   await page.getByRole("textbox", { name: "URL" }).fill("http://localhost/echo");
+  await page
+    .getByRole("tablist", { name: "Request parts" })
+    .getByRole("tab", { name: /^Body/ })
+    .click();
   await page.getByRole("combobox", { name: "Body type" }).selectOption("json");
   const editor = page.getByLabel("Request body");
   await editor.click();

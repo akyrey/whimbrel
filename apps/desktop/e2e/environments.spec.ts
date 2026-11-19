@@ -32,6 +32,10 @@ test("an environment's variables resolve, and the preview says what is missing",
 test("a secret is set once, masked, and sending to production asks first", async ({ page }) => {
   await openPing(page);
   await page.getByRole("textbox", { name: "URL" }).fill("{{base}}/echo");
+  await page
+    .getByRole("tablist", { name: "Request parts" })
+    .getByRole("tab", { name: /^Headers/ })
+    .click();
   await page.getByRole("button", { name: "Add header" }).click();
   await page.getByRole("textbox", { name: "Header 1 name" }).fill("X-Api-Key");
   await page.getByRole("textbox", { name: "Header 1 value" }).fill("{{apiKey}}");

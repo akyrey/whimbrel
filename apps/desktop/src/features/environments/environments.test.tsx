@@ -77,6 +77,7 @@ describe("variables and environments", () => {
   it("stores a secret, masks it, asks before a protected send, and refuses to save it", async () => {
     await openPing();
     await setUrl("{{base}}/echo");
+    await userEvent.click(screen.getByRole("tab", { name: /^Headers/ }));
     await userEvent.click(screen.getByRole("button", { name: "Add header" }));
     await userEvent.type(screen.getByRole("textbox", { name: "Header 1 name" }), "X-Api-Key");
     await userEvent.type(screen.getByRole("textbox", { name: "Header 1 value" }), "{{{{apiKey}}");

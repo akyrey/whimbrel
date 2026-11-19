@@ -17,51 +17,46 @@ export function QueryEditor({ tab }: { tab: Tab }) {
     change((all) => all.map((r, i) => (i === index ? { ...r, ...patch } : r)));
   };
   return (
-    <details className="text-sm" open={rows.length > 0}>
-      <summary className="cursor-pointer text-zinc-400">
-        Query parameters{rows.length > 0 ? ` (${String(rows.length)})` : ""}
-      </summary>
-      <div className="mt-2 flex flex-col gap-1">
-        {rows.map((r, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <input
-              aria-label={`Query parameter ${String(i + 1)} name`}
-              placeholder="Name"
-              className="input w-48 font-mono"
-              value={r.name}
-              onChange={(e) => {
-                update(i, { name: e.target.value });
-              }}
-            />
-            <VariableInput
-              aria-label={`Query parameter ${String(i + 1)} value`}
-              placeholder="Value"
-              className="input min-w-0 flex-1 font-mono"
-              value={r.value}
-              onValue={(value) => {
-                update(i, { value });
-              }}
-            />
-            <Button
-              aria-label={`Remove query parameter ${String(i + 1)}`}
-              onClick={() => {
-                change((all) => all.filter((_, j) => j !== i));
-              }}
-            >
-              ✕
-            </Button>
-          </div>
-        ))}
-        <div>
+    <div className="flex flex-col gap-1">
+      {rows.map((r, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <input
+            aria-label={`Query parameter ${String(i + 1)} name`}
+            placeholder="Name"
+            className="input w-48 font-mono"
+            value={r.name}
+            onChange={(e) => {
+              update(i, { name: e.target.value });
+            }}
+          />
+          <VariableInput
+            aria-label={`Query parameter ${String(i + 1)} value`}
+            placeholder="Value"
+            className="input min-w-0 flex-1 font-mono"
+            value={r.value}
+            onValue={(value) => {
+              update(i, { value });
+            }}
+          />
           <Button
+            aria-label={`Remove query parameter ${String(i + 1)}`}
             onClick={() => {
-              change((all) => [...all, { name: "", value: "" }]);
+              change((all) => all.filter((_, j) => j !== i));
             }}
           >
-            Add parameter
+            ✕
           </Button>
         </div>
+      ))}
+      <div>
+        <Button
+          onClick={() => {
+            change((all) => [...all, { name: "", value: "" }]);
+          }}
+        >
+          Add parameter
+        </Button>
       </div>
-    </details>
+    </div>
   );
 }

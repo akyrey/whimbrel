@@ -25,7 +25,7 @@ it("assertions and captures are edited, checked and shown", async () => {
   render(<App />);
   await userEvent.click(screen.getByRole("button", { name: "New request" }));
   await userEvent.type(screen.getByRole("textbox", { name: "URL" }), "http://localhost/echo");
-  await userEvent.click(screen.getByText("Captures and assertions"));
+  await userEvent.click(screen.getByRole("tab", { name: "Checks" }));
   await userEvent.click(screen.getByRole("button", { name: "Add assertion" }));
   await userEvent.click(screen.getByRole("button", { name: "Add assertion" }));
   await userEvent.selectOptions(screen.getByRole("combobox", { name: "Assertion 2 kind" }), "json");
@@ -69,5 +69,5 @@ it("assertions and captures are edited, checked and shown", async () => {
 
   await userEvent.click(screen.getByRole("button", { name: "Remove capture 2" }));
   await userEvent.click(screen.getByRole("button", { name: "Remove assertion 4" }));
-  expect(screen.getByText("Captures and assertions (4)")).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "Checks (4)" })).toBeInTheDocument();
 });

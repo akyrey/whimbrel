@@ -26,7 +26,7 @@ it("the query table and the URL stay in sync both ways", async () => {
   const url = screen.getByRole("textbox", { name: "URL" });
   await userEvent.type(url, "http://localhost/echo?q=ada");
 
-  expect(screen.getByText("Query parameters (1)")).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "Params (1)", selected: true })).toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: "Query parameter 1 value" })).toHaveValue("ada");
 
   await userEvent.click(screen.getByRole("button", { name: "Add parameter" }));

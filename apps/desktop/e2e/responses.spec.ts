@@ -52,5 +52,9 @@ test("history and cURL import", async ({ page }) => {
     .fill("curl 'http://localhost/echo' -H 'X-From: curl'");
   await page.getByRole("button", { name: "Import", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "URL" })).toHaveValue("http://localhost/echo");
+  await page
+    .getByRole("tablist", { name: "Request parts" })
+    .getByRole("tab", { name: /^Headers/ })
+    .click();
   await expect(page.getByRole("textbox", { name: "Header 1 value" })).toHaveValue("curl");
 });

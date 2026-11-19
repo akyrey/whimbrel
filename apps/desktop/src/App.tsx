@@ -5,20 +5,22 @@ import {
   ConfirmDialog,
   EditorSettingsProvider,
   PanelBoundary,
+  SidebarResizer,
   Toaster,
   resolveTheme,
   toast,
   useApplyResolvedTheme,
   usePrefersDark,
 } from "@roost/ui";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { onCollectionChanged, toAppError } from "./ipc";
 import { CollectionTree } from "./features/collections/CollectionTree";
 import { useCollections } from "./features/collections/collectionsStore";
-import { BodyEditor } from "./features/request/BodyEditor";
-import { HeadersEditor } from "./features/request/HeadersEditor";
 import { RequestBar, URL_INPUT_ID } from "./features/request/RequestBar";
+import { RequestSections } from "./features/request/RequestSections";
+import { SplitResizer } from "./features/layout/SplitResizer";
+import { SIDEBAR_WIDTH, useLayout } from "./features/layout/layoutStore";
 import { ResponsePanel } from "./features/response/ResponsePanel";
 import {
   SHORTCUT_GROUPS,
@@ -34,13 +36,8 @@ import { SpecList } from "./features/openapi/SpecList";
 import { syncSpecs, useSpecs } from "./features/openapi/specsStore";
 import { useEnvironments } from "./features/environments/environmentsStore";
 import { HistoryPanel } from "./features/history/HistoryPanel";
-import { AuthPanel } from "./features/request/AuthPanel";
-import { SettingsPanel } from "./features/request/SettingsPanel";
-import { QueryEditor } from "./features/request/QueryEditor";
 import { UsedVariables } from "./features/variables/UsedVariables";
 import { VariablesContext, useScopeVariables } from "./features/variables/scope";
-import { VariablesPanel } from "./features/request/VariablesPanel";
-import { ChecksEditor } from "./features/checks/ChecksEditor";
 import { RunnerDialog } from "./features/runner/RunnerDialog";
 import { ExamplesBar } from "./features/examples/ExamplesBar";
 import { AppDialogs } from "./features/shell/AppDialogs";
@@ -179,32 +176,35 @@ function useCollectionsLifecycle() {
 
 function RequestView({ tab }: { tab: Tab }) {
   const variables = useScopeVariables(tab);
+  const split = useRef<HTMLDivElement>(null);
+  const share = useLayout((s) => s.requestShare);
   return (
     <VariablesContext.Provider value={variables}>
-      <section aria-label="Request" className="flex flex-col gap-3 border-b border-zinc-800 p-4">
-        <ConflictBar tab={tab} />
-        <ShowInSpec tab={tab} />
-        <RequestBar tab={tab} />
-        <UsedVariables tab={tab} />
-        <ExamplesBar tab={tab} />
-        <QueryEditor tab={tab} />
-        <AuthPanel tab={tab} />
-        <VariablesPanel tab={tab} />
-        <ChecksEditor tab={tab} />
-        <SettingsPanel tab={tab} />
-        <PanelBoundary name="Headers">
-          <HeadersEditor tab={tab} />
-        </PanelBoundary>
-        <div className="flex h-56 flex-col">
-          <PanelBoundary name="Body">
-            <BodyEditor tab={tab} />
+      <div ref={split} className="flex min-h-0 flex-1 flex-col">
+        <section
+          aria-label="Request"
+          className="flex min-h-0 flex-col gap-3 p-4"
+          style={{ height: `${String(share * 100)}%` }}
+        >
+          <ConflictBar tab={tab} />
+          <ShowInSpec tab={tab} />
+          <RequestBar tab={tab} />
+          <UsedVariables tab={tab} />
+          <ExamplesBar tab={tab} />
+          <RequestSections tab={tab} />
+        </section>
+        <SplitResizer
+          container={split}
+          share={share}
+          onResize={useLayout.getState().resizeRequest}
+        />
+        <div className="flex min-h-0 flex-1 flex-col">
+          <PanelBoundary name="Response">
+            <SchemaCheck tab={tab} />
+            <ResponsePanel status={tab.status} />
           </PanelBoundary>
         </div>
-      </section>
-      <PanelBoundary name="Response">
-        <SchemaCheck tab={tab} />
-        <ResponsePanel status={tab.status} />
-      </PanelBoundary>
+      </div>
     </VariablesContext.Provider>
   );
 }
@@ -323,6 +323,7 @@ export function App() {
   );
   const tab = useActiveTab();
   const spec = useSpecs((s) => s.view);
+  const sidebarWidth = useLayout((s) => s.sidebarWidth);
   useCollectionsLifecycle();
 
   useEffect(() => {
@@ -345,9 +346,18 @@ export function App() {
   return (
     <EditorSettingsProvider settings={editorSettings}>
       <div className="flex h-full">
-        <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-800 bg-zinc-900">
+        <aside
+          className="flex shrink-0 flex-col bg-zinc-900"
+          style={{ width: `${String(sidebarWidth)}px` }}
+        >
           <Sidebar />
         </aside>
+        <SidebarResizer
+          width={sidebarWidth}
+          min={SIDEBAR_WIDTH.min}
+          max={SIDEBAR_WIDTH.max}
+          onResize={useLayout.getState().resizeSidebar}
+        />
         <main className="flex min-w-0 flex-1 flex-col">
           <TabStrip />
           {spec ? (

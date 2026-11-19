@@ -57,14 +57,22 @@ function Tabs({
   onView: (v: View) => void;
 }) {
   return (
-    <div role="tablist" aria-label="Response parts" className="flex gap-3 text-sm">
+    <div
+      role="tablist"
+      aria-label="Response parts"
+      className="flex flex-wrap gap-x-4 border-b border-zinc-800 text-sm"
+    >
       {views.map(([v, label]) => (
         <button
           key={v}
           type="button"
           role="tab"
           aria-selected={view === v}
-          className={view === v ? "text-zinc-100 underline" : "text-zinc-400"}
+          className={
+            view === v
+              ? "-mb-px border-b-2 border-sky-500 pb-1 text-zinc-100"
+              : "pb-1 text-zinc-400 hover:text-zinc-200"
+          }
           onClick={() => {
             onView(v);
           }}

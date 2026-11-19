@@ -211,36 +211,30 @@ export function ChecksEditor({ tab }: { tab: Tab }) {
   const edit: Edit = (change) => {
     useTabs.getState().edit(tab.id, change);
   };
-  const count = captures.length + assertions.length;
   return (
-    <details className="text-sm" open={count > 0}>
-      <summary className="cursor-pointer text-zinc-400">
-        Captures and assertions{count > 0 ? ` (${String(count)})` : ""}
-      </summary>
-      <div className="mt-2 flex flex-col gap-1">
-        {captures.map((c, i) => (
-          <CaptureRow key={i} capture={c} index={i} edit={edit} />
-        ))}
-        {assertions.map((a, i) => (
-          <AssertionRow key={i} assertion={a} index={i} edit={edit} />
-        ))}
-        <div className="flex gap-2">
-          <Button
-            onClick={() => {
-              edit(addCapture);
-            }}
-          >
-            Add capture
-          </Button>
-          <Button
-            onClick={() => {
-              edit(addAssertion);
-            }}
-          >
-            Add assertion
-          </Button>
-        </div>
+    <div className="flex flex-col gap-1">
+      {captures.map((c, i) => (
+        <CaptureRow key={i} capture={c} index={i} edit={edit} />
+      ))}
+      {assertions.map((a, i) => (
+        <AssertionRow key={i} assertion={a} index={i} edit={edit} />
+      ))}
+      <div className="flex gap-2">
+        <Button
+          onClick={() => {
+            edit(addCapture);
+          }}
+        >
+          Add capture
+        </Button>
+        <Button
+          onClick={() => {
+            edit(addAssertion);
+          }}
+        >
+          Add assertion
+        </Button>
       </div>
-    </details>
+    </div>
   );
 }

@@ -24,6 +24,7 @@ async function newRequest() {
   render(<App />);
   await userEvent.click(screen.getByRole("button", { name: "New request" }));
   await userEvent.type(screen.getByRole("textbox", { name: "URL" }), "http://localhost/echo");
+  await userEvent.click(screen.getByRole("tab", { name: "Body" }));
 }
 
 const sentBody = async () => {

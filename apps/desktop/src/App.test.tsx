@@ -48,6 +48,7 @@ describe("a scratch request", () => {
     await userEvent.clear(screen.getByRole("combobox", { name: "Method" }));
     await userEvent.type(screen.getByRole("combobox", { name: "Method" }), "post");
     await typeUrl("http://localhost/echo");
+    await userEvent.click(screen.getByRole("tab", { name: /^Headers/ }));
     await userEvent.click(screen.getByRole("button", { name: "Add header" }));
     await userEvent.type(screen.getByRole("textbox", { name: "Header 1 name" }), "X-Api");
     await userEvent.click(screen.getByRole("button", { name: "Send" }));

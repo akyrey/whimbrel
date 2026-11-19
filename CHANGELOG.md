@@ -18,3 +18,5 @@ All notable changes to Whimbrel. The format follows [Keep a Changelog](https://k
 - Postman v2.1 and `.http` import, `.http` export.
 - Settings, palette commands for every action, tabs restored with unsaved edits.
 - Signed in-app updates from GitHub releases.
+- The request's parts (params, auth, headers, body, variables, checks, settings) as tabs; the
+  request/response split and the sidebar can be resized, and the sizes are remembered.
