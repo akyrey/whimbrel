@@ -4,6 +4,7 @@ import type { Tab } from "../tabs/model";
 import { useTabs } from "../tabs/tabsStore";
 import { setUrl } from "./editing";
 import { type QueryRow, queryRows, withRows } from "./query";
+import { VariableInput } from "../variables/VariableInput";
 
 /** The URL's query parameters as a table; editing either one updates the other (FR-2.3). */
 export function QueryEditor({ tab }: { tab: Tab }) {
@@ -32,13 +33,13 @@ export function QueryEditor({ tab }: { tab: Tab }) {
                 update(i, { name: e.target.value });
               }}
             />
-            <input
+            <VariableInput
               aria-label={`Query parameter ${String(i + 1)} value`}
               placeholder="Value"
               className="input min-w-0 flex-1 font-mono"
               value={r.value}
-              onChange={(e) => {
-                update(i, { value: e.target.value });
+              onValue={(value) => {
+                update(i, { value });
               }}
             />
             <Button

@@ -4,6 +4,7 @@ import type { StoredRequest } from "../../ipc";
 import type { Tab } from "../tabs/model";
 import { useTabs } from "../tabs/tabsStore";
 import { addHeader, removeHeader, updateHeader } from "./editing";
+import { VariableInput } from "../variables/VariableInput";
 
 /** The request's headers: name, value, on/off; order is kept, duplicates allowed. */
 export function HeadersEditor({ tab }: { tab: Tab }) {
@@ -33,13 +34,13 @@ export function HeadersEditor({ tab }: { tab: Tab }) {
               edit(updateHeader(index, { name: e.target.value }));
             }}
           />
-          <input
+          <VariableInput
             aria-label={`Header ${String(index + 1)} value`}
             placeholder="Value"
             className="input min-w-0 flex-1 font-mono"
             value={header.value}
-            onChange={(e) => {
-              edit(updateHeader(index, { value: e.target.value }));
+            onValue={(value) => {
+              edit(updateHeader(index, { value }));
             }}
           />
           <Button

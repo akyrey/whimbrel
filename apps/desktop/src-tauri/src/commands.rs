@@ -156,6 +156,41 @@ pub async fn send(
     Ok(crate::checks::Sent { response, checks })
 }
 
+/// The variables a request can use, for completion and hints (FR-2.4).
+pub fn variables(
+    collections: &Collections,
+    secrets: &Secrets,
+    args: &RequestSendArgs,
+) -> Result<Vec<crate::resolve::ScopeVariable>, AppError> {
+    let root = args
+        .root
+        .as_deref()
+        .map(|r| collections.opened(r))
+        .transpose()?;
+    let runtime = collections.runtime.scope(&runtime_key(root.as_deref()))?;
+    let labeled = crate::resolve::labeled_scopes(
+        root.as_deref(),
+        args.environment.as_deref(),
+        args.example.as_ref(),
+        args.variables.as_ref(),
+        runtime,
+        secrets,
+    )?;
+    Ok(crate::resolve::in_scope(&labeled))
+}
+
+#[tauri::command]
+pub async fn variables_in_scope(
+    collections: State<'_, Collections>,
+    secrets: State<'_, Secrets>,
+    args: RequestSendArgs,
+) -> Result<Vec<crate::resolve::ScopeVariable>, AppError> {
+    logged("variables_in_scope", async {
+        variables(&collections, &secrets, &args)
+    })
+    .await
+}
+
 /// What would be sent, secrets masked (FR-2.5).
 pub fn preview(
     collections: &Collections,

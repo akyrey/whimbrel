@@ -9,6 +9,7 @@ import { PreviewDialog } from "../send/PreviewDialog";
 import { sendTab } from "../send/sendFlow";
 import { useTabs } from "../tabs/tabsStore";
 import { setMethod, setUrl } from "./editing";
+import { VariableInput } from "../variables/VariableInput";
 
 /** Methods offered in the list; any other token can be typed (QUERY, PROPFIND, …). */
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "QUERY"];
@@ -44,15 +45,15 @@ export function RequestBar({ tab }: { tab: Tab }) {
           <option key={m} value={m} />
         ))}
       </datalist>
-      <input
+      <VariableInput
         id={URL_INPUT_ID}
         aria-label="URL"
         placeholder="https://api.example.com/users"
         className="input min-w-0 flex-1 font-mono"
         value={url}
         spellCheck={false}
-        onChange={(e) => {
-          edit(tab.id, setUrl(e.target.value));
+        onValue={(value) => {
+          edit(tab.id, setUrl(value));
         }}
       />
       {/* Distinct keys: if React reused one <button>, a click on Cancel that ends the request

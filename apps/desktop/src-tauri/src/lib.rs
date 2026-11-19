@@ -79,6 +79,7 @@ pub fn run() -> Result<(), tauri::Error> {
             commands::request_send,
             commands::request_cancel,
             commands::request_preview,
+            commands::variables_in_scope,
             commands::response_save,
             commands::curl_export,
             oauth::oauth_status,

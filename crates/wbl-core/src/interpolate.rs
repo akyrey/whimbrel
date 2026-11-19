@@ -25,6 +25,11 @@ impl Scope {
     fn get(&self, name: &str) -> Option<&Value> {
         self.0.get(name)
     }
+
+    /// The names and values, in name order.
+    pub fn entries(&self) -> impl Iterator<Item = (&String, &Value)> {
+        self.0.iter()
+    }
 }
 
 /// Where `{{$name}}` values come from; tests use fixed ones.
@@ -35,6 +40,9 @@ pub trait Dynamic {
 /// `{{$uuid}}`, `{{$timestamp}}` (Unix seconds), `{{$isoTimestamp}}` (UTC), `{{$randomInt}}`
 /// (0 to 1000).
 pub struct SystemDynamic;
+
+/// The names `SystemDynamic` answers, without the `$`.
+pub const DYNAMIC_NAMES: [&str; 4] = ["uuid", "timestamp", "isoTimestamp", "randomInt"];
 
 const RANDOM_INT_MAX: u32 = 1000;
 

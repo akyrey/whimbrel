@@ -1,5 +1,6 @@
 import type {
   Api,
+  ScopeVariable,
   Plan,
   SpecReimportArgs,
   SpecValidateArgs,
@@ -240,3 +241,7 @@ export const specReimportPlan = (args: SpecReimportArgs): Promise<Plan> =>
 
 export const specReimportApply = (args: SpecReimportArgs): Promise<Plan> =>
   call("spec_reimport_apply", args);
+
+/** The variables a request can use, each once, with where it comes from (FR-2.4). */
+export const variablesInScope = (args: RequestSendArgs): Promise<ScopeVariable[]> =>
+  call("variables_in_scope", args);

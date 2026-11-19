@@ -40,6 +40,8 @@ import { HistoryPanel } from "./features/history/HistoryPanel";
 import { AuthPanel } from "./features/request/AuthPanel";
 import { SettingsPanel } from "./features/request/SettingsPanel";
 import { QueryEditor } from "./features/request/QueryEditor";
+import { UsedVariables } from "./features/variables/UsedVariables";
+import { VariablesContext, useScopeVariables } from "./features/variables/scope";
 import { VariablesPanel } from "./features/request/VariablesPanel";
 import { ChecksEditor } from "./features/checks/ChecksEditor";
 import { RunnerDialog } from "./features/runner/RunnerDialog";
@@ -193,12 +195,14 @@ function useCollectionsLifecycle() {
 }
 
 function RequestView({ tab }: { tab: Tab }) {
+  const variables = useScopeVariables(tab);
   return (
-    <>
+    <VariablesContext.Provider value={variables}>
       <section aria-label="Request" className="flex flex-col gap-3 border-b border-zinc-800 p-4">
         <ConflictBar tab={tab} />
         <ShowInSpec tab={tab} />
         <RequestBar tab={tab} />
+        <UsedVariables tab={tab} />
         <ExamplesBar tab={tab} />
         <QueryEditor tab={tab} />
         <AuthPanel tab={tab} />
@@ -218,7 +222,7 @@ function RequestView({ tab }: { tab: Tab }) {
         <SchemaCheck tab={tab} />
         <ResponsePanel status={tab.status} />
       </PanelBoundary>
-    </>
+    </VariablesContext.Provider>
   );
 }
 

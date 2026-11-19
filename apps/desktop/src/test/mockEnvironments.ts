@@ -6,6 +6,7 @@
  */
 import { runtimeScope } from "./mockChecks";
 import type {
+  ScopeVariable,
   AppError,
   Environment,
   EnvironmentEntry,
@@ -343,4 +344,34 @@ export function overlay(
     ),
     body: JSON.stringify(base.body) === JSON.stringify(draft.body) ? null : draft.body,
   };
+}
+
+/** variables_in_scope, as src-tauri/src/resolve.rs `in_scope`. */
+export function variablesFor(args: RequestSendArgs): ScopeVariable[] {
+  const sources: ScopeVariable["source"][] = [];
+  if (args.example) sources.push("example");
+  if (args.variables) sources.push("request");
+  sources.push("runtime");
+  const env =
+    args.root !== undefined && args.environment !== undefined
+      ? environments.get(args.root)?.get(args.environment)
+      : undefined;
+  if (env) sources.push("local", "environment");
+  if (args.root !== undefined) sources.push("collection");
+  const out: ScopeVariable[] = [];
+  scopes(args).forEach((scope, i) => {
+    for (const [name, value] of Object.entries(scope)) {
+      if (out.some((v) => v.name === name)) continue;
+      const source = sources[i] ?? "collection";
+      out.push(
+        "plain" in value
+          ? { name, value: value.plain, source, secret: false, set: true }
+          : { name, value: null, source, secret: true, set: value.secret !== null },
+      );
+    }
+  });
+  for (const name of ["uuid", "timestamp", "isoTimestamp", "randomInt"]) {
+    out.push({ name: `$${name}`, value: null, source: "dynamic", secret: false, set: true });
+  }
+  return out;
 }

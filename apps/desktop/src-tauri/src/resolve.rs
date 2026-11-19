@@ -24,23 +24,40 @@ fn plain(map: &std::collections::BTreeMap<String, String>) -> Scope {
     )
 }
 
-/// The scopes for `environment` of the collection at `root`, highest precedence first.
-pub fn scopes(
+/// Where a scope's values come from, for the editor's hints.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, ts_rs::TS)]
+#[serde(rename_all = "snake_case")]
+pub enum Source {
+    Example,
+    Request,
+    Runtime,
+    Local,
+    Environment,
+    Collection,
+    Dynamic,
+}
+
+/// The scopes for `environment` of the collection at `root`, highest precedence first, each
+/// with where it comes from.
+pub fn labeled_scopes(
     root: Option<&Path>,
     environment: Option<&str>,
     example: Option<&Example>,
     request_variables: Option<&std::collections::BTreeMap<String, String>>,
     runtime: Scope,
     secrets: &Secrets,
-) -> Result<Vec<Scope>, AppError> {
-    let mut scopes: Vec<Scope> = example.map(Example::scope).into_iter().collect();
-    scopes.extend(request_variables.map(plain));
-    scopes.push(runtime);
+) -> Result<Vec<(Source, Scope)>, AppError> {
+    let mut scopes: Vec<(Source, Scope)> = example
+        .map(|e| (Source::Example, e.scope()))
+        .into_iter()
+        .collect();
+    scopes.extend(request_variables.map(|v| (Source::Request, plain(v))));
+    scopes.push((Source::Runtime, runtime));
     let Some(root) = root else { return Ok(scopes) };
     if let Some(id) = environment {
         let read = environments::read(root, id)?;
         let collection_id = collection::id(root)?;
-        scopes.push(plain(&read.local));
+        scopes.push((Source::Local, plain(&read.local)));
         let mut values: std::collections::BTreeMap<String, Value> = read
             .environment
             .variables
@@ -51,10 +68,84 @@ pub fn scopes(
             let value = secrets.get(&collection_id, id, &secret.name)?;
             values.insert(secret.name.clone(), Value::Secret(value));
         }
-        scopes.push(Scope::new(values));
+        scopes.push((Source::Environment, Scope::new(values)));
     }
-    scopes.push(plain(&collection::variables(root)?));
+    scopes.push((Source::Collection, plain(&collection::variables(root)?)));
     Ok(scopes)
+}
+
+/// The scopes alone, highest precedence first.
+pub fn scopes(
+    root: Option<&Path>,
+    environment: Option<&str>,
+    example: Option<&Example>,
+    request_variables: Option<&std::collections::BTreeMap<String, String>>,
+    runtime: Scope,
+    secrets: &Secrets,
+) -> Result<Vec<Scope>, AppError> {
+    Ok(labeled_scopes(
+        root,
+        environment,
+        example,
+        request_variables,
+        runtime,
+        secrets,
+    )?
+    .into_iter()
+    .map(|(_, scope)| scope)
+    .collect())
+}
+
+/// A variable the editor can complete and explain.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, ts_rs::TS)]
+pub struct ScopeVariable {
+    pub name: String,
+    /// `None` for a secret (never sent to the frontend) and for dynamic values.
+    pub value: Option<String>,
+    pub source: Source,
+    pub secret: bool,
+    /// A secret with a value in the keychain.
+    pub set: bool,
+}
+
+/// Every variable in scope, each once (the one that wins), then the dynamic ones.
+pub fn in_scope(scopes: &[(Source, Scope)]) -> Vec<ScopeVariable> {
+    let mut out: Vec<ScopeVariable> = Vec::new();
+    for (source, scope) in scopes {
+        for (name, value) in scope.entries() {
+            if out.iter().any(|v| v.name == *name) {
+                continue;
+            }
+            out.push(match value {
+                Value::Plain(v) => ScopeVariable {
+                    name: name.clone(),
+                    value: Some(v.clone()),
+                    source: *source,
+                    secret: false,
+                    set: true,
+                },
+                Value::Secret(v) => ScopeVariable {
+                    name: name.clone(),
+                    value: None,
+                    source: *source,
+                    secret: true,
+                    set: v.is_some(),
+                },
+            });
+        }
+    }
+    out.extend(
+        wbl_core::interpolate::DYNAMIC_NAMES
+            .iter()
+            .map(|n| ScopeVariable {
+                name: format!("${n}"),
+                value: None,
+                source: Source::Dynamic,
+                secret: false,
+                set: true,
+            }),
+    );
+    out
 }
 
 /// The request that is sent, or `unresolved` naming what is missing.

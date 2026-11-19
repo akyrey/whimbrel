@@ -11,7 +11,7 @@ D-H19.
 - [x] 8.1 Body kinds (FR-2.2): form-urlencoded and multipart (fields and files) and a binary
       file, in the file format, the engine and the editor; imported specs generate them.
 - [x] 8.2 Query parameters (FR-2.3): a table that stays in sync with the URL both ways.
-- [ ] 8.3 Variables in the editor (FR-2.4): `{{` completes the names in scope (example, request,
+- [x] 8.3 Variables in the editor (FR-2.4): `{{` completes the names in scope (example, request,
       runtime, environment, collection, secrets by name), and hovering a variable shows its
       value (secrets masked) and where it comes from.
 - [ ] 8.4 Interop: import Postman v2.1 collections (secrets as secret names) and `.http` files;
@@ -23,6 +23,12 @@ D-H19.
       references.
 - [ ] 8.8 Release (FR-9.2, 9.3): the updater (plugin, Roost's update commands and prompt), the
       release workflow through Roost's `release-app.yml`, an updater key pair, RELEASING.md.
+
+## Notes
+
+- 8.3: completion works in the URL, header values and query values; the body editor does not
+  complete yet. The "hover" is the row of variables under the URL (a plain input has no
+  per-token tooltip): each shows its value and source, red when undefined.
 
 ## Acceptance
 

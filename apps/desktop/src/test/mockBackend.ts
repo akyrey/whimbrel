@@ -23,6 +23,7 @@ import {
   guard,
   overlay,
   resolveFor,
+  variablesFor,
   seedEnvironments,
 } from "./mockEnvironments";
 
@@ -482,6 +483,9 @@ export function installMockBackend(): void {
       if (command === "plugin:dialog|save") return Promise.resolve("/tmp/saved-body");
       if (command === "request_preview" || command === "request_send") {
         return mockSend(args as unknown as RequestSendArgs, command === "request_preview");
+      }
+      if (command === "variables_in_scope") {
+        return Promise.resolve(variablesFor(args as unknown as RequestSendArgs));
       }
       if (command === "run_start") {
         const onStep = (payload as { onStep: { onmessage: (r: StepResult) => void } }).onStep;
