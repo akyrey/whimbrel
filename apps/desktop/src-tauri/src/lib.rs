@@ -18,6 +18,7 @@ pub mod runtime;
 pub mod secrets;
 pub mod spec;
 pub mod state;
+pub mod updates;
 pub mod watch;
 
 #[cfg(test)]
@@ -53,6 +54,8 @@ pub fn run() -> Result<(), tauri::Error> {
         .plugin(tauri_plugin_opener::init())
         .manage(collections::Collections::default())
         .manage(runner::Runs::default())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(updates::pending())
         .setup(|app| {
             let spill_dir = app.path().app_cache_dir()?.join("bodies");
             let data = app.path().app_data_dir()?;
@@ -132,6 +135,8 @@ pub fn run() -> Result<(), tauri::Error> {
             runtime::runtime_clear,
             runner::run_start,
             runner::run_cancel,
+            updates::update_check,
+            updates::update_install,
         ])
         .run(tauri::generate_context!())
 }

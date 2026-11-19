@@ -508,6 +508,7 @@ export function installMockBackend(): void {
       if (command === "request_preview" || command === "request_send") {
         return mockSend(args as unknown as RequestSendArgs, command === "request_preview");
       }
+      if (command === "update_check") return Promise.resolve(null);
       if (command === "variables_in_scope") {
         return Promise.resolve(variablesFor(args as unknown as RequestSendArgs));
       }

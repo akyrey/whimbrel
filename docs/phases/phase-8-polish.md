@@ -21,7 +21,7 @@ D-H19.
       font size, default timeout), and the open tabs restored.
 - [x] 8.7 Spec browser leftovers from Phase 6: links and callbacks shown, `$self` as the base of
       references.
-- [ ] 8.8 Release (FR-9.2, 9.3): the updater (plugin, Roost's update commands and prompt), the
+- [x] 8.8 Release (FR-9.2, 9.3): the updater (plugin, Roost's update commands and prompt), the
       release workflow through Roost's `release-app.yml`, an updater key pair, RELEASING.md.
 
 ## Notes

@@ -44,6 +44,8 @@ import { ChecksEditor } from "./features/checks/ChecksEditor";
 import { RunnerDialog } from "./features/runner/RunnerDialog";
 import { ExamplesBar } from "./features/examples/ExamplesBar";
 import { AppDialogs } from "./features/shell/AppDialogs";
+import { UpdatePrompt } from "./features/updates/UpdatePrompt";
+import { useUpdates } from "./features/updates/updateStore";
 import { useDialogs } from "./features/shell/dialogsStore";
 import { appItems } from "./features/shell/paletteItems";
 import { useSettings } from "./features/settings/settingsStore";
@@ -141,6 +143,7 @@ function paletteItems(actions: Record<ShortcutId, () => void>): PaletteItem[] {
 function useCollectionsLifecycle() {
   useEffect(() => {
     void (async () => {
+      void useUpdates.getState().check("startup");
       const failed = await useCollections.getState().restore();
       if (failed.length > 0) toast.error(`Could not reopen: ${failed.join(", ")}`);
       await useTabs.getState().restore();
@@ -364,6 +367,7 @@ export function App() {
       )}
       <SendConfirm />
       <AppDialogs />
+      <UpdatePrompt />
       <RunnerDialog />
       <Toaster />
     </EditorSettingsProvider>

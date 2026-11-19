@@ -123,5 +123,7 @@ export type * from "./StreamEvent";
 export type * from "./Tag";
 export type * from "./Timing";
 export type * from "./TlsSaveArgs";
+export type * from "./UpdateInfo";
+export type * from "./UpdateProgress";
 export type * from "./Validation";
 export type * from "./VariablesSaveArgs";

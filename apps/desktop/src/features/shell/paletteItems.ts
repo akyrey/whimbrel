@@ -9,6 +9,7 @@ import { useSpecs } from "../openapi/specsStore";
 import { useRunner } from "../runner/runnerStore";
 import { useSettings } from "../settings/settingsStore";
 import { useTabs } from "../tabs/tabsStore";
+import { useUpdates } from "../updates/updateStore";
 import { useDialogs } from "./dialogsStore";
 
 const item = (id: string, group: string, label: string, run: () => void): PaletteItem => ({
@@ -88,6 +89,12 @@ export function appItems(send: (id: string) => void): PaletteItem[] {
       settings.change({ theme: dark ? "light" : "dark" });
     }),
     item("clear-history", "History", "Clear the history", () => void historyClear()),
+    item(
+      "check-updates",
+      "Settings",
+      "Check for updates",
+      () => void useUpdates.getState().check("manual"),
+    ),
     ...collectionItems(),
     ...exampleItems(send),
   ];

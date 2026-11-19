@@ -85,6 +85,8 @@ fn export_all(dir: &Path) {
     crate::interop::HttpExportArgs::export_all(&config).unwrap();
     crate::interop::InteropSummary::export_all(&config).unwrap();
     crate::interop::InteropImported::export_all(&config).unwrap();
+    crate::updates::UpdateInfo::export_all(&config).unwrap();
+    crate::updates::UpdateProgress::export_all(&config).unwrap();
     write_index(dir);
 }
 

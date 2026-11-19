@@ -1,5 +1,7 @@
 import type {
   Api,
+  UpdateInfo,
+  UpdateProgress,
   HttpExportArgs,
   InteropImportArgs,
   InteropImported,
@@ -263,3 +265,13 @@ export const httpExport = (args: HttpExportArgs): Promise<number> => call("http_
 /** Sets a request's or folder's place among its siblings. */
 export const nodeOrder = (root: string, path: string, order: number): Promise<null> =>
   call("node_order", { root, path, order });
+
+/** Asks the release server for a newer version; `null` when up to date (FR-9.2). */
+export const updateCheck = (): Promise<UpdateInfo | null> => call("update_check");
+
+/** Downloads, verifies and installs the update `updateCheck` found, then restarts the app. */
+export function updateInstall(onProgress: (progress: UpdateProgress) => void): Promise<void> {
+  const channel = new Channel<UpdateProgress>();
+  channel.onmessage = onProgress;
+  return callWith("update_install", {}, { onProgress: channel });
+}

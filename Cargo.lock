@@ -6543,6 +6543,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
+ "tauri-plugin-updater",
  "tauri-plugin-window-state",
  "tempfile",
  "thiserror 2.0.21",
