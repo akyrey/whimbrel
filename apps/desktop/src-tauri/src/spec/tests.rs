@@ -203,6 +203,21 @@ async fn imports_into_a_new_collection_or_a_folder_of_an_open_one() {
     .await
     .unwrap();
     assert_eq!(api.operations.len(), 3);
+    let checked = validate(
+        &collections,
+        &sender,
+        &SpecValidateArgs {
+            root: root.clone(),
+            dir: specs[0].dir.clone(),
+            operation_id: "getUser".into(),
+            status: 200,
+            content_type: Some("application/json".into()),
+            body: r#"{"id": "x"}"#.into(),
+        },
+    )
+    .await
+    .unwrap();
+    assert!(checked.checked && !checked.errors.is_empty());
     let gone = open(
         &collections,
         &sender,

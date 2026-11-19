@@ -29,6 +29,7 @@ import {
   shortcutLabel,
 } from "./features/shortcuts/registry";
 import { CurlImportDialog } from "./features/curl/CurlImportDialog";
+import { SchemaCheck } from "./features/openapi/SchemaCheck";
 import { ShowInSpec } from "./features/openapi/ShowInSpec";
 import { SpecBrowser } from "./features/openapi/SpecBrowser";
 import { SpecImportDialog } from "./features/openapi/SpecImportDialog";
@@ -212,6 +213,7 @@ function RequestView({ tab }: { tab: Tab }) {
         </div>
       </section>
       <PanelBoundary name="Response">
+        <SchemaCheck tab={tab} />
         <ResponsePanel status={tab.status} />
       </PanelBoundary>
     </>

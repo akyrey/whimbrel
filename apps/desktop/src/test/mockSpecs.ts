@@ -169,7 +169,14 @@ function install(args: SpecImportArgs): Promise<SpecImported> {
   }
   const { root, folderName } = args.target;
   const done = mockInstall(root, folderName, [
-    { id: "listPets", folder: "Pets", stored: mockStored("List pets", "{{baseUrl}}/pets") },
+    {
+      id: "listPets",
+      folder: "Pets",
+      stored: {
+        ...mockStored("List pets", "{{baseUrl}}/pets"),
+        variables: { baseUrl: "http://localhost" },
+      },
+    },
   ]);
   if (!done) return reject("not_open", "Open the collection first");
   const dir = `openapi/pets${specs.get(root)?.length ? `-${String((specs.get(root)?.length ?? 0) + 1)}` : ""}`;
@@ -202,6 +209,17 @@ export function specCommand(
       return Promise.resolve(specs.get(args.root as string) ?? []);
     case "spec_open":
       return Promise.resolve(PETS_API);
+    case "spec_validate": {
+      const body = String(args.body);
+      const ok = body.trim().startsWith("[");
+      return Promise.resolve({
+        response: "200",
+        mediaType: "application/json",
+        checked: true,
+        errors: ok ? [] : [{ pointer: "", message: `${body.slice(0, 20)} is not of type "array"` }],
+        note: null,
+      });
+    }
     default:
       return null;
   }

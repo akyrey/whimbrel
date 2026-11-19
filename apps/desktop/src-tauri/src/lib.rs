@@ -120,6 +120,7 @@ pub fn run() -> Result<(), tauri::Error> {
             spec::spec_import,
             spec::spec_list,
             spec::spec_open,
+            spec::spec_validate,
             runtime::runtime_list,
             runtime::runtime_clear,
             runner::run_start,

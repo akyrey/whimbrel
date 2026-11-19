@@ -298,6 +298,55 @@ pub async fn open(
     Ok(api)
 }
 
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct SpecValidateArgs {
+    pub root: String,
+    pub dir: String,
+    pub operation_id: String,
+    pub status: u16,
+    #[ts(optional)]
+    pub content_type: Option<String>,
+    pub body: String,
+}
+
+/// A response checked against its operation's schema (FR-7.6).
+pub async fn validate(
+    collections: &Collections,
+    sender: &Sender,
+    args: &SpecValidateArgs,
+) -> Result<wbl_openapi::Validation, AppError> {
+    let api = open(
+        collections,
+        sender,
+        &SpecOpenArgs {
+            root: args.root.clone(),
+            dir: args.dir.clone(),
+        },
+    )
+    .await?;
+    Ok(wbl_openapi::validate(
+        &api,
+        &args.operation_id,
+        args.status,
+        args.content_type.as_deref(),
+        &args.body,
+    ))
+}
+
+#[tauri::command]
+pub async fn spec_validate(
+    state: State<'_, AppState>,
+    collections: State<'_, Collections>,
+    args: SpecValidateArgs,
+) -> Result<wbl_openapi::Validation, AppError> {
+    logged(
+        "spec_validate",
+        validate(&collections, &state.sender, &args),
+    )
+    .await
+}
+
 #[tauri::command]
 pub async fn spec_read(
     state: State<'_, AppState>,

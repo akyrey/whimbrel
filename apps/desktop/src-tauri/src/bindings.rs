@@ -75,6 +75,8 @@ fn export_all(dir: &Path) {
     crate::runner::RunCancelArgs::export_all(&config).unwrap();
     crate::runner::StepResult::export_all(&config).unwrap();
     crate::runner::RunSummary::export_all(&config).unwrap();
+    crate::spec::SpecValidateArgs::export_all(&config).unwrap();
+    wbl_openapi::Validation::export_all(&config).unwrap();
     write_index(dir);
 }
 

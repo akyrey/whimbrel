@@ -11,6 +11,7 @@ mod refs;
 pub mod stored;
 mod swagger2;
 pub mod synth;
+pub mod validate;
 
 pub use build::{build, detect};
 pub use generate::{Generated, GeneratedRequest, generate};
@@ -18,6 +19,7 @@ pub use install::{Installed, Source, install};
 pub use model::*;
 pub use read::{Documents, Loaded, Loader, load_all, parse};
 pub use stored::{StoredSpec, source_file, specs};
+pub use validate::{SchemaError, Validation, validate};
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum OpenApiError {

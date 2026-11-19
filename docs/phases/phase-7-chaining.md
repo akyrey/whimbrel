@@ -20,7 +20,7 @@ Design: [PRD.md](../PRD.md) FR-6, FR-7.5, FR-7.6; [FILE_FORMAT.md](../FILE_FORMA
 - [x] 7.3 The runner: a folder's requests in tree order, each as it is, with one saved example,
       or once per example; stop on the first failure or go on; results streamed into a grid;
       cancellable.
-- [ ] 7.4 Response validation (FR-7.6): a response checked against its operation's schema
+- [x] 7.4 Response validation (FR-7.6): a response checked against its operation's schema
       (status, then `2XX`, then `default`; media type), errors with their JSON pointer.
 - [ ] 7.5 Re-import (FR-7.5): added operations created, removed ones marked, changed ones
       regenerated when untouched since the import, and merged field by field when edited, with

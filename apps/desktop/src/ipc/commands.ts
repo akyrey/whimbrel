@@ -1,5 +1,7 @@
 import type {
   Api,
+  SpecValidateArgs,
+  Validation,
   RunStartArgs,
   RunSummary,
   StepResult,
@@ -225,3 +227,7 @@ export function runStart(
 }
 
 export const runCancel = (runId: string): Promise<boolean> => call("run_cancel", { runId });
+
+/** Checks a response against its operation's schema in a kept spec (FR-7.6). */
+export const specValidate = (args: SpecValidateArgs): Promise<Validation> =>
+  call("spec_validate", args);

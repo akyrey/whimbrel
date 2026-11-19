@@ -152,6 +152,25 @@ describe("spec browser", () => {
     expect(await screen.findByText("This operation is no longer in the spec.")).toBeInTheDocument();
   });
 
+  it("validates the last response of a generated request against the spec", async () => {
+    const spec = await importPets();
+    useSpecs.getState().focus({ kind: "operation", id: "listPets" });
+    await userEvent.click(await within(spec).findByRole("button", { name: "Open request" }));
+    await screen.findByRole("textbox", { name: "URL" });
+    expect(screen.queryByRole("button", { name: "Validate against the spec" })).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Validate against the spec" }));
+
+    const section = screen.getByRole("region", { name: "Spec validation" });
+    expect(
+      await within(section).findByText(/1 difference from the spec \(200 application\/json\)/),
+    ).toBeInTheDocument();
+    expect(within(section).getByRole("list", { name: "Schema errors" })).toHaveTextContent(
+      'not of type "array"',
+    );
+  });
+
   it("forgets the specs of a closed collection", async () => {
     await importPets();
     useSpecs.getState().forget("/demo");
