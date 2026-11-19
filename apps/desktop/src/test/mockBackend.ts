@@ -48,6 +48,9 @@ import type {
 type File = { stored: StoredRequest; hash: string };
 type Fs = { id: string; name: string; files: Map<string, File>; folders: Map<string, string> };
 
+/** Folder orders, by root and path (requests keep theirs in the file). */
+const folderOrders = new Map<string, number>();
+
 export const DEMO_ROOT = "/demo";
 
 let version = 0;
@@ -104,6 +107,7 @@ const ME: StoredRequest = {
 
 function seed(): void {
   collections.clear();
+  folderOrders.clear();
   collections.set(DEMO_ROOT, {
     id: "demo-id",
     name: "Demo API",
@@ -152,7 +156,13 @@ function unique(fs: Fs, folder: string, name: string, suffix: string): string {
 function nodes(fs: Fs, folder: string): Node[] {
   const folders: Node[] = [...fs.folders]
     .filter(([path]) => parentOf(path) === folder)
-    .map(([path, name]) => ({ kind: "folder", path, name, order: 0, children: nodes(fs, path) }));
+    .map(([path, name]) => ({
+      kind: "folder",
+      path,
+      name,
+      order: folderOrders.get(`${fs.id}:${path}`) ?? 0,
+      children: nodes(fs, path),
+    }));
   const files: Node[] = [...fs.files]
     .filter(([path]) => parentOf(path) === folder)
     .map(([path, f]) => ({
@@ -163,7 +173,8 @@ function nodes(fs: Fs, folder: string): Node[] {
       method: f.stored.request.method,
       examples: f.stored.examples.map((e) => ({ id: e.id, name: e.name })),
     }));
-  return [...files, ...folders];
+  const key = (n: Node) => (n.kind === "broken" ? 0 : n.order);
+  return [...files, ...folders].sort((x, y) => key(x) - key(y));
 }
 
 const view = (root: string, fs: Fs): CollectionView => ({
@@ -257,11 +268,24 @@ function fileCommand(fs: Fs, command: string, a: Args): Promise<unknown> {
       return Promise.resolve(path);
     }
     case "request_rename": {
+      if (fs.folders.has(a.path)) {
+        fs.folders.set(a.path, a.name);
+        return Promise.resolve(a.path);
+      }
       if (!file) return fail("io", "No such file");
       fs.files.delete(a.path);
       const path = unique(fs, parentOf(a.path), a.name, ".req.toml");
       fs.files.set(path, { stored: { ...file.stored, name: a.name }, hash: nextHash() });
       return Promise.resolve(path);
+    }
+    case "node_order": {
+      const order = (a as unknown as { order: number }).order;
+      if (fs.folders.has(a.path)) {
+        folderOrders.set(`${fs.id}:${a.path}`, order);
+      } else if (file) {
+        fs.files.set(a.path, { stored: { ...file.stored, order }, hash: nextHash() });
+      }
+      return Promise.resolve(null);
     }
     case "request_duplicate": {
       if (!file) return fail("io", "No such file");

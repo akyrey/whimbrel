@@ -259,3 +259,7 @@ export const interopImport = (args: InteropImportArgs): Promise<InteropImported>
 
 /** Writes a folder's requests as a `.http` file; resolves with how many. */
 export const httpExport = (args: HttpExportArgs): Promise<number> => call("http_export", args);
+
+/** Sets a request's or folder's place among its siblings. */
+export const nodeOrder = (root: string, path: string, order: number): Promise<null> =>
+  call("node_order", { root, path, order });

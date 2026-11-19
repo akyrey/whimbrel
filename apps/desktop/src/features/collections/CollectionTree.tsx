@@ -19,6 +19,8 @@ import {
   openCollection,
   renameRequest,
   exportHttp,
+  moveNode,
+  renameFolder,
 } from "./actions";
 import { useCollections } from "./collectionsStore";
 import { NameDialog } from "./NameDialog";
@@ -104,7 +106,27 @@ function deleteItem(ui: Ui, root: string, path: string, name: string, folder: bo
   };
 }
 
-function NodeItem({ node, root, ui, depth }: { node: Node; root: string; ui: Ui; depth: number }) {
+type ItemProps = {
+  node: Node;
+  root: string;
+  ui: Ui;
+  depth: number;
+  siblings: Node[];
+  index: number;
+};
+
+/** "Move up" and "Move down", where there is somewhere to go. */
+function moveItems(root: string, siblings: Node[], index: number): ContextMenuItem[] {
+  const items: ContextMenuItem[] = [];
+  if (index > 0)
+    items.push({ label: "Move up", onSelect: () => void moveNode(root, siblings, index, -1) });
+  if (index < siblings.length - 1) {
+    items.push({ label: "Move down", onSelect: () => void moveNode(root, siblings, index, 1) });
+  }
+  return items;
+}
+
+function NodeItem({ node, root, ui, depth, siblings, index }: ItemProps) {
   const [open, setOpen] = useState(true);
   const indent = { paddingLeft: `${String(depth * 12 + 8)}px` };
   if (node.kind === "broken") {
@@ -134,6 +156,7 @@ function NodeItem({ node, root, ui, depth }: { node: Node; root: string; ui: Ui;
         },
       },
       { label: "Duplicate", onSelect: () => void duplicateRequest(root, node.path) },
+      ...moveItems(root, siblings, index),
       deleteItem(ui, root, node.path, node.name, false),
     ];
     return (
@@ -175,6 +198,19 @@ function NodeItem({ node, root, ui, depth }: { node: Node; root: string; ui: Ui;
   }
   const items = [
     ...containerItems(ui, root, node.path, node.name),
+    {
+      label: "Rename",
+      onSelect: () => {
+        ui.ask({
+          kind: "name",
+          title: "Rename folder",
+          initial: node.name,
+          confirm: "Rename",
+          run: (name) => void renameFolder(root, node.path, name),
+        });
+      },
+    },
+    ...moveItems(root, siblings, index),
     deleteItem(ui, root, node.path, node.name, true),
   ];
   return (
@@ -202,13 +238,15 @@ function NodeItem({ node, root, ui, depth }: { node: Node; root: string; ui: Ui;
 function Nodes({ nodes, root, ui, depth }: { nodes: Node[]; root: string; ui: Ui; depth: number }) {
   return (
     <ul>
-      {nodes.map((node) => (
+      {nodes.map((node, index) => (
         <NodeItem
-          key={node.kind === "broken" ? node.path : node.path}
+          key={node.path}
           node={node}
           root={root}
           ui={ui}
           depth={depth}
+          siblings={nodes}
+          index={index}
         />
       ))}
     </ul>

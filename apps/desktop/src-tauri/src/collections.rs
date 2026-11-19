@@ -145,12 +145,15 @@ pub fn create_folder(state: &Collections, args: &NodeNameArgs) -> Result<String,
     )?)
 }
 
+/// Renames a request (and its file; returns the new path) or a folder (its name only; the
+/// path stays).
 pub fn rename(state: &Collections, args: &NodeNameArgs) -> Result<String, AppError> {
-    Ok(collection::rename_request(
-        &state.opened(&args.root)?,
-        &args.path,
-        &args.name,
-    )?)
+    let root = state.opened(&args.root)?;
+    if root.join(&args.path).is_dir() && !args.path.is_empty() {
+        collection::rename_folder(&root, &args.path, &args.name)?;
+        return Ok(args.path.clone());
+    }
+    Ok(collection::rename_request(&root, &args.path, &args.name)?)
 }
 
 pub fn duplicate(state: &Collections, args: &NodeArgs) -> Result<String, AppError> {

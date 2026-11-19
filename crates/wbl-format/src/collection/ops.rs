@@ -203,6 +203,26 @@ pub fn move_request(root: &Path, path: &str, folder: &str) -> Result<String, For
 }
 
 /// Puts a request or folder at `order` among its siblings.
+/// Renames a folder: its name in `_folder.toml`. The directory keeps its name, so the paths of
+/// what is inside (open tabs, an import's manifest) stay valid.
+pub fn rename_folder(root: &Path, path: &str, name: &str) -> Result<(), FormatError> {
+    let full = resolve(root, path, false)?;
+    if !full.is_dir() {
+        return Err(FormatError::Missing(path.to_owned()));
+    }
+    let marker = full.join(FOLDER_FILE);
+    let text = fs::read_to_string(&marker).unwrap_or_default();
+    let fallback = full
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let info = FolderInfo {
+        name: name.to_owned(),
+        ..files::read_folder(&text, &fallback)?
+    };
+    write_atomic(&marker, &files::write_folder(&text, &info)?)
+}
+
 pub fn set_order(root: &Path, path: &str, order: i64) -> Result<(), FormatError> {
     let full = resolve(root, path, false)?;
     if full.is_dir() {

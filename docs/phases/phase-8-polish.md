@@ -16,7 +16,7 @@ D-H19.
       value (secrets masked) and where it comes from.
 - [x] 8.4 Interop: import Postman v2.1 collections (secrets as secret names) and `.http` files;
       export a folder as `.http`.
-- [ ] 8.5 The tree: rename folders; move requests and folders up and down.
+- [x] 8.5 The tree: rename folders; move requests and folders up and down.
 - [ ] 8.6 The shell (FR-9.1, 9.4): palette commands for every action, settings (theme, editor
       font size, default timeout), and the open tabs restored.
 - [ ] 8.7 Spec browser leftovers from Phase 6: links and callbacks shown, `$self` as the base of

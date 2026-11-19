@@ -3,9 +3,11 @@
 import { toast } from "@roost/ui";
 
 import {
+  type Node,
   chooseFolder,
   chooseSaveFile,
   httpExport,
+  nodeOrder,
   folderCreate,
   nodeDelete,
   requestCreate,
@@ -16,6 +18,7 @@ import {
 import { NEW_REQUEST } from "../tabs/model";
 import { useTabs } from "../tabs/tabsStore";
 import { useCollections } from "./collectionsStore";
+import { moves } from "./order";
 
 async function attempt(what: string, run: () => Promise<void>): Promise<void> {
   try {
@@ -88,4 +91,19 @@ export const exportHttp = (root: string, folder: string, name: string) =>
     if (!destination) return;
     const count = await httpExport({ root, folder, destination });
     toast.success(`Exported ${String(count)} request${count === 1 ? "" : "s"}`);
+  });
+
+export const renameFolder = (root: string, path: string, name: string) =>
+  attempt("rename the folder", async () => {
+    await requestRename(root, path, name);
+    await refresh(root);
+  });
+
+/** Moves `siblings[index]` up (−1) or down (+1) among its siblings. */
+export const moveNode = (root: string, siblings: Node[], index: number, delta: -1 | 1) =>
+  attempt("move it", async () => {
+    for (const { path, order } of moves(siblings, index, delta)) {
+      await nodeOrder(root, path, order);
+    }
+    await refresh(root);
   });

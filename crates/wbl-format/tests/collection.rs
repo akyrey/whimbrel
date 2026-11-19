@@ -238,3 +238,27 @@ fn renaming_to_the_same_file_name_or_moving_to_the_same_folder_keeps_the_file() 
         "PING"
     );
 }
+
+#[test]
+fn a_folder_is_renamed_in_place_and_ordered_like_a_request() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    collection::create(root, "API").unwrap();
+    let folder = collection::create_folder(root, "", "Users").unwrap();
+    collection::create_request(root, &folder, &request("List", 0)).unwrap();
+
+    collection::rename_folder(root, &folder, "People").unwrap();
+    collection::set_order(root, &folder, 5).unwrap();
+
+    let tree = collection::load(root).unwrap();
+    let Node::Folder(f) = &tree.children[0] else {
+        panic!()
+    };
+    assert_eq!(
+        (f.name.as_str(), f.path.as_str(), f.order),
+        ("People", "users", 5)
+    );
+    assert_eq!(f.children.len(), 1);
+    assert!(collection::rename_folder(root, "nope", "x").is_err());
+    assert!(collection::rename_folder(root, "users/list.req.toml", "x").is_err());
+}
