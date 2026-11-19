@@ -7,7 +7,7 @@ use std::path::Path;
 use serde_json::json;
 use wbl_core::Request;
 use wbl_core::example::{Example, apply};
-use wbl_core::interpolate::{Resolved, Scope, SystemDynamic, Value, mask, resolve};
+use wbl_core::interpolate::{Resolved, Scope, SystemDynamic, Value, resolve};
 use wbl_format::collection::{self, environments};
 
 use crate::error::AppError;

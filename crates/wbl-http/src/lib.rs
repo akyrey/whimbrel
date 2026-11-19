@@ -238,9 +238,9 @@ async fn read_files(body: &Body) -> Result<HashMap<String, Vec<u8>>, HttpError> 
     };
     let mut files = HashMap::new();
     for path in paths {
-        let bytes = tokio::fs::read(path).await.map_err(|e| {
-            HttpError::invalid("body", &format!("Cannot read the file {path}: {e}"))
-        })?;
+        let bytes = tokio::fs::read(path)
+            .await
+            .map_err(|e| HttpError::invalid("body", format!("Cannot read the file {path}: {e}")))?;
         files.insert(path.to_owned(), bytes);
     }
     Ok(files)
