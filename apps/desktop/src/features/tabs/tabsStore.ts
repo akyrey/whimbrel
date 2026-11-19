@@ -14,6 +14,7 @@ import {
   toAppError,
 } from "../../ipc";
 import { loadJson, saveJson } from "../../lib/storage";
+import { useSettings } from "../settings/settingsStore";
 import {
   type FileRef,
   type SendStatus,
@@ -21,6 +22,7 @@ import {
   changedOnDisk,
   fileTab,
   fileTabId,
+  isDirty,
   isUnder,
   looseTab,
   moved,
@@ -32,7 +34,16 @@ import {
 
 const STORAGE_KEY = "whimbrel.tabs";
 
-type Stored = { files: FileRef[]; active: string | null };
+/** What survives a restart (FR-2.7): open files with their unsaved edits, and scratch tabs. */
+type Stored = {
+  files: FileRef[];
+  active: string | null;
+  drafts?: Record<string, StoredRequest>;
+  scratch?: { id: string; draft: StoredRequest }[];
+};
+
+/** Edits are remembered this long after the last keystroke. */
+const REMEMBER_DELAY_MS = 300;
 
 type TabsState = {
   tabs: Tab[];
@@ -74,7 +85,10 @@ export function sendArgs(tab: Tab): RequestSendArgs {
     requestId: tab.id,
     request: tab.draft.request,
     name: tab.draft.name,
-    settings: tab.draft.settings,
+    settings: {
+      ...tab.draft.settings,
+      timeoutMs: tab.draft.settings.timeoutMs ?? useSettings.getState().timeoutMs,
+    },
     auth: tab.draft.auth,
     variables: tab.draft.variables,
     captures: tab.draft.captures,
@@ -90,9 +104,21 @@ export const useTabs = create<TabsState>()((set, get) => {
   const replace = (id: string, change: (tab: Tab) => Tab) => {
     set({ tabs: get().tabs.map((t) => (t.id === id ? change(t) : t)) });
   };
+  let pending: ReturnType<typeof setTimeout> | null = null;
   const remember = () => {
-    const files = get().tabs.flatMap((t) => (t.file ? [t.file] : []));
-    saveJson(STORAGE_KEY, { files, active: get().activeId } satisfies Stored);
+    if (pending !== null) clearTimeout(pending);
+    pending = null;
+    const tabs = get().tabs;
+    const files = tabs.flatMap((t) => (t.file ? [t.file] : []));
+    const drafts = Object.fromEntries(
+      tabs.filter((t) => t.file && isDirty(t)).map((t) => [t.id, t.draft]),
+    );
+    const scratch = tabs.filter((t) => !t.file).map((t) => ({ id: t.id, draft: t.draft }));
+    saveJson(STORAGE_KEY, { files, active: get().activeId, drafts, scratch } satisfies Stored);
+  };
+  const rememberSoon = () => {
+    if (pending !== null) clearTimeout(pending);
+    pending = setTimeout(remember, REMEMBER_DELAY_MS);
   };
   const find = (id: string) => get().tabs.find((t) => t.id === id);
 
@@ -113,6 +139,7 @@ export const useTabs = create<TabsState>()((set, get) => {
       scratchCount += 1;
       const tab = scratchTab(`scratch-${String(scratchCount)}`);
       set({ tabs: [...get().tabs, tab], activeId: tab.id });
+      remember();
     },
     activate: (id) => {
       set({ activeId: id });
@@ -128,6 +155,7 @@ export const useTabs = create<TabsState>()((set, get) => {
     },
     edit: (id, change) => {
       replace(id, (t) => ({ ...t, draft: change(t.draft) }));
+      rememberSoon();
     },
     save: async (id, target) => {
       const tab = find(id);
@@ -245,6 +273,21 @@ export const useTabs = create<TabsState>()((set, get) => {
           .openFile(file)
           .catch(() => undefined);
       }
+      const drafts = stored.drafts ?? {};
+      const scratch = (stored.scratch ?? []).map((s) => ({ ...scratchTab(s.id), draft: s.draft }));
+      scratchCount = Math.max(
+        scratchCount,
+        ...scratch.map((s) => Number.parseInt(s.id.replace(/\D/g, ""), 10) || 0),
+      );
+      set({
+        tabs: [
+          ...get().tabs.map((t) => {
+            const draft = drafts[t.id];
+            return draft ? { ...t, draft } : t;
+          }),
+          ...scratch,
+        ],
+      });
       const active = stored.active;
       if (active && find(active)) set({ activeId: active });
     },

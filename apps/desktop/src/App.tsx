@@ -14,7 +14,6 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 import { onCollectionChanged, toAppError } from "./ipc";
-import { openCollection } from "./features/collections/actions";
 import { CollectionTree } from "./features/collections/CollectionTree";
 import { useCollections } from "./features/collections/collectionsStore";
 import { BodyEditor } from "./features/request/BodyEditor";
@@ -28,12 +27,9 @@ import {
   registry,
   shortcutLabel,
 } from "./features/shortcuts/registry";
-import { CurlImportDialog } from "./features/curl/CurlImportDialog";
-import { InteropImportDialog } from "./features/interop/InteropImportDialog";
 import { SchemaCheck } from "./features/openapi/SchemaCheck";
 import { ShowInSpec } from "./features/openapi/ShowInSpec";
 import { SpecBrowser } from "./features/openapi/SpecBrowser";
-import { SpecImportDialog } from "./features/openapi/SpecImportDialog";
 import { SpecList } from "./features/openapi/SpecList";
 import { syncSpecs, useSpecs } from "./features/openapi/specsStore";
 import { useEnvironments } from "./features/environments/environmentsStore";
@@ -47,6 +43,10 @@ import { VariablesPanel } from "./features/request/VariablesPanel";
 import { ChecksEditor } from "./features/checks/ChecksEditor";
 import { RunnerDialog } from "./features/runner/RunnerDialog";
 import { ExamplesBar } from "./features/examples/ExamplesBar";
+import { AppDialogs } from "./features/shell/AppDialogs";
+import { useDialogs } from "./features/shell/dialogsStore";
+import { appItems } from "./features/shell/paletteItems";
+import { useSettings } from "./features/settings/settingsStore";
 import { cancelSend, confirmSend, sendTab, useSendConfirm } from "./features/send/sendFlow";
 import { ConflictBar } from "./features/tabs/ConflictBar";
 import type { Tab } from "./features/tabs/model";
@@ -55,7 +55,7 @@ import { useActiveTab, useTabs } from "./features/tabs/tabsStore";
 
 type Overlay = "palette" | "shortcuts" | null;
 
-const EDITOR_FONT = { family: "ui-monospace, SFMono-Regular, Menlo, monospace", size: 13 };
+const EDITOR_FONT_FAMILY = "ui-monospace, SFMono-Regular, Menlo, monospace";
 
 const activeId = () => useTabs.getState().activeId;
 
@@ -118,21 +118,6 @@ function useShortcutActions(setOverlay: (overlay: Overlay) => void) {
   );
 }
 
-/** "Send with <example>" for the active tab's examples. */
-function exampleItems(): PaletteItem[] {
-  const tab = useTabs.getState().tabs.find((t) => t.id === activeId());
-  if (!tab) return [];
-  return tab.draft.examples.map((example) => ({
-    id: `example:${example.id}`,
-    group: "Examples",
-    label: `Send ${tab.draft.name} › ${example.name}`,
-    run: () => {
-      useTabs.getState().pickExample(tab.id, example.id);
-      sendTab(tab.id);
-    },
-  }));
-}
-
 function paletteItems(actions: Record<ShortcutId, () => void>): PaletteItem[] {
   const item = (id: ShortcutId, label: string): PaletteItem => ({
     id,
@@ -148,13 +133,7 @@ function paletteItems(actions: Record<ShortcutId, () => void>): PaletteItem[] {
     item("cancel", "Cancel the request"),
     item("focus-url", "Go to the URL"),
     item("shortcuts", "Keyboard shortcuts"),
-    {
-      id: "open-collection",
-      group: "Collections",
-      label: "Open a collection",
-      run: () => void openCollection(),
-    },
-    ...exampleItems(),
+    ...appItems(sendTab),
   ];
 }
 
@@ -241,7 +220,6 @@ type Side = "collections" | "history";
 /** Collections or history, and the cURL import. */
 function Sidebar() {
   const [side, setSide] = useState<Side>("collections");
-  const [importing, setImporting] = useState<"curl" | "openapi" | "interop" | null>(null);
   return (
     <>
       <div
@@ -267,7 +245,7 @@ function Sidebar() {
           type="button"
           className="ml-auto text-xs text-zinc-400 hover:text-zinc-100"
           onClick={() => {
-            setImporting("curl");
+            useDialogs.getState().show("curl");
           }}
         >
           Import cURL…
@@ -276,7 +254,7 @@ function Sidebar() {
           type="button"
           className="text-xs text-zinc-400 hover:text-zinc-100"
           onClick={() => {
-            setImporting("openapi");
+            useDialogs.getState().show("openapi");
           }}
         >
           OpenAPI…
@@ -285,10 +263,21 @@ function Sidebar() {
           type="button"
           className="text-xs text-zinc-400 hover:text-zinc-100"
           onClick={() => {
-            setImporting("interop");
+            useDialogs.getState().show("interop");
           }}
         >
           Postman…
+        </button>
+        <button
+          type="button"
+          aria-label="Settings"
+          title="Settings"
+          className="text-xs text-zinc-400 hover:text-zinc-100"
+          onClick={() => {
+            useDialogs.getState().show("settings");
+          }}
+        >
+          ⚙
         </button>
       </div>
       <PanelBoundary name={side === "collections" ? "Collections" : "History"}>
@@ -298,27 +287,6 @@ function Sidebar() {
         <PanelBoundary name="API specs">
           <SpecList />
         </PanelBoundary>
-      )}
-      {importing === "curl" && (
-        <CurlImportDialog
-          onClose={() => {
-            setImporting(null);
-          }}
-        />
-      )}
-      {importing === "interop" && (
-        <InteropImportDialog
-          onClose={() => {
-            setImporting(null);
-          }}
-        />
-      )}
-      {importing === "openapi" && (
-        <SpecImportDialog
-          onClose={() => {
-            setImporting(null);
-          }}
-        />
       )}
     </>
   );
@@ -341,10 +309,15 @@ function SendConfirm() {
 
 export function App() {
   const [overlay, setOverlay] = useState<Overlay>(null);
-  const theme = resolveTheme("system", usePrefersDark());
+  const themeSetting = useSettings((s) => s.theme);
+  const fontSize = useSettings((s) => s.fontSize);
+  const theme = resolveTheme(themeSetting, usePrefersDark());
   useApplyResolvedTheme(theme);
   const actions = useShortcutActions(setOverlay);
-  const editorSettings = useMemo(() => ({ theme, font: EDITOR_FONT }), [theme]);
+  const editorSettings = useMemo(
+    () => ({ theme, font: { family: EDITOR_FONT_FAMILY, size: fontSize } }),
+    [theme, fontSize],
+  );
   const tab = useActiveTab();
   const spec = useSpecs((s) => s.view);
   useCollectionsLifecycle();
@@ -390,6 +363,7 @@ export function App() {
         <ShortcutsView registry={registry} groups={SHORTCUT_GROUPS} onClose={close} />
       )}
       <SendConfirm />
+      <AppDialogs />
       <RunnerDialog />
       <Toaster />
     </EditorSettingsProvider>

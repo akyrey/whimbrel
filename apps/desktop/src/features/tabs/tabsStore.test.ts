@@ -56,3 +56,31 @@ describe("saving", () => {
     expect(tab?.draft.name).toBe("Mine");
   });
 });
+
+describe("a restart", () => {
+  it("brings back unsaved edits and scratch tabs", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    localStorage.clear();
+    const file = { root: DEMO_ROOT, path: "ping.req.toml" };
+    await useTabs.getState().openFile(file);
+    const fileId = useTabs.getState().activeId ?? "";
+    useTabs.getState().edit(fileId, (d) => ({ ...d, name: "Ping (edited)" }));
+    useTabs.getState().newScratch();
+    const scratchId = useTabs.getState().activeId ?? "";
+    useTabs
+      .getState()
+      .edit(scratchId, (d) => ({ ...d, request: { ...d.request, url: "http://x/draft" } }));
+    vi.advanceTimersByTime(1000);
+    vi.useRealTimers();
+
+    useTabs.setState({ tabs: [], activeId: null });
+    await useTabs.getState().restore();
+
+    const tabs = useTabs.getState().tabs;
+    expect(tabs.find((t) => t.id === fileId)?.draft.name).toBe("Ping (edited)");
+    expect(tabs.find((t) => t.id === scratchId)?.draft.request.url).toBe("http://x/draft");
+    expect(useTabs.getState().activeId).toBe(scratchId);
+    useTabs.getState().newScratch();
+    expect(useTabs.getState().activeId).not.toBe(scratchId);
+  });
+});
