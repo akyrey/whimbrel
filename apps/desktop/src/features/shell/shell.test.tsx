@@ -7,6 +7,7 @@ import { App } from "../../App";
 import { installMockBackend } from "../../test/mockBackend";
 import { useCollections } from "../collections/collectionsStore";
 import { useEnvironments } from "../environments/environmentsStore";
+import { useLayout } from "../layout/layoutStore";
 import { useRunner } from "../runner/runnerStore";
 import { DEFAULT_SETTINGS, useSettings } from "../settings/settingsStore";
 import { sendArgs, useTabs } from "../tabs/tabsStore";
@@ -49,6 +50,13 @@ it("settings change the theme, the editor font and the default timeout", async (
     within(dialog).getByRole("spinbutton", { name: "Default timeout in milliseconds" }),
     "5000",
   );
+  await userEvent.selectOptions(
+    within(dialog).getByRole("combobox", { name: "Response placement" }),
+    "beside",
+  );
+  expect(useLayout.getState().split).toBe("beside");
+  await command("response below");
+  expect(useLayout.getState().split).toBe("below");
   await userEvent.click(within(dialog).getByRole("button", { name: "Done" }));
 
   expect(useSettings.getState()).toMatchObject({ theme: "light", fontSize: 16, timeoutMs: 5000 });

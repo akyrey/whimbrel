@@ -1,9 +1,10 @@
-import { Skeleton } from "@roost/ui";
-import { Suspense, lazy } from "react";
+import { Button, Skeleton, toast } from "@roost/ui";
+import { Suspense, lazy, useState } from "react";
 
 import type { Tab } from "../tabs/model";
 import { useTabs } from "../tabs/tabsStore";
 import { type BodyChoice, choiceOf, setBodyKind, setBodyText } from "./editing";
+import { beautifyJson } from "./beautify";
 import { FieldsEditor, FileBodyEditor } from "./FormEditor";
 
 /** CodeMirror loads when a body is first edited, not at start. */
@@ -27,27 +28,52 @@ export function BodyEditor({ tab }: { tab: Tab }) {
     edit(tab.id, c);
   };
 
+  // Bumped to rebuild the editor with text set from outside it (the editor is uncontrolled).
+  const [revision, setRevision] = useState(0);
+  const beautify = (text: string) => {
+    const result = beautifyJson(text);
+    if (!result.ok) {
+      toast.error(`Not valid JSON: ${result.message}`);
+      return;
+    }
+    if (result.text === text) return;
+    edit(tab.id, setBodyText(result.text));
+    setRevision((r) => r + 1);
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <select
-        aria-label="Body type"
-        className="input w-48"
-        value={kind}
-        onChange={(e) => {
-          edit(tab.id, setBodyKind(e.target.value as BodyChoice));
-        }}
-      >
-        {KINDS.map((k) => (
-          <option key={k.value} value={k.value}>
-            {k.label}
-          </option>
-        ))}
-      </select>
+      <div className="flex items-center gap-2">
+        <select
+          aria-label="Body type"
+          className="input w-48"
+          value={kind}
+          onChange={(e) => {
+            edit(tab.id, setBodyKind(e.target.value as BodyChoice));
+          }}
+        >
+          {KINDS.map((k) => (
+            <option key={k.value} value={k.value}>
+              {k.label}
+            </option>
+          ))}
+        </select>
+        {body.type === "text" && body.kind === "json" && (
+          <Button
+            title="Pretty-print the JSON"
+            onClick={() => {
+              beautify(body.text);
+            }}
+          >
+            Beautify
+          </Button>
+        )}
+      </div>
       {body.type === "text" && (
         <Suspense fallback={<Skeleton rows={4} label="Loading the editor" />}>
           <CodeEditor
             // A new kind is a new language: rebuild the editor, keeping the text.
-            key={`${tab.id}:${body.kind}`}
+            key={`${tab.id}:${body.kind}:${String(revision)}`}
             initialText={body.text}
             label="Request body"
             language={body.kind}

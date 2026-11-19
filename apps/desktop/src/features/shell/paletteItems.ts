@@ -7,6 +7,7 @@ import { useCollections } from "../collections/collectionsStore";
 import { useEnvironments } from "../environments/environmentsStore";
 import { useSpecs } from "../openapi/specsStore";
 import { useRunner } from "../runner/runnerStore";
+import { useLayout } from "../layout/layoutStore";
 import { useSettings } from "../settings/settingsStore";
 import { useTabs } from "../tabs/tabsStore";
 import { useUpdates } from "../updates/updateStore";
@@ -71,6 +72,8 @@ export function appItems(send: (id: string) => void): PaletteItem[] {
   const dialogs = useDialogs.getState();
   const settings = useSettings.getState();
   const dark = settings.theme === "dark";
+  const layout = useLayout.getState();
+  const beside = layout.split === "beside";
   return [
     item("open-collection", "Collections", "Open a collection", () => void openCollection()),
     item("import-curl", "Import", "Import a cURL command…", () => {
@@ -88,6 +91,14 @@ export function appItems(send: (id: string) => void): PaletteItem[] {
     item("theme", "Settings", dark ? "Use the light theme" : "Use the dark theme", () => {
       settings.change({ theme: dark ? "light" : "dark" });
     }),
+    item(
+      "response-placement",
+      "Settings",
+      beside ? "Put the response below the request" : "Put the response beside the request",
+      () => {
+        layout.placeResponse(beside ? "below" : "beside");
+      },
+    ),
     item("clear-history", "History", "Clear the history", () => void historyClear()),
     item(
       "check-updates",

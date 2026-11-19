@@ -1,5 +1,6 @@
+import { useToasts } from "@roost/ui";
 import { clearMocks } from "@tauri-apps/api/mocks";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { App } from "../../App";
@@ -68,4 +69,29 @@ it("a form and a file body", async () => {
   await userEvent.selectOptions(screen.getByRole("combobox", { name: "Body type" }), "file");
   await userEvent.type(screen.getByRole("textbox", { name: "Body file path" }), "/tmp/a.bin");
   expect(await sentBody()).toContain("file /tmp/a.bin");
+});
+
+it("beautify pretty-prints a JSON body and refuses invalid JSON", async () => {
+  await newRequest();
+  const id = useTabs.getState().activeId ?? "";
+  const setBody = (text: string) => {
+    act(() => {
+      useTabs.getState().edit(id, (d) => ({
+        ...d,
+        request: { ...d.request, body: { type: "text", kind: "json", text } },
+      }));
+    });
+  };
+  const bodyText = () => {
+    const body = useTabs.getState().tabs.find((t) => t.id === id)?.draft.request.body;
+    return body?.type === "text" ? body.text : null;
+  };
+  setBody('{"id":{{id}}}');
+  await userEvent.click(screen.getByRole("button", { name: "Beautify" }));
+  expect(bodyText()).toBe('{\n  "id": {{id}}\n}');
+
+  setBody('{"id":');
+  await userEvent.click(screen.getByRole("button", { name: "Beautify" }));
+  expect(bodyText()).toBe('{"id":');
+  expect(useToasts.getState().toasts.at(-1)?.message).toMatch(/^Not valid JSON/);
 });

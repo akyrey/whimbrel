@@ -13,6 +13,12 @@ test("send a POST with a JSON body and read the response", async ({ page }) => {
   const editor = page.getByLabel("Request body");
   await editor.click();
   await page.keyboard.type('{"name": "ada"}');
+  await page.getByRole("button", { name: "Beautify" }).click();
+  await expect(page.getByLabel("Request body").locator(".cm-line")).toHaveText([
+    "{",
+    '  "name": "ada"',
+    "}",
+  ]);
 
   await page.getByRole("button", { name: "Send" }).click();
 

@@ -1,26 +1,29 @@
 import type { KeyboardEvent, PointerEvent, RefObject } from "react";
 
-import { REQUEST_SHARE } from "./layoutStore";
+import { REQUEST_SHARE, type Split, initialShare } from "./layoutStore";
 
 const KEY_STEP = 0.05;
 
 type Props = {
-  /** The element whose height the share is of. */
+  /** The element whose size the share is of. */
   container: RefObject<HTMLElement | null>;
+  split: Split;
   share: number;
   onResize: (share: number) => void;
 };
 
 /** The draggable edge between the request and the response; arrow keys move it, a double
  * click puts it back. */
-export function SplitResizer({ container, share, onResize }: Props) {
+export function SplitResizer({ container, split, share, onResize }: Props) {
+  const beside = split === "beside";
   const startDrag = (event: PointerEvent<HTMLDivElement>) => {
-    const height = container.current?.getBoundingClientRect().height ?? 0;
-    if (height <= 0) return;
+    const box = container.current?.getBoundingClientRect();
+    const size = (beside ? box?.width : box?.height) ?? 0;
+    if (size <= 0) return;
     event.preventDefault();
-    const startY = event.clientY;
+    const start = beside ? event.clientX : event.clientY;
     const onMove = (e: globalThis.PointerEvent) => {
-      onResize(share + (e.clientY - startY) / height);
+      onResize(share + ((beside ? e.clientX : e.clientY) - start) / size);
     };
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
@@ -29,8 +32,11 @@ export function SplitResizer({ container, share, onResize }: Props) {
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
   };
+  const keys: Record<string, number> = beside
+    ? { ArrowLeft: -KEY_STEP, ArrowRight: KEY_STEP }
+    : { ArrowUp: -KEY_STEP, ArrowDown: KEY_STEP };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const step = { ArrowUp: -KEY_STEP, ArrowDown: KEY_STEP }[event.key];
+    const step = keys[event.key];
     if (step === undefined) return;
     event.preventDefault();
     onResize(share + step);
@@ -38,17 +44,18 @@ export function SplitResizer({ container, share, onResize }: Props) {
   return (
     <div
       role="separator"
-      aria-orientation="horizontal"
+      // A divider between side-by-side panes is a vertical line.
+      aria-orientation={beside ? "vertical" : "horizontal"}
       aria-label="Resize the request and the response"
       aria-valuemin={Math.round(REQUEST_SHARE.min * 100)}
       aria-valuemax={Math.round(REQUEST_SHARE.max * 100)}
       aria-valuenow={Math.round(share * 100)}
       tabIndex={0}
-      className="h-1 shrink-0 cursor-row-resize bg-zinc-800 hover:bg-sky-700 focus:bg-sky-700 focus:outline-none"
+      className={`${beside ? "w-1 cursor-col-resize" : "h-1 cursor-row-resize"} shrink-0 bg-zinc-800 hover:bg-sky-700 focus:bg-sky-700 focus:outline-none`}
       onPointerDown={startDrag}
       onKeyDown={onKeyDown}
       onDoubleClick={() => {
-        onResize(REQUEST_SHARE.initial);
+        onResize(initialShare(split));
       }}
     />
   );

@@ -20,7 +20,7 @@ import { useCollections } from "./features/collections/collectionsStore";
 import { RequestBar, URL_INPUT_ID } from "./features/request/RequestBar";
 import { RequestSections } from "./features/request/RequestSections";
 import { SplitResizer } from "./features/layout/SplitResizer";
-import { SIDEBAR_WIDTH, useLayout } from "./features/layout/layoutStore";
+import { SIDEBAR_WIDTH, currentShare, useLayout } from "./features/layout/layoutStore";
 import { ResponsePanel } from "./features/response/ResponsePanel";
 import {
   SHORTCUT_GROUPS,
@@ -177,14 +177,17 @@ function useCollectionsLifecycle() {
 function RequestView({ tab }: { tab: Tab }) {
   const variables = useScopeVariables(tab);
   const split = useRef<HTMLDivElement>(null);
-  const share = useLayout((s) => s.requestShare);
+  const placement = useLayout((s) => s.split);
+  const share = useLayout(currentShare);
+  const beside = placement === "beside";
+  const size = `${String(share * 100)}%`;
   return (
     <VariablesContext.Provider value={variables}>
-      <div ref={split} className="flex min-h-0 flex-1 flex-col">
+      <div ref={split} className={`flex min-h-0 flex-1 ${beside ? "flex-row" : "flex-col"}`}>
         <section
           aria-label="Request"
-          className="flex min-h-0 flex-col gap-3 p-4"
-          style={{ height: `${String(share * 100)}%` }}
+          className="flex min-h-0 min-w-0 flex-col gap-3 p-4"
+          style={beside ? { width: size } : { height: size }}
         >
           <ConflictBar tab={tab} />
           <ShowInSpec tab={tab} />
@@ -195,10 +198,11 @@ function RequestView({ tab }: { tab: Tab }) {
         </section>
         <SplitResizer
           container={split}
+          split={placement}
           share={share}
           onResize={useLayout.getState().resizeRequest}
         />
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <PanelBoundary name="Response">
             <SchemaCheck tab={tab} />
             <ResponsePanel status={tab.status} />

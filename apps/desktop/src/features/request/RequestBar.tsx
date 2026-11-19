@@ -25,64 +25,68 @@ export function RequestBar({ tab }: { tab: Tab }) {
 
   return (
     <form
-      className="flex items-center gap-2"
+      className="flex flex-wrap items-center gap-2"
       onSubmit={(e) => {
         e.preventDefault();
         sendTab(tab.id);
       }}
     >
-      <input
-        aria-label="Method"
-        list="request-methods"
-        className="input w-28 font-mono font-semibold uppercase"
-        value={method}
-        onChange={(e) => {
-          edit(tab.id, setMethod(e.target.value));
-        }}
-      />
-      <datalist id="request-methods">
-        {METHODS.map((m) => (
-          <option key={m} value={m} />
-        ))}
-      </datalist>
-      <VariableInput
-        id={URL_INPUT_ID}
-        aria-label="URL"
-        placeholder="https://api.example.com/users"
-        className="input min-w-0 flex-1 font-mono"
-        value={url}
-        spellCheck={false}
-        onValue={(value) => {
-          edit(tab.id, setUrl(value));
-        }}
-      />
-      {/* Distinct keys: if React reused one <button>, a click on Cancel that ends the request
+      <div className="flex min-w-80 flex-1 items-center gap-2">
+        <input
+          aria-label="Method"
+          list="request-methods"
+          className="input w-28 font-mono font-semibold uppercase"
+          value={method}
+          onChange={(e) => {
+            edit(tab.id, setMethod(e.target.value));
+          }}
+        />
+        <datalist id="request-methods">
+          {METHODS.map((m) => (
+            <option key={m} value={m} />
+          ))}
+        </datalist>
+        <VariableInput
+          id={URL_INPUT_ID}
+          aria-label="URL"
+          placeholder="https://api.example.com/users"
+          className="input min-w-0 flex-1 font-mono"
+          value={url}
+          spellCheck={false}
+          onValue={(value) => {
+            edit(tab.id, setUrl(value));
+          }}
+        />
+        {/* Distinct keys: if React reused one <button>, a click on Cancel that ends the request
           could still submit the form once the button turns back into Send. */}
-      {sending ? (
-        <Button key="cancel" onClick={() => void cancel(tab.id)} title={shortcutLabel("cancel")}>
-          Cancel
+        {sending ? (
+          <Button key="cancel" onClick={() => void cancel(tab.id)} title={shortcutLabel("cancel")}>
+            Cancel
+          </Button>
+        ) : (
+          <Button key="send" type="submit" variant="primary" title={shortcutLabel("send")}>
+            Send
+          </Button>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          onClick={() => {
+            setPreviewing(true);
+          }}
+        >
+          Preview
         </Button>
-      ) : (
-        <Button key="send" type="submit" variant="primary" title={shortcutLabel("send")}>
-          Send
+        <Button title="Secrets masked" onClick={() => void copyAsCurl(tab, false)}>
+          Copy cURL
         </Button>
-      )}
-      <Button
-        onClick={() => {
-          setPreviewing(true);
-        }}
-      >
-        Preview
-      </Button>
-      <Button title="Secrets masked" onClick={() => void copyAsCurl(tab, false)}>
-        Copy cURL
-      </Button>
-      <Button
-        title="With the secret values: take care where you paste it"
-        onClick={() => void copyAsCurl(tab, true)}
-      >
-        Copy cURL with secrets
-      </Button>
+        <Button
+          title="With the secret values: take care where you paste it"
+          onClick={() => void copyAsCurl(tab, true)}
+        >
+          Copy cURL with secrets
+        </Button>
+      </div>
       {previewing && (
         <PreviewDialog
           tab={tab}

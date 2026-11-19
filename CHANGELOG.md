@@ -20,3 +20,6 @@ All notable changes to Whimbrel. The format follows [Keep a Changelog](https://k
 - Signed in-app updates from GitHub releases.
 - The request's parts (params, auth, headers, body, variables, checks, settings) as tabs; the
   request/response split and the sidebar can be resized, and the sizes are remembered.
+- The response can sit beside the request instead of below it (a button by the request's tabs,
+  Settings, or the palette); each placement keeps its own size.
+- Beautify for JSON bodies; `{{variables}}` used as bare values are kept.

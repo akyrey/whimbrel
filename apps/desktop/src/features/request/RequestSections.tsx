@@ -2,6 +2,7 @@ import { PanelBoundary } from "@roost/ui";
 import type { KeyboardEvent } from "react";
 
 import { ChecksEditor } from "../checks/ChecksEditor";
+import { PlacementToggle } from "../layout/PlacementToggle";
 import type { Tab } from "../tabs/model";
 import { AuthPanel } from "./AuthPanel";
 import { BodyEditor } from "./BodyEditor";
@@ -71,33 +72,36 @@ export function RequestSections({ tab }: { tab: Tab }) {
   };
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <div
-        role="tablist"
-        aria-label="Request parts"
-        className="flex shrink-0 flex-wrap gap-x-4 gap-y-1 border-b border-zinc-800 text-sm"
-        onKeyDown={onKeyDown}
-      >
-        {SECTIONS.map((s) => (
-          <button
-            key={s}
-            id={tabId(s)}
-            type="button"
-            role="tab"
-            aria-selected={section === s}
-            aria-controls={panelId}
-            tabIndex={section === s ? 0 : -1}
-            className={
-              section === s
-                ? "-mb-px border-b-2 border-sky-500 pb-1 text-zinc-100"
-                : "pb-1 text-zinc-400 hover:text-zinc-200"
-            }
-            onClick={() => {
-              choose(s);
-            }}
-          >
-            {sectionLabel(s, tab.draft)}
-          </button>
-        ))}
+      <div className="flex shrink-0 items-end gap-4 border-b border-zinc-800 text-sm">
+        <div
+          role="tablist"
+          aria-label="Request parts"
+          className="flex flex-wrap gap-x-4 gap-y-1"
+          onKeyDown={onKeyDown}
+        >
+          {SECTIONS.map((s) => (
+            <button
+              key={s}
+              id={tabId(s)}
+              type="button"
+              role="tab"
+              aria-selected={section === s}
+              aria-controls={panelId}
+              tabIndex={section === s ? 0 : -1}
+              className={
+                section === s
+                  ? "-mb-px border-b-2 border-sky-500 pb-1 text-zinc-100"
+                  : "pb-1 text-zinc-400 hover:text-zinc-200"
+              }
+              onClick={() => {
+                choose(s);
+              }}
+            >
+              {sectionLabel(s, tab.draft)}
+            </button>
+          ))}
+        </div>
+        <PlacementToggle />
       </div>
       <div
         id={panelId}

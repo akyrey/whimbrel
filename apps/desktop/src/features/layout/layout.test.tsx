@@ -6,14 +6,20 @@ import { App } from "../../App";
 import { installMockBackend } from "../../test/mockBackend";
 import { useCollections } from "../collections/collectionsStore";
 import { useTabs } from "../tabs/tabsStore";
-import { REQUEST_SHARE, SIDEBAR_WIDTH, sanitize, useLayout } from "./layoutStore";
+import {
+  BESIDE_SHARE_INITIAL,
+  REQUEST_SHARE,
+  SIDEBAR_WIDTH,
+  sanitize,
+  useLayout,
+} from "./layoutStore";
 
 beforeEach(() => {
   localStorage.clear();
   installMockBackend();
   useTabs.setState({ tabs: [], activeId: null });
   useCollections.setState({ views: {} });
-  useLayout.setState({ sidebarWidth: SIDEBAR_WIDTH.initial, requestShare: REQUEST_SHARE.initial });
+  useLayout.setState(sanitize({}));
 });
 
 afterEach(async () => {
@@ -24,13 +30,19 @@ afterEach(async () => {
 
 describe("layout", () => {
   it("clamps stored sizes and replaces unreadable ones", () => {
-    expect(sanitize({ sidebarWidth: 10, requestShare: 2 })).toEqual({
+    expect(sanitize({ sidebarWidth: 10, requestShare: 2, besideShare: 0 })).toEqual({
       sidebarWidth: SIDEBAR_WIDTH.min,
+      split: "below",
       requestShare: REQUEST_SHARE.max,
+      besideShare: REQUEST_SHARE.min,
     });
-    expect(sanitize({ sidebarWidth: Number.NaN })).toEqual({
+    expect(
+      sanitize({ sidebarWidth: Number.NaN, split: "diagonal" as "below", besideShare: Number.NaN }),
+    ).toEqual({
       sidebarWidth: SIDEBAR_WIDTH.initial,
+      split: "below",
       requestShare: REQUEST_SHARE.initial,
+      besideShare: BESIDE_SHARE_INITIAL,
     });
   });
 
@@ -48,7 +60,7 @@ describe("layout", () => {
     const sidebar = screen.getByRole("separator", { name: "Resize the sidebar" });
     fireEvent.keyDown(sidebar, { key: "ArrowRight" });
     expect(sidebar).toHaveAttribute("aria-valuenow", String(SIDEBAR_WIDTH.initial + 16));
-    expect(JSON.parse(localStorage.getItem("whimbrel.layout") ?? "{}")).toEqual({
+    expect(JSON.parse(localStorage.getItem("whimbrel.layout") ?? "{}")).toMatchObject({
       sidebarWidth: SIDEBAR_WIDTH.initial + 16,
       requestShare: REQUEST_SHARE.initial,
     });
@@ -80,5 +92,32 @@ describe("layout", () => {
       useTabs.getState().activate(first.id);
     });
     expect(await screen.findByRole("tab", { name: "Headers", selected: true })).toBeInTheDocument();
+  });
+
+  it("puts the response beside the request, with its own size, and back below", async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "New request" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Put the response beside the request" }),
+    );
+
+    const split = screen.getByRole("separator", { name: "Resize the request and the response" });
+    expect(split).toHaveAttribute("aria-orientation", "vertical");
+    expect(split).toHaveAttribute("aria-valuenow", "50");
+    fireEvent.keyDown(split, { key: "ArrowDown" });
+    expect(split).toHaveAttribute("aria-valuenow", "50");
+    fireEvent.keyDown(split, { key: "ArrowLeft" });
+    expect(split).toHaveAttribute("aria-valuenow", "45");
+    expect(screen.getByRole("region", { name: "Request" })).toHaveStyle({ width: "45%" });
+    fireEvent.doubleClick(split);
+    expect(split).toHaveAttribute("aria-valuenow", "50");
+    fireEvent.keyDown(split, { key: "ArrowRight" });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Put the response below the request" }),
+    );
+    expect(split).toHaveAttribute("aria-orientation", "horizontal");
+    expect(split).toHaveAttribute("aria-valuenow", "45");
+    expect(useLayout.getState()).toMatchObject({ split: "below", besideShare: 0.55 });
   });
 });
