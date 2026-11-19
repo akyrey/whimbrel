@@ -1,0 +1,193 @@
+---
+source: crates/wbl-openapi/tests/generate.rs
+expression: generated
+---
+{
+  "name": "Swagger Petstore",
+  "auth": {
+    "type": "none"
+  },
+  "folders": [
+    [
+      "pet"
+    ],
+    [
+      "store"
+    ]
+  ],
+  "requests": [
+    {
+      "folder": [
+        "pet"
+      ],
+      "operationId": "addPet",
+      "stored": {
+        "name": "Add a new pet to the store",
+        "order": 0,
+        "request": {
+          "method": "POST",
+          "url": "{{baseUrl}}/pet",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            }
+          ],
+          "body": {
+            "type": "text",
+            "kind": "json",
+            "text": "{\n  \"id\": 0,\n  \"category\": {\n    \"id\": 0,\n    \"name\": \"string\"\n  },\n  \"name\": \"doggie\",\n  \"photoUrls\": [\n    \"string\"\n  ],\n  \"status\": \"available\"\n}"
+          }
+        },
+        "examples": [],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "none"
+        },
+        "variables": {}
+      }
+    },
+    {
+      "folder": [
+        "pet"
+      ],
+      "operationId": "findPetsByStatus",
+      "stored": {
+        "name": "findPetsByStatus",
+        "order": 0,
+        "request": {
+          "method": "GET",
+          "url": "{{baseUrl}}/pet/findByStatus?status=available",
+          "headers": [],
+          "body": {
+            "type": "none"
+          }
+        },
+        "examples": [],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "inherit"
+        },
+        "variables": {}
+      }
+    },
+    {
+      "folder": [
+        "pet"
+      ],
+      "operationId": "uploadFile",
+      "stored": {
+        "name": "uploadFile",
+        "order": 0,
+        "request": {
+          "method": "POST",
+          "url": "{{baseUrl}}/pet/{{petId}}/uploadImage",
+          "headers": [],
+          "body": {
+            "type": "none"
+          }
+        },
+        "examples": [],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "inherit"
+        },
+        "variables": {
+          "petId": "0"
+        }
+      }
+    },
+    {
+      "folder": [
+        "store"
+      ],
+      "operationId": "getInventory",
+      "stored": {
+        "name": "getInventory",
+        "order": 0,
+        "request": {
+          "method": "GET",
+          "url": "{{baseUrl}}/store/inventory",
+          "headers": [],
+          "body": {
+            "type": "none"
+          }
+        },
+        "examples": [
+          {
+            "id": "all-parameters",
+            "name": "All parameters",
+            "order": 10,
+            "variables": {},
+            "query": [
+              {
+                "name": "tags",
+                "value": "string",
+                "enabled": true
+              }
+            ],
+            "headers": [],
+            "body": null
+          }
+        ],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "api_key",
+          "name": "api_key",
+          "value": "{{apiKey}}",
+          "location": "header"
+        },
+        "variables": {}
+      }
+    }
+  ],
+  "environments": [
+    {
+      "name": "petstore.swagger.io",
+      "protected": false,
+      "variables": {
+        "baseUrl": "https://petstore.swagger.io/v2"
+      },
+      "secrets": [
+        {
+          "name": "apiKey",
+          "description": "For api_key"
+        }
+      ]
+    },
+    {
+      "name": "petstore.swagger.io 2",
+      "protected": false,
+      "variables": {
+        "baseUrl": "http://petstore.swagger.io/v2"
+      },
+      "secrets": [
+        {
+          "name": "apiKey",
+          "description": "For api_key"
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    "petstore_auth: only implicit or password flows, which Whimbrel does not run",
+    "uploadFile: a multipart/form-data body is not generated; add it by hand"
+  ]
+}

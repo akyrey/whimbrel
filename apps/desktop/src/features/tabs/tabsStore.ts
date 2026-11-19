@@ -76,6 +76,7 @@ export function sendArgs(tab: Tab): RequestSendArgs {
     name: tab.draft.name,
     settings: tab.draft.settings,
     auth: tab.draft.auth,
+    variables: tab.draft.variables,
     ...(tab.file === null ? {} : { path: tab.file.path }),
     ...(root === undefined ? {} : { root }),
     ...(environment === undefined ? {} : { environment }),

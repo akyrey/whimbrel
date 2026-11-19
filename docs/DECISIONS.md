@@ -183,3 +183,33 @@ that: a compact 10 MB JSON body is one line, and wrapping it made the editor lay
 (over a second); unwrapped, the longest task is under 100 ms.
 **Consequences.** Bodies between 2 and 10 MB show raw, on one line when the server sent one.
 Pretty-printing them would need the work off the main thread (a worker, or the backend).
+
+## D-H14 OpenAPI: our own reader over untyped values; YAML with yaml-rust2 (2026-11-19)
+
+**Context.** D-H05 left the parser open (spike `roas`). Real-world specs are often slightly
+invalid (missing required fields, 3.0 keywords in 3.1 documents, `$ref` siblings), and a strict
+typed model rejects documents other tools accept. `$ref` resolution across files and URLs, and
+the upconversion from 2.0 and 3.0, need control over the raw document either way.
+**Decision.** `wbl-openapi` reads documents into `serde_json::Value` (YAML through
+`yaml-rust2`, the maintained YAML 1.2 parser, converted to JSON values) and builds the
+normalized model (3.2 as the superset) leniently: missing optional parts are empty, unknown
+keys are ignored, problems become warnings attached to the import, not failures. Schemas stay
+JSON Schema values, with references rewritten to the model's own schema table so cycles are
+links. No `roas` spike.
+**Consequences.** We own the per-version mapping and test it with fixtures. Validation of the
+spec itself is out of scope: the import reports what it could not understand.
+
+## D-H15 What an import generates when the file format cannot say it (2026-11-19)
+
+**Context.** A request has its query string in the URL (no disabled query parameters), and a
+text body only. OpenAPI operations have optional query parameters, multipart bodies and
+per-operation servers; a collection can hold several imported specs.
+**Decision.** Required query parameters go in the URL; optional ones go in a saved example
+"All parameters", so they are one click away and the base request stays minimal. Optional
+headers and cookies are present but disabled. Bodies of media types that are not text
+(multipart, binary) are not generated: the import says so. Operation-level `servers` are not
+used (the environment's `baseUrl` applies). Each import keeps its spec and manifest in
+`openapi/<slug of the title>/` (a second import of the same title gets `-2`), so a collection
+can hold several specs. Environments that already exist by name are left alone.
+**Consequences.** Multipart bodies need body kinds the format does not have yet (Phase 8 at the
+earliest). Re-import (Phase 7) finds its manifest by the spec's directory.

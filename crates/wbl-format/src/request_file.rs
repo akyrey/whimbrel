@@ -23,6 +23,10 @@ pub struct StoredRequest {
     /// `[auth]`; inherits when absent.
     #[serde(default)]
     pub auth: wbl_core::auth::Auth,
+    /// `[variables]`: request-level values, after the example and before the environment
+    /// (FR-4.4); path parameters of imported requests default here.
+    #[serde(default)]
+    pub variables: std::collections::BTreeMap<String, String>,
 }
 
 /// A parsed request file. Keeps the document so writing preserves what it does not know.
@@ -67,6 +71,7 @@ impl RequestFile {
             examples: crate::examples::read_examples(root)?,
             settings: read_settings(root)?,
             auth: crate::auth_file::read_auth(root)?,
+            variables: crate::fields::string_map(root, "variables")?,
         })
     }
 
@@ -84,6 +89,9 @@ impl RequestFile {
         crate::examples::write_examples(root, &stored.examples);
         write_settings(root, &stored.settings);
         crate::auth_file::write_auth(root, &stored.auth);
+        if crate::fields::string_map(root, "variables").ok().as_ref() != Some(&stored.variables) {
+            crate::fields::set_string_map(root, "variables", &stored.variables);
+        }
         Self { doc }
     }
 }

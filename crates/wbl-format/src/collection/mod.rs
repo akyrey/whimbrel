@@ -15,10 +15,10 @@ use serde::Serialize;
 use crate::{FormatError, RequestFile};
 pub use files::CollectionInfo;
 pub use ops::{
-    ReadRequest, create, create_folder, create_request, delete, duplicate_request, move_request,
-    read_request, rename_request, save_request, set_order,
+    ReadRequest, create, create_folder, create_request, create_requests, delete, duplicate_request,
+    move_request, read_request, rename_request, save_request, set_order,
 };
-pub use paths::hash;
+pub use paths::{hash, slug, write_atomic};
 
 /// The collection's id (keys its keychain entries), without reading its tree.
 pub fn id(root: &Path) -> Result<String, FormatError> {

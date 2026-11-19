@@ -59,6 +59,7 @@ const get = (stored: Partial<StoredRequest> & { name: string; url?: string }): S
   examples: [],
   settings: { timeoutMs: null, followRedirects: true, verifyTls: true },
   auth: { type: "inherit" },
+  variables: {},
 });
 
 function seed(): void {

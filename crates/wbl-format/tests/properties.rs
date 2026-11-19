@@ -110,9 +110,10 @@ fn stored() -> impl Strategy<Value = StoredRequest> {
             any::<bool>(),
         ),
         auth(),
+        prop::collection::btree_map("[a-zA-Z][a-zA-Z0-9_]{0,8}", text(), 0..3),
     )
         .prop_map(
-            |((name, order, method, url), headers, body, examples, settings, auth)| {
+            |((name, order, method, url), headers, body, examples, settings, auth, variables)| {
                 let (timeout_ms, follow_redirects, verify_tls) = settings;
                 StoredRequest {
                     name,
@@ -130,6 +131,7 @@ fn stored() -> impl Strategy<Value = StoredRequest> {
                         verify_tls,
                     },
                     auth,
+                    variables,
                 }
             },
         )

@@ -32,4 +32,8 @@ path?: string,
 /**
  * The request's own auth (inherit when absent).
  */
-auth?: Auth, };
+auth?: Auth, 
+/**
+ * The request's `[variables]`: after the example, before the environment.
+ */
+variables?: { [key in string]: string }, };

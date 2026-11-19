@@ -30,6 +30,7 @@ fn args(id: &str, url: String) -> RequestSendArgs {
         name: None,
         path: None,
         auth: None,
+        variables: None,
     }
 }
 

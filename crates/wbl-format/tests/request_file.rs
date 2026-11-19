@@ -30,6 +30,7 @@ fn stored() -> StoredRequest {
         examples: vec![],
         settings: Default::default(),
         auth: Default::default(),
+        variables: Default::default(),
     }
 }
 
@@ -202,4 +203,28 @@ fn a_file_that_is_not_toml_says_where() {
     let error = RequestFile::parse("name = \nmethod = \"GET\"").unwrap_err();
     assert!(matches!(error, FormatError::Syntax(_)));
     assert!(error.to_string().contains("line 1"), "{error}");
+}
+
+#[test]
+fn request_variables_round_trip() {
+    let stored = StoredRequest {
+        variables: [("userId".to_owned(), "42".to_owned())].into(),
+        ..stored()
+    };
+
+    let text = RequestFile::new(&stored).to_string();
+
+    assert!(text.contains("[variables]\nuserId = \"42\""), "{text}");
+    assert_eq!(RequestFile::parse(&text).unwrap().read().unwrap(), stored);
+    let cleared = StoredRequest {
+        variables: Default::default(),
+        ..stored
+    };
+    assert!(
+        !RequestFile::parse(&text)
+            .unwrap()
+            .updated(&cleared)
+            .to_string()
+            .contains("[variables]")
+    );
 }

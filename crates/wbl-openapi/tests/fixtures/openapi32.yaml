@@ -1,0 +1,66 @@
+openapi: 3.2.0
+info: {title: Search, version: "1"}
+servers: [{url: https://search.example.com/api}]
+tags:
+  - {name: search, summary: Search, kind: nav}
+  - {name: advanced, summary: Advanced search, parent: search, kind: nav}
+  - {name: beta, kind: badge}
+paths:
+  /search:
+    query:
+      tags: [search]
+      operationId: searchQuery
+      requestBody:
+        content:
+          application/json:
+            schema: {type: object, properties: {q: {type: string}}}
+            examples:
+              simple:
+                summary: A simple search
+                dataValue: {q: whimbrel}
+                serializedValue: '{"q":"whimbrel"}'
+      responses:
+        "200":
+          summary: The matches
+          description: The matches, as a stream of lines.
+          content:
+            application/jsonl:
+              itemSchema: {type: object, properties: {id: {type: string}}}
+    additionalOperations:
+      PURGE:
+        tags: [advanced, beta]
+        operationId: purgeIndex
+        responses: {"202": {description: Accepted}}
+  /items:
+    get:
+      tags: [advanced]
+      operationId: listItems
+      parameters:
+        - name: filter
+          in: querystring
+          content:
+            application/x-www-form-urlencoded:
+              schema: {type: object, properties: {color: {type: string}, size: {type: integer}}}
+              examples:
+                red: {dataValue: {color: red}, serializedValue: color=red}
+      responses:
+        "200":
+          description: ok
+          content:
+            text/event-stream:
+              itemSchema: {type: object, properties: {data: {type: string}}}
+  /untagged/things:
+    get:
+      responses: {"200": {description: ok}}
+components:
+  securitySchemes:
+    device:
+      type: oauth2
+      oauth2MetadataUrl: https://auth.example.com/.well-known/oauth-authorization-server
+      flows:
+        deviceAuthorization:
+          deviceAuthorizationUrl: https://auth.example.com/device
+          tokenUrl: https://auth.example.com/token
+          scopes: {search: search}
+    old: {type: apiKey, name: key, in: query, deprecated: true}
+security: [{device: [search]}]

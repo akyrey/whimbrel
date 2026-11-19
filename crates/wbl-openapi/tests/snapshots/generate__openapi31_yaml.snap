@@ -1,0 +1,96 @@
+---
+source: crates/wbl-openapi/tests/generate.rs
+expression: generated
+---
+{
+  "name": "Events",
+  "auth": {
+    "type": "none"
+  },
+  "folders": [
+    [
+      "events"
+    ]
+  ],
+  "requests": [
+    {
+      "folder": [
+        "events"
+      ],
+      "operationId": "getEvent",
+      "stored": {
+        "name": "getEvent",
+        "order": 0,
+        "request": {
+          "method": "GET",
+          "url": "{{baseUrl}}/events/{{eventId}}",
+          "headers": [],
+          "body": {
+            "type": "none"
+          }
+        },
+        "examples": [],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "inherit"
+        },
+        "variables": {
+          "eventId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        }
+      }
+    },
+    {
+      "folder": [
+        "events"
+      ],
+      "operationId": "putEvent",
+      "stored": {
+        "name": "putEvent",
+        "order": 0,
+        "request": {
+          "method": "PUT",
+          "url": "{{baseUrl}}/events/{{eventId}}",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            }
+          ],
+          "body": {
+            "type": "text",
+            "kind": "json",
+            "text": "{\n  \"kind\": \"created\",\n  \"at\": \"2024-01-01T12:00:00Z\",\n  \"point\": [\n    0,\n    0\n  ],\n  \"note\": \"string\",\n  \"payload\": {\n    \"size\": 7\n  },\n  \"level\": 3,\n  \"tags\": [\n    \"string\"\n  ],\n  \"source\": \"https://example.com\"\n}"
+          }
+        },
+        "examples": [],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "inherit"
+        },
+        "variables": {
+          "eventId": "string"
+        }
+      }
+    }
+  ],
+  "environments": [
+    {
+      "name": "events.example.com",
+      "protected": false,
+      "variables": {
+        "baseUrl": "https://events.example.com"
+      },
+      "secrets": []
+    }
+  ],
+  "warnings": []
+}

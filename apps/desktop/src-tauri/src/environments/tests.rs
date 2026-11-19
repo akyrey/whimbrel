@@ -92,6 +92,7 @@ fn send_args(
         name: None,
         path: None,
         auth: None,
+        variables: None,
     }
 }
 
@@ -286,12 +287,41 @@ fn variables_resolve_by_precedence_and_missing_ones_are_named() {
     )
     .unwrap();
 
+    let own = |example: Option<Example>| RequestSendArgs {
+        variables: Some(
+            [
+                ("v".to_owned(), "request".to_owned()),
+                ("base".to_owned(), "http://own".to_owned()),
+            ]
+            .into(),
+        ),
+        ..send_args(&f, &id, request("{{base}}/{{v}}"), example)
+    };
+    let request_level = preview(&f.collections, &f.secrets, &own(None)).unwrap();
+    let example_wins = preview(
+        &f.collections,
+        &f.secrets,
+        &own(Some(Example {
+            variables: [("v".to_owned(), "example".to_owned())].into(),
+            ..Example::named("e", "E")
+        })),
+    )
+    .unwrap();
+
     assert_eq!(missing.code, "unresolved");
     assert_eq!(
         missing.detail,
         Some(serde_json::json!({ "undefined": ["nope"], "unsetSecrets": ["apiKey"] }))
     );
     assert_eq!(shown.url, "http://local/example");
+    assert_eq!(
+        request_level.url, "http://own/request",
+        "request beats environment"
+    );
+    assert_eq!(
+        example_wins.url, "http://own/example",
+        "example beats request"
+    );
     assert_eq!(shown.headers[0].value, wbl_core::interpolate::MASK);
     assert_eq!(
         collection_variables(
@@ -442,6 +472,7 @@ async fn the_sentinel_secret_never_reaches_a_file_or_the_log() {
         examples: vec![],
         settings: Default::default(),
         auth: Default::default(),
+        variables: Default::default(),
     };
     let refused = logged("request_create", async {
         create_request(

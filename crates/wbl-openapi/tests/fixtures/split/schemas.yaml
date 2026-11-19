@@ -1,0 +1,10 @@
+Order:
+  type: object
+  properties:
+    id: {type: integer}
+    lines: {type: array, items: {$ref: "#/Line"}}
+Line:
+  type: object
+  properties:
+    sku: {type: string}
+    order: {$ref: "#/Order"}

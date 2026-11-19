@@ -98,6 +98,32 @@ pub fn create_request(
     Ok(relative(root, &file))
 }
 
+/// Creates many requests in `folder`, after its siblings and in the given order, reading the
+/// folder once. `finish` may add to each file's text (an import's `[openapi]` link). Returns
+/// each request's path and the text written.
+pub fn create_requests(
+    root: &Path,
+    folder: &str,
+    requests: &[StoredRequest],
+    finish: impl Fn(usize, String) -> String,
+) -> Result<Vec<(String, String)>, FormatError> {
+    let dir = resolve(root, folder, true)?;
+    let mut order = last_order(root, &dir)?;
+    let mut written = Vec::with_capacity(requests.len());
+    for (index, stored) in requests.iter().enumerate() {
+        order += ORDER_STEP;
+        let placed = StoredRequest {
+            order,
+            ..stored.clone()
+        };
+        let file = unique(&dir, &stored.name, REQUEST_SUFFIX);
+        let text = finish(index, RequestFile::new(&placed).to_string());
+        write_atomic(&file, &text)?;
+        written.push((relative(root, &file), text));
+    }
+    Ok(written)
+}
+
 pub fn create_folder(root: &Path, parent: &str, name: &str) -> Result<String, FormatError> {
     let dir = resolve(root, parent, true)?;
     let order = last_order(root, &dir)? + ORDER_STEP;

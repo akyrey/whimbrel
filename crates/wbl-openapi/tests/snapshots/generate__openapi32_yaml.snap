@@ -1,0 +1,194 @@
+---
+source: crates/wbl-openapi/tests/generate.rs
+expression: generated
+---
+{
+  "name": "Search",
+  "auth": {
+    "type": "oauth2",
+    "grant": "device_code",
+    "tokenUrl": "https://auth.example.com/token",
+    "authUrl": "",
+    "deviceUrl": "https://auth.example.com/device",
+    "clientId": "{{deviceClientId}}",
+    "clientSecret": "{{deviceClientSecret}}",
+    "scope": "search"
+  },
+  "folders": [
+    [
+      "Search"
+    ],
+    [
+      "Search",
+      "Advanced search"
+    ],
+    [
+      "untagged"
+    ]
+  ],
+  "requests": [
+    {
+      "folder": [
+        "Search"
+      ],
+      "operationId": "searchQuery",
+      "stored": {
+        "name": "searchQuery",
+        "order": 0,
+        "request": {
+          "method": "QUERY",
+          "url": "{{baseUrl}}/search",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            }
+          ],
+          "body": {
+            "type": "text",
+            "kind": "json",
+            "text": "{\n  \"q\": \"whimbrel\"\n}"
+          }
+        },
+        "examples": [
+          {
+            "id": "simple",
+            "name": "simple",
+            "order": 10,
+            "variables": {},
+            "query": [],
+            "headers": [],
+            "body": {
+              "type": "text",
+              "kind": "json",
+              "text": "{\"q\":\"whimbrel\"}"
+            }
+          }
+        ],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "inherit"
+        },
+        "variables": {}
+      }
+    },
+    {
+      "folder": [
+        "Search",
+        "Advanced search"
+      ],
+      "operationId": "purgeIndex",
+      "stored": {
+        "name": "purgeIndex",
+        "order": 0,
+        "request": {
+          "method": "PURGE",
+          "url": "{{baseUrl}}/search",
+          "headers": [],
+          "body": {
+            "type": "none"
+          }
+        },
+        "examples": [],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "inherit"
+        },
+        "variables": {}
+      }
+    },
+    {
+      "folder": [
+        "Search",
+        "Advanced search"
+      ],
+      "operationId": "listItems",
+      "stored": {
+        "name": "listItems",
+        "order": 0,
+        "request": {
+          "method": "GET",
+          "url": "{{baseUrl}}/items?color=red",
+          "headers": [],
+          "body": {
+            "type": "none"
+          }
+        },
+        "examples": [
+          {
+            "id": "red",
+            "name": "red",
+            "order": 10,
+            "variables": {},
+            "query": [],
+            "headers": [],
+            "body": null
+          }
+        ],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "inherit"
+        },
+        "variables": {}
+      }
+    },
+    {
+      "folder": [
+        "untagged"
+      ],
+      "operationId": "get-untagged-things",
+      "stored": {
+        "name": "GET /untagged/things",
+        "order": 0,
+        "request": {
+          "method": "GET",
+          "url": "{{baseUrl}}/untagged/things",
+          "headers": [],
+          "body": {
+            "type": "none"
+          }
+        },
+        "examples": [],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "inherit"
+        },
+        "variables": {}
+      }
+    }
+  ],
+  "environments": [
+    {
+      "name": "search.example.com",
+      "protected": false,
+      "variables": {
+        "baseUrl": "https://search.example.com/api",
+        "deviceClientId": ""
+      },
+      "secrets": [
+        {
+          "name": "deviceClientSecret",
+          "description": "OAuth 2 client of device"
+        }
+      ]
+    }
+  ],
+  "warnings": []
+}

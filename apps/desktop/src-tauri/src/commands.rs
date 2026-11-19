@@ -33,6 +33,7 @@ pub fn parts(
         root.as_deref(),
         args.environment.as_deref(),
         args.example.as_ref(),
+        args.variables.as_ref(),
         secrets,
     )?;
     let auth = crate::auth_apply::context(root.as_deref(), args, &scopes)?;

@@ -1,0 +1,55 @@
+openapi: 3.1.0
+info: {title: Events, version: 1.0.0}
+servers: [{url: https://events.example.com}]
+paths:
+  /events/{eventId}:
+    get:
+      operationId: getEvent
+      parameters:
+        - {name: eventId, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json: {schema: {$ref: "#/components/schemas/Event"}}
+    put:
+      operationId: putEvent
+      parameters:
+        - {name: eventId, in: path, required: true, schema: {type: string}}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Event"
+              description: The new event
+      responses:
+        "204": {description: Saved}
+webhooks:
+  newEvent:
+    post:
+      summary: A new event happened
+      requestBody:
+        content:
+          application/json: {schema: {$ref: "#/components/schemas/Event"}}
+      responses:
+        "200": {description: Received}
+components:
+  schemas:
+    Event:
+      type: object
+      required: [kind, at, point]
+      properties:
+        kind: {const: created}
+        at: {type: string, format: date-time}
+        point: {type: array, prefixItems: [{type: number}, {type: number}], items: false}
+        note: {type: [string, "null"]}
+        parent: {$ref: "#/components/schemas/Event"}
+        payload: {$ref: "#/$defs/Payload"}
+        level: {type: integer, examples: [3]}
+        tags: {type: array, items: {type: string}, minItems: 1}
+        source: {oneOf: [{type: string, format: uri}, {type: integer}]}
+  pathItems:
+    Health:
+      get: {operationId: health, responses: {"200": {description: ok}}}
+$defs:
+  Payload: {type: object, properties: {size: {type: integer, default: 7}}}

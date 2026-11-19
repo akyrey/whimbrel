@@ -1,0 +1,202 @@
+---
+source: crates/wbl-openapi/tests/generate.rs
+expression: generated
+---
+{
+  "name": "Users",
+  "auth": {
+    "type": "bearer",
+    "token": "{{bearerToken}}"
+  },
+  "folders": [
+    [
+      "users"
+    ]
+  ],
+  "requests": [
+    {
+      "folder": [
+        "users"
+      ],
+      "operationId": "listUsers",
+      "stored": {
+        "name": "listUsers",
+        "order": 0,
+        "request": {
+          "method": "GET",
+          "url": "{{baseUrl}}/users?role=admin",
+          "headers": [
+            {
+              "name": "X-Trace",
+              "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "enabled": false
+            },
+            {
+              "name": "Cookie",
+              "value": "session=string",
+              "enabled": false
+            }
+          ],
+          "body": {
+            "type": "none"
+          }
+        },
+        "examples": [
+          {
+            "id": "all-parameters",
+            "name": "All parameters",
+            "order": 10,
+            "variables": {},
+            "query": [
+              {
+                "name": "limit",
+                "value": "20",
+                "enabled": true
+              },
+              {
+                "name": "ids",
+                "value": "0",
+                "enabled": true
+              }
+            ],
+            "headers": [],
+            "body": null
+          }
+        ],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "inherit"
+        },
+        "variables": {}
+      }
+    },
+    {
+      "folder": [
+        "users"
+      ],
+      "operationId": "createUser",
+      "stored": {
+        "name": "createUser",
+        "order": 0,
+        "request": {
+          "method": "POST",
+          "url": "{{baseUrl}}/users",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            }
+          ],
+          "body": {
+            "type": "text",
+            "kind": "json",
+            "text": "{\n  \"name\": \"Ada\",\n  \"email\": \"ada@example.com\",\n  \"role\": \"admin\"\n}"
+          }
+        },
+        "examples": [
+          {
+            "id": "admin",
+            "name": "admin",
+            "order": 10,
+            "variables": {},
+            "query": [],
+            "headers": [],
+            "body": {
+              "type": "text",
+              "kind": "json",
+              "text": "{\n  \"name\": \"Ada\",\n  \"email\": \"ada@example.com\",\n  \"role\": \"admin\"\n}"
+            }
+          },
+          {
+            "id": "member",
+            "name": "member",
+            "order": 20,
+            "variables": {},
+            "query": [],
+            "headers": [],
+            "body": {
+              "type": "text",
+              "kind": "json",
+              "text": "{\n  \"name\": \"Grace\",\n  \"email\": \"grace@example.com\",\n  \"role\": \"member\"\n}"
+            }
+          }
+        ],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "inherit"
+        },
+        "variables": {}
+      }
+    },
+    {
+      "folder": [
+        "users"
+      ],
+      "operationId": "getUser",
+      "stored": {
+        "name": "getUser",
+        "order": 0,
+        "request": {
+          "method": "GET",
+          "url": "{{baseUrl}}/users/{{userId}}",
+          "headers": [],
+          "body": {
+            "type": "none"
+          }
+        },
+        "examples": [],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "inherit"
+        },
+        "variables": {
+          "userId": "42"
+        }
+      }
+    }
+  ],
+  "environments": [
+    {
+      "name": "Production",
+      "protected": false,
+      "variables": {
+        "basePath": "v2",
+        "baseUrl": "https://{{region}}.api.example.com/{{basePath}}",
+        "region": "eu"
+      },
+      "secrets": [
+        {
+          "name": "bearerToken",
+          "description": "For bearer"
+        }
+      ]
+    },
+    {
+      "name": "Local",
+      "protected": false,
+      "variables": {
+        "baseUrl": "http://localhost:8080/v2"
+      },
+      "secrets": [
+        {
+          "name": "bearerToken",
+          "description": "For bearer"
+        }
+      ]
+    }
+  ],
+  "warnings": []
+}

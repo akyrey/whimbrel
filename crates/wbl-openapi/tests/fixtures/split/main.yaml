@@ -1,0 +1,5 @@
+openapi: 3.1.0
+info: {title: Split, version: "1"}
+paths:
+  /orders:
+    $ref: paths/orders.yaml

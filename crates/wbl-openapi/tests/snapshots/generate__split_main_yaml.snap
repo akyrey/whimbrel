@@ -1,0 +1,56 @@
+---
+source: crates/wbl-openapi/tests/generate.rs
+expression: generated
+---
+{
+  "name": "Split",
+  "auth": {
+    "type": "none"
+  },
+  "folders": [
+    [
+      "orders"
+    ]
+  ],
+  "requests": [
+    {
+      "folder": [
+        "orders"
+      ],
+      "operationId": "listOrders",
+      "stored": {
+        "name": "listOrders",
+        "order": 0,
+        "request": {
+          "method": "GET",
+          "url": "{{baseUrl}}/orders",
+          "headers": [],
+          "body": {
+            "type": "none"
+          }
+        },
+        "examples": [],
+        "settings": {
+          "timeoutMs": null,
+          "followRedirects": true,
+          "verifyTls": true
+        },
+        "auth": {
+          "type": "inherit"
+        },
+        "variables": {}
+      }
+    }
+  ],
+  "environments": [
+    {
+      "name": "Default",
+      "protected": false,
+      "variables": {
+        "baseUrl": "http://localhost"
+      },
+      "secrets": []
+    }
+  ],
+  "warnings": []
+}

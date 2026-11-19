@@ -36,6 +36,7 @@ export const NEW_REQUEST: StoredRequest = {
   examples: [],
   settings: { timeoutMs: null, followRedirects: true, verifyTls: true },
   auth: { type: "inherit" },
+  variables: {},
 };
 
 export const fileTabId = (file: FileRef): string => `${file.root}\u0000${file.path}`;

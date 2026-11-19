@@ -20,8 +20,9 @@ my-api/
     list-users.req.toml
     create-user.req.toml
   openapi/
-    source.yaml              optional: the imported spec, kept for re-import diffing
-    import.toml              source location, spec hash, operationId → request file map
+    my-api/                  one per imported spec (D-H15)
+      source.yaml            the imported spec, kept for re-import diffing
+      import.toml            title, source location, spec hash, operationId → request file map
 ```
 
 ## collection.toml
@@ -118,6 +119,13 @@ over 64 KB goes to a sidecar file in `<request>.examples/`.
 
 Lists are arrays of tables, not maps, so order and duplicate headers survive. Large bodies may
 live in a sidecar file: `[body] kind = "json" file = "create-user.body.json"`.
+
+Request-level `[variables]` (FR-4.4) sit between the example's and the environment's:
+
+```toml
+[variables]
+userId = "42"               # imported path parameters default here
+```
 
 ## An environment
 

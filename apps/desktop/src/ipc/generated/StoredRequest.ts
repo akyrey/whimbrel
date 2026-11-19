@@ -23,4 +23,9 @@ settings: RequestSettings,
 /**
  * `[auth]`; inherits when absent.
  */
-auth: Auth, };
+auth: Auth, 
+/**
+ * `[variables]`: request-level values, after the example and before the environment
+ * (FR-4.4); path parameters of imported requests default here.
+ */
+variables: { [key in string]: string }, };

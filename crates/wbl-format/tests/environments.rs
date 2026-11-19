@@ -101,6 +101,7 @@ fn stored_with_examples() -> StoredRequest {
             verify_tls: true,
         },
         auth: Default::default(),
+        variables: Default::default(),
     }
 }
 

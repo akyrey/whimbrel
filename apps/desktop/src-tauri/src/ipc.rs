@@ -30,6 +30,9 @@ pub struct RequestSendArgs {
     /// The request's own auth (inherit when absent).
     #[ts(optional)]
     pub auth: Option<wbl_core::auth::Auth>,
+    /// The request's `[variables]`: after the example, before the environment.
+    #[ts(optional)]
+    pub variables: Option<std::collections::BTreeMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Deserialize, TS)]

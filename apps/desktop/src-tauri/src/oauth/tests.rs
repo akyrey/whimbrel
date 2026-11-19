@@ -103,6 +103,7 @@ fn args(f: &Fixture, url: String, path: Option<&str>) -> RequestSendArgs {
         name: None,
         path: path.map(str::to_owned),
         auth: None,
+        variables: None,
     }
 }
 

@@ -35,7 +35,7 @@ impl FormatError {
     }
 
     /// TomlError's text starts with "TOML parse error at line L, column C".
-    pub(crate) fn syntax(error: &toml_edit::TomlError) -> Self {
+    pub fn syntax(error: &toml_edit::TomlError) -> Self {
         Self::Syntax(error.to_string().trim_end().to_owned())
     }
 }
