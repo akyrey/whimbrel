@@ -108,6 +108,14 @@ describe("spec browser", () => {
     await userEvent.click(within(spec).getByRole("button", { name: /List pets/ }));
     const operation = within(spec).getByRole("article", { name: "Operation listPets" });
     expect(within(operation).getByRole("cell", { name: "limit" })).toBeInTheDocument();
+    const links = within(operation).getByRole("list", { name: "Links" });
+    expect(links).toHaveTextContent("limit = $response.body#/0/id");
+    expect(links).toHaveTextContent("https://other.test/openapi.json#/paths/~1x/get");
+    await userEvent.click(within(operation).getByText("onAdopted"));
+    expect(
+      within(operation).getByRole("article", { name: "Operation post-request-body-url" }),
+    ).toHaveTextContent("{$request.body#/url}");
+    await userEvent.click(within(links).getByRole("button", { name: "listPets" }));
     await userEvent.click(firstOf(within(operation).getAllByRole("button", { name: "Pet" })));
 
     const schema = within(spec).getByLabelText("Schema of Pet");
@@ -121,7 +129,7 @@ describe("spec browser", () => {
     await userEvent.click(within(spec).getByText("Webhooks"));
     await userEvent.click(within(spec).getByRole("button", { name: /A pet was added/ }));
     const hook = within(spec).getByRole("article", { name: "Operation petAdded" });
-    expect(within(hook).getByText("webhook (sent by the API)")).toBeInTheDocument();
+    expect(within(hook).getByText("sent by the API")).toBeInTheDocument();
     expect(within(hook).queryByRole("button", { name: "Open request" })).toBeNull();
     await userEvent.click(within(hook).getByRole("tab", { name: "text/event-stream" }));
     expect(within(hook).getByLabelText("Schema of each item")).toBeInTheDocument();

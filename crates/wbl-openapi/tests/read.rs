@@ -83,3 +83,34 @@ async fn loads_referenced_files_once_and_remote_ones_only_when_allowed() {
         "{warnings:?}"
     );
 }
+
+#[tokio::test]
+async fn self_sets_the_base_of_references() {
+    let entry = Url::parse("file:///local/copy.yaml").unwrap();
+    let files = Files(HashMap::from([(
+        "file:///published/v1/schemas.yaml".to_owned(),
+        "Pet: {type: object}\n".to_owned(),
+    )]));
+    let text = "openapi: 3.2.0\n$self: file:///published/v1/api.yaml\ncomponents:\n  schemas:\n    Pet: {$ref: 'schemas.yaml#/Pet'}\n";
+
+    let loaded = load_all(entry, text, &files, false).await.unwrap();
+
+    assert_eq!(
+        loaded.documents.entry.as_ref().unwrap().as_str(),
+        "file:///published/v1/api.yaml"
+    );
+    assert!(
+        loaded
+            .documents
+            .by_url
+            .contains_key("file:///published/v1/schemas.yaml")
+    );
+    assert!(
+        loaded
+            .documents
+            .by_url
+            .contains_key("file:///local/copy.yaml"),
+        "still found where it was read"
+    );
+    assert!(loaded.warnings.is_empty(), "{:?}", loaded.warnings);
+}

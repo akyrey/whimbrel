@@ -127,7 +127,22 @@ pub async fn load_all(
         ..Loaded::default()
     };
     let mut queue = vec![(url, parse(text)?)];
-    while let Some((at, value)) = queue.pop() {
+    while let Some((fetched, value)) = queue.pop() {
+        // 3.2 `$self`: the document's own URI, the base of its relative references.
+        let at = value
+            .get("$self")
+            .and_then(Value::as_str)
+            .and_then(|s| fetched.join(s).ok())
+            .unwrap_or_else(|| fetched.clone());
+        if at != fetched {
+            loaded
+                .documents
+                .by_url
+                .insert(base_of(&fetched), value.clone());
+            if loaded.documents.entry.as_ref() == Some(&fetched) {
+                loaded.documents.entry = Some(at.clone());
+            }
+        }
         let mut found = Vec::new();
         external_refs(&value, &at, &mut found);
         loaded.documents.by_url.insert(base_of(&at), value);
@@ -143,8 +158,10 @@ pub async fn load_all(
                 loaded.remote.push(key);
                 continue;
             }
-            match loader.load(&target).await {
-                Ok(text) => queue.push((target, parse(&text)?)),
+            let mut document = target.clone();
+            document.set_fragment(None);
+            match loader.load(&document).await {
+                Ok(text) => queue.push((document, parse(&text)?)),
                 Err(e) => loaded.warnings.push(format!("Could not read {key}: {e}")),
             }
         }

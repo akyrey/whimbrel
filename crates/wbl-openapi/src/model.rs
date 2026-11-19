@@ -145,6 +145,30 @@ pub struct ResponseSpec {
     pub summary: Option<String>,
     pub description: Option<String>,
     pub content: Vec<MediaType>,
+    /// Operations a value of this response can be passed to (3.0+).
+    pub links: Vec<Link>,
+}
+
+/// A response's link: how a value of it feeds another operation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct Link {
+    pub name: String,
+    pub operation_id: Option<String>,
+    pub operation_ref: Option<String>,
+    /// Parameter → runtime expression, e.g. `userId` → `$response.body#/id`.
+    pub parameters: Vec<(String, String)>,
+    pub description: Option<String>,
+}
+
+/// Requests the API makes back to a URL the caller gave (3.0+), by expression.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct Callback {
+    pub name: String,
+    /// The operations; each one's `path` is the URL expression, e.g. `{$request.body#/url}`.
+    pub operations: Vec<Operation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -180,6 +204,7 @@ pub struct Operation {
     pub responses: Vec<ResponseSpec>,
     /// `None`: the API's default.
     pub security: Option<Vec<SecurityRequirement>>,
+    pub callbacks: Vec<Callback>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

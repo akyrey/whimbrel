@@ -16,6 +16,7 @@ const op = (id: string, tags: string[], path = `/${id}`): Operation => ({
   requestBody: null,
   responses: [],
   security: null,
+  callbacks: [],
 });
 
 const api: Api = {

@@ -1,7 +1,7 @@
 import { Button, Skeleton } from "@roost/ui";
 import { Suspense, lazy, useState } from "react";
 
-import type { MediaType, Operation, Parameter } from "../../ipc";
+import type { Link, MediaType, Operation, Parameter } from "../../ipc";
 import { useTabs } from "../tabs/tabsStore";
 import { SchemaTree } from "./SchemaTree";
 import { typeLabel } from "./browse";
@@ -97,6 +97,38 @@ function Content({ content, label }: { content: MediaType[]; label: string }) {
   );
 }
 
+function Links({ links }: { links: Link[] }) {
+  if (links.length === 0) return null;
+  return (
+    <ul aria-label="Links" className="flex flex-col gap-1 text-xs">
+      {links.map((link) => (
+        <li key={link.name}>
+          <span className="text-zinc-400">{link.name} → </span>
+          {link.operationId ? (
+            <button
+              type="button"
+              className="font-mono text-sky-300 underline"
+              onClick={() => {
+                useSpecs.getState().focus({ kind: "operation", id: link.operationId ?? "" });
+              }}
+            >
+              {link.operationId}
+            </button>
+          ) : (
+            <span className="font-mono">{link.operationRef}</span>
+          )}
+          {link.parameters.length > 0 && (
+            <span className="ml-1 font-mono text-zinc-500">
+              ({link.parameters.map(([name, value]) => `${name} = ${value}`).join(", ")})
+            </span>
+          )}
+          {link.description && <span className="ml-1 text-zinc-400">{link.description}</span>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 type Props = { operation: Operation; root: string; file: string | null; readOnly?: boolean };
 
 /** One operation: what it takes and what it answers; "Open request" when one was generated. */
@@ -109,7 +141,7 @@ export function OperationPage({ operation, root, file, readOnly = false }: Props
         </span>
         <h2 className="font-mono text-base">{operation.path}</h2>
         {operation.deprecated && <span className="text-xs text-amber-300">deprecated</span>}
-        {readOnly && <span className="text-xs text-zinc-500">webhook (sent by the API)</span>}
+        {readOnly && <span className="text-xs text-zinc-500">sent by the API</span>}
         {file !== null && (
           <Button
             className="ml-auto"
@@ -143,12 +175,30 @@ export function OperationPage({ operation, root, file, readOnly = false }: Props
               <span className="font-mono">{r.status}</span>{" "}
               <span className="text-zinc-400">{r.summary}</span>
             </summary>
-            <div className="ml-4 mt-2">
+            <div className="ml-4 mt-2 flex flex-col gap-2">
               <Content content={r.content} label={`response ${r.status}`} />
+              <Links links={r.links} />
             </div>
           </details>
         ))}
       </section>
+      {operation.callbacks.length > 0 && (
+        <section aria-label="Callbacks" className="flex flex-col gap-2">
+          <h3 className="font-medium">Callbacks</h3>
+          {operation.callbacks.map((cb) => (
+            <details key={cb.name}>
+              <summary className="cursor-pointer">
+                {cb.name} <span className="text-xs text-zinc-500">(requests the API makes)</span>
+              </summary>
+              <div className="ml-4 mt-2 flex flex-col gap-4">
+                {cb.operations.map((op) => (
+                  <OperationPage key={op.id} operation={op} root={root} file={null} readOnly />
+                ))}
+              </div>
+            </details>
+          ))}
+        </section>
+      )}
     </article>
   );
 }

@@ -293,3 +293,25 @@ fn broken_references_warn() {
     assert_eq!(api.operations.len(), 1);
     assert_eq!(api.warnings.len(), 2, "{:?}", api.warnings);
 }
+
+#[test]
+fn links_and_callbacks_are_read() {
+    let api = support::api("openapi30.yaml");
+    let create = api
+        .operations
+        .iter()
+        .find(|o| o.id == "createUser")
+        .unwrap();
+
+    let link = &create.responses[0].links[0];
+    assert_eq!(link.name, "GetUser");
+    assert_eq!(link.operation_id.as_deref(), Some("getUser"));
+    assert_eq!(
+        link.parameters,
+        [("userId".to_owned(), "$response.body#/id".to_owned())]
+    );
+    let callback = &create.callbacks[0];
+    assert_eq!(callback.name, "onCreated");
+    assert_eq!(callback.operations[0].path, "{$request.body#/callbackUrl}");
+    assert_eq!(callback.operations[0].method, "POST");
+}

@@ -19,7 +19,7 @@ D-H19.
 - [x] 8.5 The tree: rename folders; move requests and folders up and down.
 - [x] 8.6 The shell (FR-9.1, 9.4): palette commands for every action, settings (theme, editor
       font size, default timeout), and the open tabs restored.
-- [ ] 8.7 Spec browser leftovers from Phase 6: links and callbacks shown, `$self` as the base of
+- [x] 8.7 Spec browser leftovers from Phase 6: links and callbacks shown, `$self` as the base of
       references.
 - [ ] 8.8 Release (FR-9.2, 9.3): the updater (plugin, Roost's update commands and prompt), the
       release workflow through Roost's `release-app.yml`, an updater key pair, RELEASING.md.
@@ -29,6 +29,8 @@ D-H19.
 - 8.3: completion works in the URL, header values and query values; the body editor does not
   complete yet. The "hover" is the row of variables under the URL (a plain input has no
   per-token tooltip): each shows its value and source, red when undefined.
+
+- 8.7: XML `nodeType` (3.2) is not shown yet; XML bodies are rare in the specs seen so far.
 
 ## Acceptance
 

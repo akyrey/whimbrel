@@ -63,9 +63,49 @@ export const PETS_API: Api = {
               examples: [],
             },
           ],
+          links: [
+            {
+              name: "FirstPet",
+              operationId: "listPets",
+              operationRef: null,
+              parameters: [["limit", "$response.body#/0/id"]],
+              description: "The same list, one at a time",
+            },
+            {
+              name: "Elsewhere",
+              operationId: null,
+              operationRef: "https://other.test/openapi.json#/paths/~1x/get",
+              parameters: [],
+              description: null,
+            },
+          ],
         },
       ],
       security: null,
+      callbacks: [
+        {
+          name: "onAdopted",
+          operations: [
+            {
+              id: "post-request-body-url",
+              hasOperationId: false,
+              method: "POST",
+              path: "{$request.body#/url}",
+              summary: "A pet was adopted",
+              description: null,
+              tags: [],
+              deprecated: false,
+              parameters: [],
+              requestBody: null,
+              responses: [
+                { status: "200", summary: null, description: null, content: [], links: [] },
+              ],
+              security: null,
+              callbacks: [],
+            },
+          ],
+        },
+      ],
     },
   ],
   webhooks: [
@@ -107,8 +147,9 @@ export const PETS_API: Api = {
           },
         ],
       },
-      responses: [{ status: "200", summary: null, description: null, content: [] }],
+      responses: [{ status: "200", summary: null, description: null, content: [], links: [] }],
       security: null,
+      callbacks: [],
     },
   ],
   securitySchemes: [

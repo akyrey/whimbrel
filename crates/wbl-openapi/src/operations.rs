@@ -8,7 +8,8 @@ use url::Url;
 
 use crate::build::{entries, flag, requirements, text};
 use crate::model::{
-    MediaType, NamedExample, Operation, ParamLocation, Parameter, RequestBody, ResponseSpec,
+    Callback, Link, MediaType, NamedExample, Operation, ParamLocation, Parameter, RequestBody,
+    ResponseSpec,
 };
 use crate::refs::Resolver;
 
@@ -136,7 +137,43 @@ fn operation<'a>(
         request_body,
         responses,
         security: requirements(op.get("security")),
+        callbacks: callbacks(resolver, cx.base, op),
     }
+}
+
+/// An operation's callbacks: each a map of URL expressions to path items.
+fn callbacks<'a>(resolver: &mut Resolver<'a>, base: &Url, op: &'a Value) -> Vec<Callback> {
+    entries(op, "callbacks")
+        .map(|(name, value)| {
+            let (at, value) = resolver.deref(base, value);
+            Callback {
+                name: name.clone(),
+                operations: paths(resolver, &at, Some(value)),
+            }
+        })
+        .collect()
+}
+
+fn links<'a>(resolver: &mut Resolver<'a>, base: &Url, response: &'a Value) -> Vec<Link> {
+    entries(response, "links")
+        .map(|(name, value)| {
+            let (_, link) = resolver.deref(base, value);
+            Link {
+                name: name.clone(),
+                operation_id: text(link, "operationId"),
+                operation_ref: text(link, "operationRef"),
+                parameters: entries(link, "parameters")
+                    .map(|(k, v)| {
+                        (
+                            k.clone(),
+                            v.as_str().map_or_else(|| v.to_string(), str::to_owned),
+                        )
+                    })
+                    .collect(),
+                description: text(link, "description"),
+            }
+        })
+        .collect()
 }
 
 fn location(text: &str) -> Option<ParamLocation> {
@@ -258,5 +295,6 @@ fn response<'a>(
         }),
         description,
         content: media_types(resolver, &base, value.get("content")),
+        links: links(resolver, &base, value),
     }
 }
