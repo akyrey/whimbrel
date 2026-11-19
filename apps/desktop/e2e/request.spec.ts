@@ -19,6 +19,10 @@ test("send a POST with a JSON body and read the response", async ({ page }) => {
     '  "name": "ada"',
     "}",
   ]);
+  await page.getByLabel("Request body").click();
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(page.getByLabel("Request body").locator(".cm-line")).toHaveText(['{"name": "ada"}']);
+  await page.getByRole("button", { name: "Beautify" }).click();
 
   await page.getByRole("button", { name: "Send" }).click();
 

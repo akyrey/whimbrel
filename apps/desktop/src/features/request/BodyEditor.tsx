@@ -1,5 +1,5 @@
 import { Button, Skeleton, toast } from "@roost/ui";
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy } from "react";
 
 import type { Tab } from "../tabs/model";
 import { useTabs } from "../tabs/tabsStore";
@@ -28,8 +28,6 @@ export function BodyEditor({ tab }: { tab: Tab }) {
     edit(tab.id, c);
   };
 
-  // Bumped to rebuild the editor with text set from outside it (the editor is uncontrolled).
-  const [revision, setRevision] = useState(0);
   const beautify = (text: string) => {
     const result = beautifyJson(text);
     if (!result.ok) {
@@ -37,8 +35,8 @@ export function BodyEditor({ tab }: { tab: Tab }) {
       return;
     }
     if (result.text === text) return;
+    // The editor follows the draft's text, so this is one edit that undo takes back.
     edit(tab.id, setBodyText(result.text));
-    setRevision((r) => r + 1);
   };
 
   return (
@@ -73,8 +71,9 @@ export function BodyEditor({ tab }: { tab: Tab }) {
         <Suspense fallback={<Skeleton rows={4} label="Loading the editor" />}>
           <CodeEditor
             // A new kind is a new language: rebuild the editor, keeping the text.
-            key={`${tab.id}:${body.kind}:${String(revision)}`}
+            key={`${tab.id}:${body.kind}`}
             initialText={body.text}
+            text={body.text}
             label="Request body"
             language={body.kind}
             wrap

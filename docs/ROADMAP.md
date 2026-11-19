@@ -36,8 +36,8 @@ develop against a linked local checkout and tag Roost at the end of each phase. 
 Done 2026-11-19: `akyrey/roost` and `akyrey/whimbrel` are on GitHub. Installing Roost's
 packages from git showed that `workspace:*` between them does not resolve outside Roost's
 workspace; Roost `v0.1.1` lists sibling packages as peer dependencies instead, and Whimbrel
-uses `v0.1.1` with committed lockfiles. Still to do: Dunlin's `chore/use-roost` branch moves to
-`v0.1.1`, refreshes its lockfiles and is pushed; then a Dunlin release through Roost's workflow
+uses `v0.1.3` (which adds the editor's `text` prop) with committed lockfiles. Still to do:
+Dunlin's `chore/use-roost` branch moves to `v0.1.1` or later, refreshes its lockfiles and is pushed; then a Dunlin release through Roost's workflow
 is checked to update an installed copy.
 
 ## Phases
