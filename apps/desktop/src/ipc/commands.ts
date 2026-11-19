@@ -1,5 +1,8 @@
 import type {
   Api,
+  RunStartArgs,
+  RunSummary,
+  StepResult,
   RuntimeVariable,
   Sent,
   SpecImportArgs,
@@ -210,3 +213,15 @@ export const runtimeList = (root?: string): Promise<RuntimeVariable[]> =>
 
 export const runtimeClear = (root?: string): Promise<null> =>
   call("runtime_clear", root === undefined ? {} : { root });
+
+/** Runs steps one after the other (FR-6.3); `onStep` gets each result as it is known. */
+export function runStart(
+  args: RunStartArgs,
+  onStep: (result: StepResult) => void,
+): Promise<RunSummary> {
+  const channel = new Channel<StepResult>();
+  channel.onmessage = onStep;
+  return callWith("run_start", args, { onStep: channel });
+}
+
+export const runCancel = (runId: string): Promise<boolean> => call("run_cancel", { runId });

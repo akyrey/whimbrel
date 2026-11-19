@@ -4,8 +4,6 @@
 
 use std::sync::Arc;
 
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpListener;
 use wbl_core::check::{Assertion, Capture, CaptureFrom};
 use wbl_core::{Body, Header, Request};
 use wbl_format::{Environment, SecretName};
@@ -17,35 +15,7 @@ use crate::ipc::CollectionCreateArgs;
 use crate::runtime::{RuntimeArgs, clear, list};
 use crate::state::AppState;
 
-const TOKEN: &str = "tok-123";
-
-/// `/login` answers a token; `/me` answers 200 with that token as a bearer, else 401.
-async fn server() -> String {
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let base = format!("http://{}", listener.local_addr().unwrap());
-    tokio::spawn(async move {
-        while let Ok((mut socket, _)) = listener.accept().await {
-            tokio::spawn(async move {
-                let mut buf = vec![0u8; 8192];
-                let n = socket.read(&mut buf).await.unwrap_or(0);
-                let head = String::from_utf8_lossy(&buf[..n]).to_ascii_lowercase();
-                let (status, body) = if head.contains(" /login ") {
-                    ("200 OK", format!(r#"{{"token":"{TOKEN}"}}"#))
-                } else if head.contains(&format!("authorization: bearer {TOKEN}")) {
-                    ("200 OK", r#"{"name":"ada"}"#.to_owned())
-                } else {
-                    ("401 Unauthorized", "{}".to_owned())
-                };
-                let answer = format!(
-                    "HTTP/1.1 {status}\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
-                    body.len()
-                );
-                let _ = socket.write_all(answer.as_bytes()).await;
-            });
-        }
-    });
-    base
-}
+use crate::test_support::{TOKEN, auth_server as server};
 
 struct Fixture {
     _dir: tempfile::TempDir,

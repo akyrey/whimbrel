@@ -37,6 +37,10 @@ import type {
   RequestSaveArgs,
   RequestSendArgs,
   Response,
+  RunStartArgs,
+  RunSummary,
+  Sent,
+  StepResult,
   StoredRequest,
 } from "../ipc/generated";
 
@@ -66,12 +70,42 @@ const get = (stored: Partial<StoredRequest> & { name: string; url?: string }): S
   assertions: [],
 });
 
+/** Session: a login that captures a token, and a call that needs it (Phase 7). */
+const LOGIN: StoredRequest = {
+  ...get({ name: "Login", order: 10, url: "http://localhost/login" }),
+  request: { ...get({ name: "Login" }).request, method: "POST", url: "http://localhost/login" },
+  captures: [{ var: "token", from: "body", path: "$.token", regex: null, secret: true }],
+};
+const ME: StoredRequest = {
+  ...get({ name: "Me", order: 20, url: "http://localhost/me" }),
+  request: {
+    ...get({ name: "Me" }).request,
+    url: "http://localhost/me",
+    headers: [{ name: "Authorization", value: "Bearer {{token}}", enabled: true }],
+  },
+  assertions: [{ check: "status", equals: 200 }],
+  examples: [
+    {
+      id: "forged",
+      name: "Forged",
+      order: 10,
+      variables: { token: "forged" },
+      query: [],
+      headers: [],
+      body: null,
+    },
+  ],
+};
+
 function seed(): void {
   collections.clear();
   collections.set(DEMO_ROOT, {
     id: "demo-id",
     name: "Demo API",
-    folders: new Map([["users", "Users"]]),
+    folders: new Map([
+      ["users", "Users"],
+      ["session", "Session"],
+    ]),
     files: new Map([
       [
         "ping.req.toml",
@@ -84,6 +118,8 @@ function seed(): void {
         "users/list-users.req.toml",
         { stored: get({ name: "List users", order: 10 }), hash: nextHash() },
       ],
+      ["session/login.req.toml", { stored: LOGIN, hash: nextHash() }],
+      ["session/me.req.toml", { stored: ME, hash: nextHash() }],
     ]),
   });
 }
@@ -295,6 +331,17 @@ function answer(request: Request): Response | AppError {
   }
   const special = phase4Route(request);
   if (special) return special;
+  if (request.url.endsWith("/login")) {
+    return { ...response(200, "OK", "application/json", '{"token":"tok-123"}'), url: request.url };
+  }
+  if (request.url.endsWith("/me")) {
+    const authorised = request.headers.some(
+      (h) => h.enabled && h.name.toLowerCase() === "authorization" && h.value === "Bearer tok-123",
+    );
+    return authorised
+      ? { ...response(200, "OK", "application/json", '{"name":"ada"}'), url: request.url }
+      : { ...response(401, "Unauthorized", "application/json", "{}"), url: request.url };
+  }
   if (request.url.includes("/echo")) {
     const sent = {
       method: request.method,
@@ -308,6 +355,97 @@ function answer(request: Request): Response | AppError {
 
 const isError = (value: Response | AppError): value is AppError => "code" in value;
 
+const pending = new Map<string, (error: AppError) => void>();
+
+/** request_send and request_preview, as src-tauri/src/commands.rs. */
+function mockSend(sendArgs: RequestSendArgs, preview: boolean): Promise<unknown> {
+  const variables = resolveFor(sendArgs, preview);
+  if ("code" in variables) return Promise.reject(variables);
+  const resolved = applyAuth(sendArgs, variables, preview);
+  if ("code" in resolved) return Promise.reject(resolved);
+  if (preview) return Promise.resolve(resolved);
+  if (resolved.url.includes("/slow")) {
+    return new Promise((_, reject: (error: AppError) => void) => {
+      pending.set(sendArgs.requestId, reject);
+    });
+  }
+  const result = answer(resolved);
+  recordHistory(resolveFor(sendArgs, true) as Request, result, sendArgs.name);
+  return isError(result)
+    ? Promise.reject(result)
+    : Promise.resolve({ response: result, checks: checksFor(sendArgs, result) } satisfies Sent);
+}
+
+/** run_start, as src-tauri/src/runner.rs: the steps in order, each result streamed. */
+async function mockRun(args: RunStartArgs, onStep: (r: StepResult) => void): Promise<RunSummary> {
+  const fs = collection(args.root);
+  if (!fs) return fail("not_open", "Open the collection first");
+  const planned = args.steps.flatMap((step) => {
+    const stored = fs.files.get(step.path)?.stored;
+    if (!stored) return [];
+    const examples =
+      step.mode.kind === "base" || stored.examples.length === 0
+        ? [null]
+        : step.mode.kind === "each_example"
+          ? stored.examples
+          : stored.examples.filter((e) => step.mode.kind === "example" && e.id === step.mode.id);
+    return examples.map((example) => ({ path: step.path, stored, example }));
+  });
+  const summary: RunSummary = { passed: 0, failed: 0, skipped: 0, cancelled: false };
+  for (const [index, p] of planned.entries()) {
+    const sendArgs: RequestSendArgs = {
+      requestId: `run:${args.runId}`,
+      request: p.stored.request,
+      root: args.root,
+      ...(args.environment === undefined ? {} : { environment: args.environment }),
+      ...(p.example ? { example: p.example } : {}),
+      variables: p.stored.variables,
+      captures: p.stored.captures,
+      assertions: p.stored.assertions,
+      auth: p.stored.auth,
+      name: p.stored.name,
+      path: p.path,
+    };
+    const base = {
+      index,
+      path: p.path,
+      name: p.stored.name,
+      example: p.example?.name ?? null,
+      method: p.stored.request.method,
+    };
+    let result: StepResult;
+    try {
+      const sent = (await mockSend(sendArgs, false)) as Sent;
+      const passed =
+        sent.checks.assertions.every((a) => a.passed) &&
+        sent.checks.captures.every((c) => c.error === null);
+      result = {
+        ...base,
+        status: sent.response.status,
+        totalMs: sent.response.timing.totalMs,
+        passed,
+        error: null,
+        checks: sent.checks,
+      };
+    } catch (caught) {
+      const error = (caught as AppError).message;
+      result = { ...base, status: null, totalMs: null, passed: false, error, checks: null };
+      if ((caught as AppError).code === "cancelled") summary.cancelled = true;
+    }
+    onStep(result);
+    if (result.passed) {
+      summary.passed += 1;
+      continue;
+    }
+    summary.failed += 1;
+    if (args.stopOnFailure || summary.cancelled) {
+      summary.skipped = planned.length - index - 1;
+      break;
+    }
+  }
+  return summary;
+}
+
 export function installMockBackend(): void {
   seed();
   seedEnvironments(DEMO_ROOT);
@@ -315,31 +453,26 @@ export function installMockBackend(): void {
   resetAuth();
   resetSpecs();
   resetRuntime();
-  const pending = new Map<string, (error: AppError) => void>();
   mockIPC(
     (command, payload) => {
       const args = (payload as { args?: Args } | undefined)?.args ?? ({} as Args);
       if (command === "plugin:dialog|open") return Promise.resolve(DEMO_ROOT);
       if (command === "plugin:dialog|save") return Promise.resolve("/tmp/saved-body");
       if (command === "request_preview" || command === "request_send") {
-        const sendArgs = args as unknown as RequestSendArgs;
-        const variables = resolveFor(sendArgs, command === "request_preview");
-        if ("code" in variables) return Promise.reject(variables);
-        const resolved = applyAuth(sendArgs, variables, command === "request_preview");
-        if ("code" in resolved) return Promise.reject(resolved);
-        if (command === "request_preview") return Promise.resolve(resolved);
-        const { requestId } = sendArgs;
-        const request = resolved;
-        if (request.url.includes("/slow")) {
-          return new Promise((_, reject: (error: AppError) => void) => {
-            pending.set(requestId, reject);
-          });
-        }
-        const result = answer(request);
-        recordHistory(resolveFor(sendArgs, true) as Request, result, sendArgs.name);
-        return isError(result)
-          ? Promise.reject(result)
-          : Promise.resolve({ response: result, checks: checksFor(sendArgs, result) });
+        return mockSend(args as unknown as RequestSendArgs, command === "request_preview");
+      }
+      if (command === "run_start") {
+        const onStep = (payload as { onStep: { onmessage: (r: StepResult) => void } }).onStep;
+        return mockRun(args as unknown as RunStartArgs, (r) => {
+          onStep.onmessage(r);
+        });
+      }
+      if (command === "run_cancel") {
+        const id = `run:${(args as unknown as { runId: string }).runId}`;
+        const reject = pending.get(id);
+        pending.delete(id);
+        reject?.({ code: "cancelled", message: "The request was cancelled" });
+        return Promise.resolve(reject !== undefined);
       }
       if (command === "example_apply") {
         const { request, example } = args as unknown as { request: Request; example: Example };

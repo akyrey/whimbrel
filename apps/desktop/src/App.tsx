@@ -40,6 +40,7 @@ import { AuthPanel } from "./features/request/AuthPanel";
 import { SettingsPanel } from "./features/request/SettingsPanel";
 import { VariablesPanel } from "./features/request/VariablesPanel";
 import { ChecksEditor } from "./features/checks/ChecksEditor";
+import { RunnerDialog } from "./features/runner/RunnerDialog";
 import { ExamplesBar } from "./features/examples/ExamplesBar";
 import { cancelSend, confirmSend, sendTab, useSendConfirm } from "./features/send/sendFlow";
 import { ConflictBar } from "./features/tabs/ConflictBar";
@@ -364,6 +365,7 @@ export function App() {
         <ShortcutsView registry={registry} groups={SHORTCUT_GROUPS} onClose={close} />
       )}
       <SendConfirm />
+      <RunnerDialog />
       <Toaster />
     </EditorSettingsProvider>
   );

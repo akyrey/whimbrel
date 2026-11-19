@@ -12,6 +12,7 @@ pub mod logging;
 pub mod oauth;
 pub mod registry;
 pub mod resolve;
+pub mod runner;
 pub mod runtime;
 pub mod secrets;
 pub mod spec;
@@ -20,6 +21,8 @@ pub mod watch;
 
 #[cfg(test)]
 mod bindings;
+#[cfg(test)]
+mod test_support;
 
 use tauri::Manager;
 use wbl_http::SendOptions;
@@ -48,6 +51,7 @@ pub fn run() -> Result<(), tauri::Error> {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .manage(collections::Collections::default())
+        .manage(runner::Runs::default())
         .setup(|app| {
             let spill_dir = app.path().app_cache_dir()?.join("bodies");
             let data = app.path().app_data_dir()?;
@@ -118,6 +122,8 @@ pub fn run() -> Result<(), tauri::Error> {
             spec::spec_open,
             runtime::runtime_list,
             runtime::runtime_clear,
+            runner::run_start,
+            runner::run_cancel,
         ])
         .run(tauri::generate_context!())
 }

@@ -21,6 +21,7 @@ import {
 } from "./actions";
 import { useCollections } from "./collectionsStore";
 import { NameDialog } from "./NameDialog";
+import { useRunner } from "../runner/runnerStore";
 
 type Menu = { x: number; y: number; label: string; items: ContextMenuItem[] };
 
@@ -49,8 +50,14 @@ async function openExample(root: string, path: string, exampleId: string) {
   useTabs.getState().pickExample(fileTabId({ root, path }), exampleId);
 }
 
-function containerItems(ui: Ui, root: string, folder: string): ContextMenuItem[] {
+function containerItems(ui: Ui, root: string, folder: string, name: string): ContextMenuItem[] {
   return [
+    {
+      label: "Run…",
+      onSelect: () => {
+        useRunner.getState().open({ root, folder, name });
+      },
+    },
     {
       label: "New request",
       onSelect: () => {
@@ -165,7 +172,7 @@ function NodeItem({ node, root, ui, depth }: { node: Node; root: string; ui: Ui;
     );
   }
   const items = [
-    ...containerItems(ui, root, node.path),
+    ...containerItems(ui, root, node.path, node.name),
     deleteItem(ui, root, node.path, node.name, true),
   ];
   return (
@@ -258,7 +265,7 @@ function EnvironmentPicker({ root }: { root: string }) {
 
 function CollectionItem({ view, ui }: { view: CollectionView; ui: Ui }) {
   const items = [
-    ...containerItems(ui, view.root, ""),
+    ...containerItems(ui, view.root, "", view.collection.name),
     {
       label: "Auth…",
       onSelect: () => {
