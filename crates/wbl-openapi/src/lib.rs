@@ -15,9 +15,9 @@ pub mod synth;
 pub use build::{build, detect};
 pub use generate::{Generated, GeneratedRequest, generate};
 pub use install::{Installed, Source, install};
-pub use stored::{StoredSpec, source_file, specs};
 pub use model::*;
 pub use read::{Documents, Loaded, Loader, load_all, parse};
+pub use stored::{StoredSpec, source_file, specs};
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum OpenApiError {

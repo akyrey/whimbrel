@@ -14,6 +14,7 @@ import { emit } from "@tauri-apps/api/event";
 import { mockIPC } from "@tauri-apps/api/mocks";
 
 import { applyAuth, authCommand, resetAuth } from "./mockAuth";
+import { resetSpecs, specCommand } from "./mockSpecs";
 import { phase4Command, phase4Route, recordHistory, resetHistory } from "./mockExtras";
 import {
   apply,
@@ -131,6 +132,32 @@ function collection(root: string): Fs | null {
 }
 
 type Args = Record<string, unknown> & { root: string; path: string; name: string };
+
+/** Writes generated requests into a new folder of an open collection (the spec import). */
+export function mockInstall(
+  root: string,
+  folderName: string,
+  requests: { id: string; folder: string; stored: StoredRequest }[],
+): { folder: string; files: Record<string, string> } | null {
+  const fs = collection(root);
+  if (!fs) return null;
+  const base = unique(fs, "", folderName, "");
+  fs.folders.set(base, folderName);
+  const files: Record<string, string> = {};
+  for (const r of requests) {
+    const dir = join(base, slug(r.folder));
+    if (!fs.folders.has(dir)) fs.folders.set(dir, r.folder);
+    const path = unique(fs, dir, r.stored.name, ".req.toml");
+    fs.files.set(path, { stored: r.stored, hash: nextHash() });
+    files[r.id] = path;
+  }
+  return { folder: base, files };
+}
+
+export const mockStored = (name: string, url: string, method = "GET"): StoredRequest => ({
+  ...get({ name, url }),
+  request: { ...get({ name, url }).request, method },
+});
 
 function collectionCommand(command: string, a: Args): Promise<unknown> | null {
   const fs = collection(a.root);
@@ -283,6 +310,7 @@ export function installMockBackend(): void {
   seedEnvironments(DEMO_ROOT);
   resetHistory();
   resetAuth();
+  resetSpecs();
   const pending = new Map<string, (error: AppError) => void>();
   mockIPC(
     (command, payload) => {
@@ -316,6 +344,8 @@ export function installMockBackend(): void {
         const result = overlay(o.base, o.draft, o.id, o.name);
         return "code" in result ? Promise.reject(result) : Promise.resolve(result);
       }
+      const spec = specCommand(command, args);
+      if (spec) return spec;
       const auth = authCommand(command, args);
       if (auth) return auth;
       const extra = phase4Command(command, args, (send, masked) =>

@@ -180,7 +180,10 @@ pub fn install(
         &dir.join(format!("source.{}", extension(&source.text))),
         &source.text,
     )?;
-    collection::write_atomic(&dir.join(MANIFEST), &manifest(&generated.name, source, base, &files))?;
+    collection::write_atomic(
+        &dir.join(MANIFEST),
+        &manifest(&generated.name, source, base, &files),
+    )?;
     installed.spec_dir = dir
         .strip_prefix(root)
         .map(|p| p.to_string_lossy().replace('\\', "/"))

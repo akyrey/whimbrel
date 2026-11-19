@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { isDirty } from "./model";
 import { useTabs } from "./tabsStore";
+import { useSpecs } from "../openapi/specsStore";
 
 /** Open requests; a dot marks unsaved edits; closing an unsaved tab asks first. */
 export function TabStrip() {
@@ -30,6 +31,8 @@ export function TabStrip() {
               aria-selected={tab.id === activeId}
               className="max-w-48 truncate px-3 py-1.5"
               onClick={() => {
+                // A tab click also leaves the spec browser, even for the tab already active.
+                useSpecs.getState().close();
                 activate(tab.id);
               }}
             >

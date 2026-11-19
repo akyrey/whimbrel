@@ -27,12 +27,25 @@ Design: [OPENAPI.md](../OPENAPI.md), [FILE_FORMAT.md](../FILE_FORMAT.md), D-H05,
       parameters (optional ones off), the body and `Content-Type`, auth from security,
       environments per server (`baseUrl`, server variables, secret names for credentials), named
       examples as saved examples; `openapi/source.<ext>` and `openapi/import.toml` for re-import.
-- [ ] 6.7 Commands and UI: import from a file or a URL (asking before fetching remote refs) into
+- [x] 6.7 Commands and UI: import from a file or a URL (asking before fetching remote refs) into
       a new or an open collection with a summary first; the spec browser (tags, operations,
       parameters, bodies and responses by media type, schema tree with links, examples) linked
       both ways with the generated requests.
-- [ ] 6.8 Fixtures for every row of OPENAPI.md's feature table, snapshot tests of the generated
+- [x] 6.8 Fixtures for every row of OPENAPI.md's feature table, snapshot tests of the generated
       collection, and a 5 MB document imported in under 3 seconds.
+
+## Outcome (2026-11-19)
+
+- 26 `wbl-openapi` tests (90% lines): fixtures for 2.0, 3.0, 3.1, 3.2 and a multi-file spec,
+  with insta snapshots of the generated collections. A generated 5.4 MB document (2900
+  operations) is read, modelled, generated and written in 1.3 s in a debug build.
+- The app: "OpenAPI…" in the sidebar (file or URL, a summary first, remote references fetched
+  only after "Fetch them"), into a new collection or a new folder of an open one; "API specs"
+  in the sidebar opens the browser; "Open request" and "Show in spec" link both ways.
+- Not yet used from the feature table: callbacks and links (not shown in the browser),
+  `$self` as the reference base, XML `nodeType`. Moved to Phase 8.
+- Not checked: real large public specs (GitHub, Stripe, Kubernetes) and the real file dialog;
+  these need the built app and the network (a manual check).
 
 ## Not in this phase
 

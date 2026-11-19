@@ -213,3 +213,15 @@ used (the environment's `baseUrl` applies). Each import keeps its spec and manif
 can hold several specs. Environments that already exist by name are left alone.
 **Consequences.** Multipart bodies need body kinds the format does not have yet (Phase 8 at the
 earliest). Re-import (Phase 7) finds its manifest by the spec's directory.
+
+## D-H16 `wbl-openapi` uses `wbl-format` (2026-11-19)
+
+**Context.** The architecture had `wbl-openapi` emit `wbl-core` types and never write files.
+But what an import makes is collection files: stored requests (with saved examples, auth and
+request variables), environments, folders, plus the spec and its manifest, and the order and
+naming rules for those live in `wbl-format`.
+**Decision.** `wbl-openapi` depends on `wbl-format`. Generation stays pure (`generate` returns
+stored requests and environments); `install` writes them through `wbl-format`'s collection
+operations (one batch per folder, `create_requests`, so a 3000-operation spec is not quadratic).
+`wbl-format` still depends only on `wbl-core`, so there is no cycle.
+**Consequences.** Re-import (Phase 7) reads and rewrites the same files through the same crate.

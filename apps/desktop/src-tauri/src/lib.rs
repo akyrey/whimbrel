@@ -12,6 +12,7 @@ pub mod oauth;
 pub mod registry;
 pub mod resolve;
 pub mod secrets;
+pub mod spec;
 pub mod state;
 pub mod watch;
 
@@ -109,6 +110,10 @@ pub fn run() -> Result<(), tauri::Error> {
             collections::node_auth_save,
             collections::collection_tls_read,
             collections::collection_tls_save,
+            spec::spec_read,
+            spec::spec_import,
+            spec::spec_list,
+            spec::spec_open,
         ])
         .run(tauri::generate_context!())
 }

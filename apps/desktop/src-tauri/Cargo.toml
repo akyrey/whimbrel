@@ -20,6 +20,7 @@ wbl-http = { workspace = true, features = ["ts"] }
 wbl-format = { workspace = true, features = ["ts"] }
 wbl-store = { workspace = true, features = ["ts"] }
 wbl-auth = { workspace = true, features = ["ts"] }
+wbl-openapi = { workspace = true, features = ["ts"] }
 roost-shell = { workspace = true, features = ["ts"] }
 roost-keychain.workspace = true
 secrecy = "0.10"
@@ -35,6 +36,7 @@ notify-debouncer-full = "0.7"
 thiserror.workspace = true
 tokio.workspace = true
 tokio-util = "0.7"
+url = "2.5"
 tracing = "0.1"
 tracing-appender = "0.2"
 ts-rs.workspace = true

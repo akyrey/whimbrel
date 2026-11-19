@@ -2,7 +2,35 @@ import { Button } from "@roost/ui";
 
 import type { Tab } from "../tabs/model";
 import { useTabs } from "../tabs/tabsStore";
+import { useState } from "react";
+
 import { type Variables, freshName, renamed, withValue, without } from "./variables";
+
+type NameProps = { index: number; name: string; onRename: (to: string) => void };
+
+/** Edited locally and renamed on blur or Enter, so a name can be cleared while retyping it. */
+function NameInput({ index, name, onRename }: NameProps) {
+  const [text, setText] = useState(name);
+  const commit = () => {
+    const to = text.trim();
+    if (to === "" || to === name) setText(name);
+    else onRename(to);
+  };
+  return (
+    <input
+      aria-label={`Variable ${String(index + 1)} name`}
+      className="input w-40 font-mono"
+      value={text}
+      onChange={(e) => {
+        setText(e.target.value);
+      }}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") commit();
+      }}
+    />
+  );
+}
 
 /** The request's own `[variables]`: after the picked example, before the environment. */
 export function VariablesPanel({ tab }: { tab: Tab }) {
@@ -18,14 +46,12 @@ export function VariablesPanel({ tab }: { tab: Tab }) {
       </summary>
       <div className="mt-2 flex flex-col gap-1">
         {entries.map(([name, value], i) => (
-          <div key={i} className="flex items-center gap-2">
-            <input
-              aria-label={`Variable ${String(i + 1)} name`}
-              className="input w-40 font-mono"
-              value={name}
-              onChange={(e) => {
-                const to = e.target.value.trim();
-                if (to !== "") change((v) => renamed(v, name, to));
+          <div key={name} className="flex items-center gap-2">
+            <NameInput
+              index={i}
+              name={name}
+              onRename={(to) => {
+                change((v) => renamed(v, name, to));
               }}
             />
             <input

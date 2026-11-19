@@ -25,7 +25,10 @@ pub struct StoredSpec {
 }
 
 fn text(doc: &DocumentMut, key: &str) -> String {
-    doc.get(key).and_then(|v| v.as_str()).unwrap_or_default().to_owned()
+    doc.get(key)
+        .and_then(|v| v.as_str())
+        .unwrap_or_default()
+        .to_owned()
 }
 
 fn read(dir: &Path, relative: String) -> Result<StoredSpec, FormatError> {
@@ -63,7 +66,10 @@ pub fn specs(root: &Path) -> Result<Vec<StoredSpec>, FormatError> {
     let mut out = Vec::new();
     for entry in fs::read_dir(&base)? {
         let path = entry?.path();
-        let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
         if path.join(MANIFEST).is_file()
             && let Ok(spec) = read(&path, format!("{SPEC_DIR}/{name}"))
         {
@@ -80,5 +86,8 @@ pub fn source_file(root: &Path, dir: &str) -> Option<PathBuf> {
     if name.is_empty() || name.contains(['/', '\\']) || name.starts_with('.') {
         return None;
     }
-    ["yaml", "json"].iter().map(|ext| root.join(SPEC_DIR).join(name).join(format!("source.{ext}"))).find(|p| p.is_file())
+    ["yaml", "json"]
+        .iter()
+        .map(|ext| root.join(SPEC_DIR).join(name).join(format!("source.{ext}")))
+        .find(|p| p.is_file())
 }

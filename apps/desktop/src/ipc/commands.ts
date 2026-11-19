@@ -1,4 +1,10 @@
 import type {
+  Api,
+  SpecImportArgs,
+  SpecImported,
+  SpecReadArgs,
+  SpecSummary,
+  StoredSpec,
   Auth,
   CollectionTls,
   DeviceCode,
@@ -183,3 +189,16 @@ export const nodeDelete = (root: string, path: string): Promise<null> =>
   call("node_delete", { root, path });
 
 export type { StoredRequest };
+
+/** Reads an OpenAPI document and says what importing it would make (FR-6). */
+export const specRead = (args: SpecReadArgs): Promise<SpecSummary> => call("spec_read", args);
+
+export const specImport = (args: SpecImportArgs): Promise<SpecImported> =>
+  call("spec_import", args);
+
+/** The specs imported into an open collection. */
+export const specList = (root: string): Promise<StoredSpec[]> => call("spec_list", { root });
+
+/** The model of a spec kept in a collection, for the spec browser. */
+export const specOpen = (root: string, dir: string): Promise<Api> =>
+  call("spec_open", { root, dir });

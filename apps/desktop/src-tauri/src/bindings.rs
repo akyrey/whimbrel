@@ -61,6 +61,13 @@ fn export_all(dir: &Path) {
     crate::ipc::SecretArgs::export_all(&config).unwrap();
     crate::environments::EnvironmentView::export_all(&config).unwrap();
     wbl_format::collection::environments::EnvironmentEntry::export_all(&config).unwrap();
+    crate::spec::SpecReadArgs::export_all(&config).unwrap();
+    crate::spec::SpecImportArgs::export_all(&config).unwrap();
+    crate::spec::SpecOpenArgs::export_all(&config).unwrap();
+    crate::spec::SpecSummary::export_all(&config).unwrap();
+    crate::spec::SpecImported::export_all(&config).unwrap();
+    wbl_openapi::Api::export_all(&config).unwrap();
+    wbl_openapi::StoredSpec::export_all(&config).unwrap();
     write_index(dir);
 }
 

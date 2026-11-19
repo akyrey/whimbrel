@@ -13,7 +13,7 @@ are the seeds for those briefs.
 - [x] Phase 3: Environments, variables and secrets ([brief](phases/phase-3-environments.md))
 - [x] Phase 4: Responses, history, streaming ([brief](phases/phase-4-responses.md))
 - [x] Phase 5: Auth ([brief](phases/phase-5-auth.md))
-- [ ] Phase 6: OpenAPI import and spec browser
+- [x] Phase 6: OpenAPI import and spec browser
 - [ ] Phase 7: Chaining, assertions, runner, re-import
 - [ ] Phase 8: Polish, interop, release
 
@@ -116,7 +116,7 @@ is checked to update an installed copy.
 
 ### Phase 6 — OpenAPI import and spec browser
 
-- Spike `roas` vs own model on the fixture set (D-H05); record the outcome.
+- Spike `roas` vs own model on the fixture set (D-H05); record the outcome. (Own model: D-H14.)
 - Parsers for 2.0, 3.0, 3.1, 3.2; `$ref` resolution (internal, files, URLs); normalised model;
   upconversion.
 - Example synthesis from JSON Schema 2020-12.
@@ -137,6 +137,8 @@ is checked to update an installed copy.
 
 - Import Postman v2.1 and `.http`; export `.http`.
 - Shortcuts, palette commands for everything, settings, restore.
+- Left from Phase 6: callbacks and links in the spec browser, `$self` as the reference base,
+  XML `nodeType`, multipart bodies (D-H15); check large public specs in the built app.
 - Packaging via the shared workflow; new updater key pair; signing per D-037.
 - **Accept:** a signed release installs on macOS and Linux and updates itself to the next one.
 

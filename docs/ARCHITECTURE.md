@@ -70,8 +70,9 @@ src                     React frontend by feature: collections, request, example
 ```
 
 Dependency rule: `wbl-core` depends on no workspace crate. `wbl-format`, `wbl-http`, `wbl-auth`,
-`wbl-openapi`, `wbl-store` depend only on `wbl-core` (and `roost-*`). `wbl-openapi` emits `wbl-core`
-types; it never writes files itself. Only `src-tauri` depends on everything.
+`wbl-store` depend only on `wbl-core` (and `roost-*`). `wbl-openapi` depends on `wbl-core` and
+`wbl-format` (D-H16): it generates stored requests and environments and writes them into a
+collection with `wbl-format`'s operations. Only `src-tauri` depends on everything.
 
 ## Data flow: sending a request
 

@@ -6249,10 +6249,12 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
  "ts-rs",
+ "url",
  "wbl-auth",
  "wbl-core",
  "wbl-format",
  "wbl-http",
+ "wbl-openapi",
  "wbl-store",
 ]
 

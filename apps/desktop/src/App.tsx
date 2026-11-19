@@ -29,6 +29,11 @@ import {
   shortcutLabel,
 } from "./features/shortcuts/registry";
 import { CurlImportDialog } from "./features/curl/CurlImportDialog";
+import { ShowInSpec } from "./features/openapi/ShowInSpec";
+import { SpecBrowser } from "./features/openapi/SpecBrowser";
+import { SpecImportDialog } from "./features/openapi/SpecImportDialog";
+import { SpecList } from "./features/openapi/SpecList";
+import { syncSpecs, useSpecs } from "./features/openapi/specsStore";
 import { useEnvironments } from "./features/environments/environmentsStore";
 import { HistoryPanel } from "./features/history/HistoryPanel";
 import { AuthPanel } from "./features/request/AuthPanel";
@@ -159,9 +164,23 @@ function useCollectionsLifecycle() {
       if (changed.paths.some((p) => p.startsWith("environments/"))) {
         void useEnvironments.getState().load(changed.root);
       }
+      if (changed.paths.some((p) => p.startsWith("openapi/"))) {
+        void useSpecs
+          .getState()
+          .load(changed.root)
+          .catch(() => undefined);
+      }
       void useTabs.getState().changedOnDisk(changed.root, changed.paths);
     });
+    const unsubscribe = useCollections.subscribe((s) => {
+      void syncSpecs(Object.keys(s.views));
+    });
+    const leaveSpec = useTabs.subscribe((s, previous) => {
+      if (s.activeId !== previous.activeId) useSpecs.getState().close();
+    });
     return () => {
+      leaveSpec();
+      unsubscribe();
       void stop.then((unlisten) => {
         unlisten();
       });
@@ -174,6 +193,7 @@ function RequestView({ tab }: { tab: Tab }) {
     <>
       <section aria-label="Request" className="flex flex-col gap-3 border-b border-zinc-800 p-4">
         <ConflictBar tab={tab} />
+        <ShowInSpec tab={tab} />
         <RequestBar tab={tab} />
         <ExamplesBar tab={tab} />
         <AuthPanel tab={tab} />
@@ -209,7 +229,7 @@ type Side = "collections" | "history";
 /** Collections or history, and the cURL import. */
 function Sidebar() {
   const [side, setSide] = useState<Side>("collections");
-  const [importing, setImporting] = useState(false);
+  const [importing, setImporting] = useState<"curl" | "openapi" | null>(null);
   return (
     <>
       <div
@@ -235,19 +255,40 @@ function Sidebar() {
           type="button"
           className="ml-auto text-xs text-zinc-400 hover:text-zinc-100"
           onClick={() => {
-            setImporting(true);
+            setImporting("curl");
           }}
         >
           Import cURL…
+        </button>
+        <button
+          type="button"
+          className="text-xs text-zinc-400 hover:text-zinc-100"
+          onClick={() => {
+            setImporting("openapi");
+          }}
+        >
+          OpenAPI…
         </button>
       </div>
       <PanelBoundary name={side === "collections" ? "Collections" : "History"}>
         {side === "collections" ? <CollectionTree /> : <HistoryPanel />}
       </PanelBoundary>
-      {importing && (
+      {side === "collections" && (
+        <PanelBoundary name="API specs">
+          <SpecList />
+        </PanelBoundary>
+      )}
+      {importing === "curl" && (
         <CurlImportDialog
           onClose={() => {
-            setImporting(false);
+            setImporting(null);
+          }}
+        />
+      )}
+      {importing === "openapi" && (
+        <SpecImportDialog
+          onClose={() => {
+            setImporting(null);
           }}
         />
       )}
@@ -277,6 +318,7 @@ export function App() {
   const actions = useShortcutActions(setOverlay);
   const editorSettings = useMemo(() => ({ theme, font: EDITOR_FONT }), [theme]);
   const tab = useActiveTab();
+  const spec = useSpecs((s) => s.view);
   useCollectionsLifecycle();
 
   useEffect(() => {
@@ -304,7 +346,15 @@ export function App() {
         </aside>
         <main className="flex min-w-0 flex-1 flex-col">
           <TabStrip />
-          {tab ? <RequestView key={tab.id} tab={tab} /> : <EmptyState />}
+          {spec ? (
+            <PanelBoundary name="Spec">
+              <SpecBrowser view={spec} />
+            </PanelBoundary>
+          ) : tab ? (
+            <RequestView key={tab.id} tab={tab} />
+          ) : (
+            <EmptyState />
+          )}
         </main>
       </div>
       {overlay === "palette" && <CommandPalette commands={paletteItems(actions)} onClose={close} />}
