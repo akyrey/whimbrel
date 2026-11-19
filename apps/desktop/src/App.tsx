@@ -39,6 +39,7 @@ import { useEnvironments } from "./features/environments/environmentsStore";
 import { HistoryPanel } from "./features/history/HistoryPanel";
 import { AuthPanel } from "./features/request/AuthPanel";
 import { SettingsPanel } from "./features/request/SettingsPanel";
+import { QueryEditor } from "./features/request/QueryEditor";
 import { VariablesPanel } from "./features/request/VariablesPanel";
 import { ChecksEditor } from "./features/checks/ChecksEditor";
 import { RunnerDialog } from "./features/runner/RunnerDialog";
@@ -199,6 +200,7 @@ function RequestView({ tab }: { tab: Tab }) {
         <ShowInSpec tab={tab} />
         <RequestBar tab={tab} />
         <ExamplesBar tab={tab} />
+        <QueryEditor tab={tab} />
         <AuthPanel tab={tab} />
         <VariablesPanel tab={tab} />
         <ChecksEditor tab={tab} />

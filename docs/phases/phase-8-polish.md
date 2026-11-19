@@ -10,7 +10,7 @@ D-H19.
 
 - [x] 8.1 Body kinds (FR-2.2): form-urlencoded and multipart (fields and files) and a binary
       file, in the file format, the engine and the editor; imported specs generate them.
-- [ ] 8.2 Query parameters (FR-2.3): a table that stays in sync with the URL both ways.
+- [x] 8.2 Query parameters (FR-2.3): a table that stays in sync with the URL both ways.
 - [ ] 8.3 Variables in the editor (FR-2.4): `{{` completes the names in scope (example, request,
       runtime, environment, collection, secrets by name), and hovering a variable shows its
       value (secrets masked) and where it comes from.
