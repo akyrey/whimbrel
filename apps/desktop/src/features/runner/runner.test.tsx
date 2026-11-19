@@ -40,7 +40,7 @@ describe("the runner", () => {
   it("runs a folder: the captured token authorises the next request", async () => {
     await openRunner(/Session/);
     const dialog = screen.getByRole("dialog", { name: "Run Session" });
-    expect(within(dialog).getByRole("list", { name: "Steps" })).toHaveTextContent("Login");
+    expect(within(dialog).getByRole("list", { name: "Steps" })).toHaveTextContent("Get a token");
 
     await userEvent.click(within(dialog).getByRole("button", { name: "Run" }));
 
@@ -67,7 +67,7 @@ describe("the runner", () => {
     expect(within(dialog).getByText(/› Forged/)).toBeInTheDocument();
 
     await userEvent.selectOptions(
-      within(dialog).getByRole("combobox", { name: "How to run Login" }),
+      within(dialog).getByRole("combobox", { name: "How to run Get a token" }),
       "",
     );
     await userEvent.selectOptions(

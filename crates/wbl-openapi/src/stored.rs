@@ -91,3 +91,49 @@ pub fn source_file(root: &Path, dir: &str) -> Option<PathBuf> {
         .map(|ext| root.join(SPEC_DIR).join(name).join(format!("source.{ext}")))
         .find(|p| p.is_file())
 }
+
+/// One operation of a manifest: its file, the hash of what was generated, and whether the
+/// operation has left the spec.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Entry {
+    pub file: String,
+    pub hash: String,
+    pub removed: bool,
+}
+
+/// The manifest's operations, with their hashes.
+pub(crate) fn entries(root: &Path, dir: &str) -> Result<BTreeMap<String, Entry>, FormatError> {
+    let doc: DocumentMut = fs::read_to_string(root.join(dir).join(MANIFEST))?
+        .parse()
+        .map_err(|e| FormatError::syntax(&e))?;
+    let field = |entry: &dyn toml_edit::TableLike, key: &str| {
+        entry
+            .get(key)
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_owned()
+    };
+    Ok(doc
+        .get("operations")
+        .and_then(|o| o.as_table_like())
+        .map(|table| {
+            table
+                .iter()
+                .filter_map(|(id, item)| {
+                    let entry = item.as_table_like()?;
+                    Some((
+                        id.to_owned(),
+                        Entry {
+                            file: field(entry, "file"),
+                            hash: field(entry, "hash"),
+                            removed: entry
+                                .get("removed")
+                                .and_then(|v| v.as_bool())
+                                .unwrap_or(false),
+                        },
+                    ))
+                })
+                .collect()
+        })
+        .unwrap_or_default())
+}

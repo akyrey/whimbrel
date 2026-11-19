@@ -1,5 +1,7 @@
 import type {
   Api,
+  Plan,
+  SpecReimportArgs,
   SpecValidateArgs,
   Validation,
   RunStartArgs,
@@ -231,3 +233,10 @@ export const runCancel = (runId: string): Promise<boolean> => call("run_cancel",
 /** Checks a response against its operation's schema in a kept spec (FR-7.6). */
 export const specValidate = (args: SpecValidateArgs): Promise<Validation> =>
   call("spec_validate", args);
+
+/** What re-importing a kept spec from `source` would change (FR-7.5). */
+export const specReimportPlan = (args: SpecReimportArgs): Promise<Plan> =>
+  call("spec_reimport_plan", args);
+
+export const specReimportApply = (args: SpecReimportArgs): Promise<Plan> =>
+  call("spec_reimport_apply", args);

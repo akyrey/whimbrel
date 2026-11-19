@@ -8,6 +8,7 @@ pub mod model;
 mod operations;
 pub mod read;
 mod refs;
+pub mod reimport;
 pub mod stored;
 mod swagger2;
 pub mod synth;
@@ -18,6 +19,7 @@ pub use generate::{Generated, GeneratedRequest, generate};
 pub use install::{Installed, Source, install};
 pub use model::*;
 pub use read::{Documents, Loaded, Loader, load_all, parse};
+pub use reimport::{Change, Choice, Conflict, Field, Plan};
 pub use stored::{StoredSpec, source_file, specs};
 pub use validate::{SchemaError, Validation, validate};
 

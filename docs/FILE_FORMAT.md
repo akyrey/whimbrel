@@ -88,6 +88,7 @@ equals = "test@example.com"  # left out: the value only has to exist
 
 [openapi]                  # present only on generated requests
 operationId = "createUser"
+# removed = true           # set by a re-import when the operation left the spec
 
 # Saved examples (FR-2.8, D-H08): overlays on the request above.
 [[examples]]

@@ -347,6 +347,98 @@ pub async fn spec_validate(
     .await
 }
 
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct SpecReimportArgs {
+    pub root: String,
+    pub dir: String,
+    pub source: SpecSource,
+    pub allow_remote: bool,
+    /// Per operation and field, which side wins a conflict (mine when absent).
+    #[ts(optional)]
+    pub choices: Option<
+        std::collections::BTreeMap<
+            String,
+            std::collections::BTreeMap<wbl_openapi::Field, wbl_openapi::Choice>,
+        >,
+    >,
+}
+
+/// The kept spec and the new one, for a re-import.
+async fn both(
+    collections: &Collections,
+    sender: &Sender,
+    args: &SpecReimportArgs,
+) -> Result<(PathBuf, Api, Read), AppError> {
+    let root = collections.opened(&args.root)?;
+    let old = open(
+        collections,
+        sender,
+        &SpecOpenArgs {
+            root: args.root.clone(),
+            dir: args.dir.clone(),
+        },
+    )
+    .await?;
+    let new = read(sender, &args.source, args.allow_remote).await?;
+    Ok((root, old, new))
+}
+
+/// What re-importing would change (FR-7.5).
+pub async fn reimport_plan(
+    collections: &Collections,
+    sender: &Sender,
+    args: &SpecReimportArgs,
+) -> Result<wbl_openapi::Plan, AppError> {
+    let (root, old, new) = both(collections, sender, args).await?;
+    Ok(wbl_openapi::reimport::plan(
+        &root, &args.dir, &old, &new.api,
+    )?)
+}
+
+pub async fn reimport_apply(
+    collections: &Collections,
+    sender: &Sender,
+    args: &SpecReimportArgs,
+) -> Result<wbl_openapi::Plan, AppError> {
+    let (root, old, new) = both(collections, sender, args).await?;
+    let choices = args.choices.clone().unwrap_or_default();
+    Ok(wbl_openapi::reimport::apply(
+        &root,
+        &args.dir,
+        &old,
+        &new.api,
+        &new.source,
+        &choices,
+    )?)
+}
+
+#[tauri::command]
+pub async fn spec_reimport_plan(
+    state: State<'_, AppState>,
+    collections: State<'_, Collections>,
+    args: SpecReimportArgs,
+) -> Result<wbl_openapi::Plan, AppError> {
+    logged(
+        "spec_reimport_plan",
+        reimport_plan(&collections, &state.sender, &args),
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn spec_reimport_apply(
+    state: State<'_, AppState>,
+    collections: State<'_, Collections>,
+    args: SpecReimportArgs,
+) -> Result<wbl_openapi::Plan, AppError> {
+    logged(
+        "spec_reimport_apply",
+        reimport_apply(&collections, &state.sender, &args),
+    )
+    .await
+}
+
 #[tauri::command]
 pub async fn spec_read(
     state: State<'_, AppState>,

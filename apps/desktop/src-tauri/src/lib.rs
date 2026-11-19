@@ -121,6 +121,8 @@ pub fn run() -> Result<(), tauri::Error> {
             spec::spec_list,
             spec::spec_open,
             spec::spec_validate,
+            spec::spec_reimport_plan,
+            spec::spec_reimport_apply,
             runtime::runtime_list,
             runtime::runtime_clear,
             runner::run_start,

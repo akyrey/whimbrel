@@ -14,7 +14,7 @@ are the seeds for those briefs.
 - [x] Phase 4: Responses, history, streaming ([brief](phases/phase-4-responses.md))
 - [x] Phase 5: Auth ([brief](phases/phase-5-auth.md))
 - [x] Phase 6: OpenAPI import and spec browser
-- [ ] Phase 7: Chaining, assertions, runner, re-import
+- [x] Phase 7: Chaining, assertions, runner, re-import
 - [ ] Phase 8: Polish, interop, release
 
 ## Order and dependencies

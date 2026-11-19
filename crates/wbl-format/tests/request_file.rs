@@ -271,3 +271,47 @@ fn captures_and_assertions_are_written_as_documented() {
     let bad = format!("{text}\n[[assertions]]\ncheck = \"nope\"\n");
     assert!(RequestFile::parse(&bad).unwrap().read().is_err());
 }
+
+const BASE: &str = "name = \"R\"\nmethod = \"GET\"\nurl = \"http://x\"\n";
+
+#[test]
+fn checks_read_every_toml_shape_and_refuse_bad_ones() {
+    use wbl_core::check::{Assertion, CaptureFrom};
+    let text = format!(
+        "{BASE}captures = [{{ var = \"loc\", from = \"header\", path = \"Location\", regex = \"/(\\\\d+)\", secret = true }}]\n\
+         [[assertions]]\ncheck = \"json\"\npath = \"$.a\"\nequals = 1.5\n\
+         [[assertions]]\ncheck = \"json\"\npath = \"$.b\"\nequals = {{ x = 1979-05-27, y = [true] }}\n\
+         [[assertions]]\ncheck = \"header\"\nname = \"ETag\"\n"
+    );
+    let read = RequestFile::parse(&text).unwrap().read().unwrap();
+    assert_eq!(read.captures[0].from, CaptureFrom::Header);
+    assert!(read.captures[0].secret);
+    assert_eq!(read.assertions[0], Assertion::Json { path: "$.a".into(), equals: Some(serde_json::json!(1.5)) });
+    assert_eq!(
+        read.assertions[1],
+        Assertion::Json { path: "$.b".into(), equals: Some(serde_json::json!({"x": "1979-05-27", "y": [true]})) }
+    );
+    assert_eq!(read.assertions[2], Assertion::Header { name: "ETag".into(), equals: None });
+
+    let written = RequestFile::new(&read).to_string();
+    assert!(written.contains("secret = true"), "{written}");
+    assert_eq!(RequestFile::parse(&written).unwrap().read().unwrap(), read);
+    let null = StoredRequest {
+        assertions: vec![Assertion::Json { path: "$".into(), equals: Some(serde_json::Value::Null) }],
+        ..read
+    };
+    assert!(RequestFile::new(&null).to_string().contains("equals = \"null\""));
+
+    for bad in [
+        "[[captures]]\nvar = \"v\"\nfrom = \"cookie\"\n",
+        "[[captures]]\nfrom = \"body\"\n",
+        "[[assertions]]\ncheck = \"status\"\nequals = \"ok\"\n",
+        "[[assertions]]\ncheck = \"status\"\nequals = 99999\n",
+        "[[assertions]]\ncheck = \"time\"\nbelow_ms = -1\n",
+        "[[assertions]]\nequals = 1\n",
+        "captures = 3\n",
+    ] {
+        let text = format!("{BASE}{bad}");
+        assert!(RequestFile::parse(&text).unwrap().read().is_err(), "{bad}");
+    }
+}

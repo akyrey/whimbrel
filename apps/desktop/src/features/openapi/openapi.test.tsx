@@ -171,6 +171,37 @@ describe("spec browser", () => {
     );
   });
 
+  it("re-imports: compares, lets a conflict take the spec's side, applies", async () => {
+    const spec = await importPets();
+    await userEvent.click(within(spec).getByRole("button", { name: "Re-import…" }));
+    const dialog = screen.getByRole("dialog", { name: "Re-import Pets" });
+    const location = within(dialog).getByRole("textbox", { name: "New spec location" });
+    expect(location).toHaveValue("/demo");
+
+    await userEvent.clear(location);
+    await userEvent.type(location, "http://localhost/same.yaml");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Compare" }));
+    expect(
+      await within(dialog).findByText("Nothing changed since the last import."),
+    ).toBeInTheDocument();
+
+    await userEvent.clear(location);
+    await userEvent.type(location, "/specs/pets-v2.yaml");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Compare" }));
+    const changes = await within(dialog).findByRole("list", { name: "Re-import changes" });
+    expect(changes).toHaveTextContent("createPet");
+    expect(changes).toHaveTextContent("Left the spec");
+    expect(within(dialog).getByText(/gonePet/)).toBeInTheDocument();
+    const conflict = within(dialog).getByRole("group", { name: "listPets name" });
+    expect(within(conflict).getByRole("radio", { name: /Keep mine: My pets/ })).toBeChecked();
+    await userEvent.click(within(conflict).getByRole("radio", { name: /Take the spec's/ }));
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Apply" }));
+
+    expect(await screen.findByText("Re-imported: 3 changes")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Re-import Pets" })).toBeNull();
+  });
+
   it("forgets the specs of a closed collection", async () => {
     await importPets();
     useSpecs.getState().forget("/demo");

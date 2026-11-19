@@ -257,3 +257,63 @@ async fn importing_into_a_closed_collection_is_refused() {
 
     assert_eq!(refused.code, "not_open");
 }
+
+#[tokio::test]
+async fn a_kept_spec_is_reimported_from_a_new_file() {
+    let sender = sender();
+    let collections = Collections::default();
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir
+        .path()
+        .canonicalize()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    collections
+        .create(&CollectionCreateArgs {
+            root: root.clone(),
+            name: "Mine".into(),
+        })
+        .unwrap();
+    let first = read(
+        &sender,
+        &SpecSource::File {
+            path: fixture("openapi30.yaml"),
+        },
+        false,
+    )
+    .await
+    .unwrap();
+    let done = install(
+        &collections,
+        &first.api,
+        &first.source,
+        &ImportTarget::Existing {
+            root: root.clone(),
+            folder_name: "Users".into(),
+        },
+    )
+    .unwrap();
+    let changed = dir.path().join("v2.yaml");
+    let text = std::fs::read_to_string(fixture("openapi30.yaml"))
+        .unwrap()
+        .replace("operationId: getUser", "operationId: fetchUser");
+    std::fs::write(&changed, text).unwrap();
+    let args = SpecReimportArgs {
+        root: root.clone(),
+        dir: done.installed.spec_dir.clone(),
+        source: SpecSource::File {
+            path: changed.to_string_lossy().into_owned(),
+        },
+        allow_remote: false,
+        choices: None,
+    };
+
+    let planned = reimport_plan(&collections, &sender, &args).await.unwrap();
+    let applied = reimport_apply(&collections, &sender, &args).await.unwrap();
+
+    assert_eq!(planned.changes.len(), 2, "{:?}", planned.changes);
+    assert_eq!(applied, planned);
+    let kept = wbl_openapi::specs(Path::new(&root)).unwrap();
+    assert!(kept[0].operations.contains_key("fetchUser"));
+}

@@ -41,7 +41,7 @@ fn toml_text(text: &str) -> String {
 }
 
 /// The request file with its `[openapi]` link to the operation.
-fn linked(text: &str, operation_id: &str) -> String {
+pub(crate) fn linked(text: &str, operation_id: &str) -> String {
     format!(
         "{}\n\n[openapi]\noperationId = {}\n",
         text.trim_end(),
@@ -49,7 +49,7 @@ fn linked(text: &str, operation_id: &str) -> String {
     )
 }
 
-fn extension(text: &str) -> &'static str {
+pub(crate) fn extension(text: &str) -> &'static str {
     if text
         .trim_start_matches('\u{feff}')
         .trim_start()
@@ -100,11 +100,12 @@ fn spec_dir(root: &Path, name: &str) -> std::path::PathBuf {
     }
 }
 
-fn manifest(
+pub(crate) fn manifest(
     title: &str,
     source: &Source,
     base: &str,
     files: &BTreeMap<String, (String, String)>,
+    removed: &std::collections::BTreeSet<String>,
 ) -> String {
     let mut doc = DocumentMut::new();
     doc["format"] = value(MANIFEST_FORMAT);
@@ -117,6 +118,9 @@ fn manifest(
         let mut entry = toml_edit::InlineTable::new();
         entry.insert("file", file.as_str().into());
         entry.insert("hash", hash.as_str().into());
+        if removed.contains(id) {
+            entry.insert("removed", true.into());
+        }
         operations.insert(id, value(entry));
     }
     doc.insert("operations", Item::Table(operations));
@@ -182,7 +186,7 @@ pub fn install(
     )?;
     collection::write_atomic(
         &dir.join(MANIFEST),
-        &manifest(&generated.name, source, base, &files),
+        &manifest(&generated.name, source, base, &files, &Default::default()),
     )?;
     installed.spec_dir = dir
         .strip_prefix(root)

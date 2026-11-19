@@ -72,8 +72,8 @@ const get = (stored: Partial<StoredRequest> & { name: string; url?: string }): S
 
 /** Session: a login that captures a token, and a call that needs it (Phase 7). */
 const LOGIN: StoredRequest = {
-  ...get({ name: "Login", order: 10, url: "http://localhost/login" }),
-  request: { ...get({ name: "Login" }).request, method: "POST", url: "http://localhost/login" },
+  ...get({ name: "Get a token", order: 10, url: "http://localhost/login" }),
+  request: { ...get({ name: "Get a token" }).request, method: "POST", url: "http://localhost/login" },
   captures: [{ var: "token", from: "body", path: "$.token", regex: null, secret: true }],
 };
 const ME: StoredRequest = {
@@ -118,7 +118,7 @@ function seed(): void {
         "users/list-users.req.toml",
         { stored: get({ name: "List users", order: 10 }), hash: nextHash() },
       ],
-      ["session/login.req.toml", { stored: LOGIN, hash: nextHash() }],
+      ["session/get-a-token.req.toml", { stored: LOGIN, hash: nextHash() }],
       ["session/me.req.toml", { stored: ME, hash: nextHash() }],
     ]),
   });

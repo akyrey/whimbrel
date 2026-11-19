@@ -1,7 +1,9 @@
 import { Button } from "@roost/ui";
+import { useState } from "react";
 
 import type { Api } from "../../ipc";
 import { OperationPage } from "./OperationPage";
+import { ReimportDialog } from "./ReimportDialog";
 import { SchemaTree } from "./SchemaTree";
 import { SpecNav } from "./SpecNav";
 import { type SpecView, specKey, useSpecs } from "./specsStore";
@@ -76,6 +78,7 @@ function Detail({ api, view, files }: { api: Api; view: SpecView; files: Record<
 export function SpecBrowser({ view }: { view: SpecView }) {
   const api = useSpecs((s) => s.apis[specKey(view)]);
   const spec = useSpecs((s) => s.byRoot[view.root]?.find((x) => x.dir === view.dir));
+  const [reimporting, setReimporting] = useState(false);
   if (!api) return null;
   return (
     <section aria-label={`Spec ${api.title}`} className="flex min-h-0 flex-1 flex-col">
@@ -84,10 +87,29 @@ export function SpecBrowser({ view }: { view: SpecView }) {
         <span className="text-xs text-zinc-500">
           {api.apiVersion && `v${api.apiVersion} · `}OpenAPI {api.versionText}
         </span>
-        <Button className="ml-auto" onClick={useSpecs.getState().close}>
+        {spec && (
+          <Button
+            className="ml-auto"
+            onClick={() => {
+              setReimporting(true);
+            }}
+          >
+            Re-import…
+          </Button>
+        )}
+        <Button className={spec ? "" : "ml-auto"} onClick={useSpecs.getState().close}>
           Close spec
         </Button>
       </header>
+      {reimporting && spec && (
+        <ReimportDialog
+          root={view.root}
+          spec={spec}
+          onClose={() => {
+            setReimporting(false);
+          }}
+        />
+      )}
       <div className="flex min-h-0 flex-1">
         <SpecNav api={api} focus={view.focus} />
         <div className="min-w-0 flex-1 overflow-y-auto p-4">

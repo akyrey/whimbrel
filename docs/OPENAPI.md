@@ -55,10 +55,18 @@ the generated collection (`insta`, as in Dunlin).
 
 ## Re-import
 
-`openapi/import.toml` stores the spec hash and, per operation, a hash of what was generated.
-On re-import: operation removed → mark request (do not delete); added → create; changed and the
-request is untouched since generation (hash matches) → regenerate; changed and edited by the
-user → show a three-way diff (old generated / new generated / current) to accept per field.
+`openapi/<name>/import.toml` stores the spec hash and, per operation, the request file and a hash
+of what was generated. The previous spec is kept as `source.*` beside it, so re-import
+regenerates the *old* collection and compares three versions of each request (D-H17):
+
+- operation removed → the request is marked (`[openapi] removed = true`), never deleted;
+- added → created (in its tag's folder, made if missing);
+- changed and the file is untouched since generation (hash matches) → regenerated;
+- changed and edited by the user → merged field by field (name, method, URL, headers, body,
+  auth, variables, examples): a field only the spec changed is taken, a field only the user
+  changed is kept, and a field both changed is a conflict the user settles (theirs or mine,
+  mine by default);
+- a request deleted by hand is left alone.
 
 ## Spec browser
 

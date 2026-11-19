@@ -209,6 +209,34 @@ export function specCommand(
       return Promise.resolve(specs.get(args.root as string) ?? []);
     case "spec_open":
       return Promise.resolve(PETS_API);
+    case "spec_reimport_plan":
+    case "spec_reimport_apply": {
+      const source = args.source as { kind: string; url?: string; path?: string };
+      const location = source.url ?? source.path ?? "";
+      if (location.includes("same")) return Promise.resolve({ changes: [], skipped: [] });
+      const picked = (args.choices as Record<string, Record<string, string>> | undefined)?.listPets
+        ?.name;
+      return Promise.resolve({
+        changes: [
+          { kind: "added", operationId: "createPet", name: "Create pet" },
+          { kind: "removed", operationId: "oldPet", file: "pets/old.req.toml" },
+          {
+            kind: "merged",
+            operationId: "listPets",
+            file: "pets/list-pets.req.toml",
+            conflicts: [
+              {
+                field: "name",
+                old: "List pets",
+                new: picked === "theirs" ? "chosen" : "All pets",
+                current: "My pets",
+              },
+            ],
+          },
+        ],
+        skipped: ["gonePet"],
+      });
+    }
     case "spec_validate": {
       const body = String(args.body);
       const ok = body.trim().startsWith("[");

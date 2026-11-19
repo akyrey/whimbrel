@@ -22,8 +22,16 @@ Design: [PRD.md](../PRD.md) FR-6, FR-7.5, FR-7.6; [FILE_FORMAT.md](../FILE_FORMA
       cancellable.
 - [x] 7.4 Response validation (FR-7.6): a response checked against its operation's schema
       (status, then `2XX`, then `default`; media type), errors with their JSON pointer.
-- [ ] 7.5 Re-import (FR-7.5): added operations created, removed ones marked, changed ones
+- [x] 7.5 Re-import (FR-7.5): added operations created, removed ones marked, changed ones
       regenerated when untouched since the import, and merged field by field when edited, with
       a choice per conflicting field.
-- [ ] 7.6 Acceptance: login → capture token → authorised call passes as a run (E2E and a Rust
+- [x] 7.6 Acceptance: login → capture token → authorised call passes as a run (E2E and a Rust
       test against a local server); re-importing a changed spec keeps user edits.
+
+## Outcome (2026-11-19)
+
+- Login → capture → authorised call passes as a run: `runner::tests` (Rust, against a local
+  server) and `e2e/runner.spec.ts` (the Session folder of the demo collection).
+- Re-import keeps edits: `wbl-openapi/tests/reimport.rs` (an edited request keeps the user's
+  fields, takes the spec's other changes, and a second re-import finds nothing to do).
+- Not checked here: a real identity provider, and re-import from a remote URL in the built app.
