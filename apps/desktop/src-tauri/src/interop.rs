@@ -5,9 +5,10 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use ts_rs::TS;
-use wbl_core::auth::{Auth, effective};
-use wbl_format::collection::{self, Node};
+use wbl_format::collection;
 use wbl_interop::{Imported, Installed, InteropError};
+
+pub use wbl_engine::interop::InteropSummary;
 
 use crate::collections::Collections;
 use crate::error::AppError;
@@ -45,19 +46,6 @@ pub struct HttpExportArgs {
 
 #[derive(Debug, Clone, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
-pub struct InteropSummary {
-    pub name: String,
-    #[ts(type = "number")]
-    pub requests: usize,
-    pub folders: Vec<String>,
-    pub environments: Vec<String>,
-    #[ts(type = "number")]
-    pub variables: usize,
-    pub warnings: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
 pub struct InteropImported {
     pub root: String,
     pub folder: String,
@@ -65,30 +53,11 @@ pub struct InteropImported {
 }
 
 fn read(path: &str) -> Result<Imported, AppError> {
-    let text = std::fs::read_to_string(path)
-        .map_err(|e| AppError::new("io", format!("Cannot read {path}: {e}")))?;
-    Ok(wbl_interop::read(path, &text)?)
+    Ok(wbl_engine::interop::read(path)?)
 }
 
 pub fn summary(path: &str) -> Result<InteropSummary, AppError> {
-    let imported = read(path)?;
-    Ok(InteropSummary {
-        name: imported.name,
-        requests: imported.requests.len(),
-        folders: imported
-            .folders
-            .iter()
-            .filter(|f| f.len() == 1)
-            .map(|f| f[0].clone())
-            .collect(),
-        environments: imported
-            .environments
-            .iter()
-            .map(|e| e.name.clone())
-            .collect(),
-        variables: imported.variables.len(),
-        warnings: imported.warnings,
-    })
+    Ok(wbl_engine::interop::summary(path)?)
 }
 
 /// Imports into a new collection or a new folder of an open one. An environment file alone
@@ -124,43 +93,13 @@ pub fn import(
     })
 }
 
-fn requests_under<'a>(nodes: &'a [Node], folder: &str, inside: bool, out: &mut Vec<&'a str>) {
-    for node in nodes {
-        match node {
-            Node::Request(r) if inside => out.push(&r.path),
-            Node::Folder(f) => requests_under(&f.children, folder, inside || f.path == folder, out),
-            _ => {}
-        }
-    }
-}
-
-/// Writes the folder's requests (in tree order, each with the auth and headers it inherits)
-/// as `.http`.
+/// Writes the folder's requests as `.http`; returns how many.
 pub fn export(collections: &Collections, args: &HttpExportArgs) -> Result<usize, AppError> {
     let root = collections.opened(&args.root)?;
-    let tree = collection::load(&root)?;
-    let mut paths = Vec::new();
-    requests_under(
-        &tree.children,
-        &args.folder,
-        args.folder.is_empty(),
-        &mut paths,
-    );
-    let mut requests = Vec::new();
-    for path in &paths {
-        let stored = collection::read_request(&root, path)?.stored;
-        let chain = collection::auth::auth_chain(&root, path)?;
-        let inherited = effective(&chain.iter().collect::<Vec<&Auth>>()).clone();
-        let headers = collection::headers::headers_chain(&root, path)?;
-        let request = wbl_core::inherit::with_inherited(&stored.request, &headers);
-        requests.push((wbl_format::StoredRequest { request, ..stored }, inherited));
-    }
-    std::fs::write(
-        &args.destination,
-        wbl_interop::http_export::write(&requests),
-    )
-    .map_err(|e| AppError::new("io", format!("Could not write {}: {e}", args.destination)))?;
-    Ok(requests.len())
+    let (text, count) = wbl_engine::interop::export(&root, &args.folder)?;
+    std::fs::write(&args.destination, text)
+        .map_err(|e| AppError::new("io", format!("Could not write {}: {e}", args.destination)))?;
+    Ok(count)
 }
 
 #[tauri::command]

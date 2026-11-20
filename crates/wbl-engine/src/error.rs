@@ -67,6 +67,18 @@ impl From<wbl_auth::FlowError> for EngineError {
     }
 }
 
+impl From<wbl_openapi::OpenApiError> for EngineError {
+    fn from(error: wbl_openapi::OpenApiError) -> Self {
+        Self::new(error.code(), error.to_string())
+    }
+}
+
+impl From<wbl_interop::InteropError> for EngineError {
+    fn from(error: wbl_interop::InteropError) -> Self {
+        Self::new(error.code(), error.to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use wbl_http::{HttpError, HttpErrorCode};

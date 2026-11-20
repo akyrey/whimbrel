@@ -28,15 +28,20 @@ pub struct Server {
 pub(crate) struct State {
     pub collections: Collections,
     pub secrets: Secrets,
+    /// One connection pool for sends and spec downloads.
+    pub sender: wbl_http::Sender,
 }
 
 impl Server {
     /// A server for `folders` (each must hold a collection), with secrets from `secrets`.
     pub fn new(folders: &[PathBuf], secrets: Secrets) -> Result<Self, McpError> {
+        let sender = wbl_http::Sender::new(wbl_http::SendOptions::default())
+            .map_err(|e| McpError::Engine(e.into()))?;
         Ok(Self {
             state: Arc::new(State {
                 collections: Collections::open(folders)?,
                 secrets,
+                sender,
             }),
         })
     }
@@ -46,7 +51,10 @@ impl Server {
     }
 
     fn tool_router() -> ToolRouter<Self> {
-        Self::read_tools() + Self::request_tools() + Self::environment_tools()
+        Self::read_tools()
+            + Self::request_tools()
+            + Self::environment_tools()
+            + Self::import_tools()
     }
 }
 

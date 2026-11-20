@@ -54,9 +54,11 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
       stay, so restoring the file from git restores them). No tool sets a secret value or
       changes whether an environment is protected. The
       sentinel test: after every write tool, no secret value appears on disk or in any result.
-- [ ] 12.7 Import tools: `import_openapi` (file path or URL), `import_postman`, `import_curl`
-      (into a folder), and `export_http`, through `wbl-openapi` and `wbl-interop`, returning
-      the import report (what was skipped and why).
+- [x] 12.7 Import tools: `import_openapi` (file path or URL), `import_file` (Postman
+      collection or environment, `.http`), `import_curl` (into a folder), and `export_http`
+      (returns the text; writes nothing), through `wbl-openapi` and `wbl-interop`, returning
+      the import report (what was skipped and why). Reading specs and files moves from
+      `src-tauri` into `wbl-engine` so the app and the server share it.
 - [ ] 12.8 `send_request` (a stored request, optional environment and example) and
       `run_folder` (captures and assertions, returns the results grid as rows). A protected
       environment is refused with `protected_environment`. Response bodies are text up to 256 kB; binary bodies are

@@ -6438,10 +6438,13 @@ dependencies = [
  "tokio",
  "tokio-util",
  "ts-rs",
+ "url",
  "wbl-auth",
  "wbl-core",
  "wbl-format",
  "wbl-http",
+ "wbl-interop",
+ "wbl-openapi",
 ]
 
 [[package]]
@@ -6509,6 +6512,9 @@ dependencies = [
  "wbl-core",
  "wbl-engine",
  "wbl-format",
+ "wbl-http",
+ "wbl-interop",
+ "wbl-openapi",
 ]
 
 [[package]]

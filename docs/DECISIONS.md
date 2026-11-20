@@ -334,8 +334,9 @@ canonical form, and sending needs scopes, secrets and auth, which today live in 
 (`resolve.rs`, `secrets.rs`, `auth_apply.rs`, the runner). Postman's server talks to its cloud
 API; ours has none to talk to.
 **Decision.** Two new crates. `wbl-engine` takes the send pipeline out of `src-tauri` without
-Tauri types: scopes and resolution, the keychain wrapper and secret guard, auth context, checks
-and the folder runner; `src-tauri` keeps its commands as thin callers. `wbl-mcp` is the server,
+Tauri types: scopes and resolution, the keychain wrapper and secret guard, auth context, checks,
+the folder runner, and reading specs and Postman/`.http` files for an import; `src-tauri`
+keeps its commands as thin callers. `wbl-mcp` is the server,
 built on the official Rust SDK `rmcp` over stdio, with tools over `wbl-format`, `wbl-engine`,
 `wbl-openapi` and `wbl-interop`. It ships inside the app binary: `whimbrel mcp [--collection
 <dir>]…` starts the server instead of the window, so there is one signed binary, updated with
@@ -356,7 +357,7 @@ through the watcher like any outside change (a dirty tab gets the conflict promp
 - Response bodies returned to the tool are capped (text, 256 kB, truncation reported).
 - MCP sends are not recorded in history in this phase.
 **Consequences.** The dependency rule gains two exceptions: `wbl-engine` depends on `wbl-core`,
-`wbl-format`, `wbl-http`, `wbl-auth` and Roost; `wbl-mcp` on the `wbl-*` crates it serves;
+`wbl-format`, `wbl-http`, `wbl-auth`, `wbl-openapi`, `wbl-interop` and Roost; `wbl-mcp` on the `wbl-*` crates it serves;
 `src-tauri` on both. Logging must never write to stdout in MCP mode, since stdout is
 the protocol channel. Errors are tool results with `isError` and `{code, message, detail?}`,
 so the model reads them. **Verified** with `rmcp` 3.11: MCP 2026-07-28 forbids server-to-client

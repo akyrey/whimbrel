@@ -65,8 +65,8 @@ crates/wbl-auth          auth schemes, OAuth 2 flows, token cache (via roost-key
 crates/wbl-openapi       parse 2.0/3.0/3.1/3.2, resolve refs, normalise, generate, diff
 crates/wbl-interop       Postman v2.1 and .http in, .http out
 crates/wbl-store         app SQLite: history, workspace state, settings (not collections)
-crates/wbl-engine        send pipeline without Tauri: scopes, secrets, auth context, checks,
-                        runner (D-H23)
+crates/wbl-engine        the app's operations without Tauri: scopes, secrets, auth, sending,
+                        checks, runner, spec and Postman/.http reading (D-H23)
 crates/wbl-mcp           MCP server over stdio for AI tools, run as `whimbrel mcp` (D-H23)
 src-tauri               Tauri commands, file watcher, in-flight request registry (thin)
 src                     React frontend by feature: collections, request, examples,
@@ -77,7 +77,7 @@ Dependency rule: `wbl-core` depends on no workspace crate. `wbl-format`, `wbl-ht
 `wbl-store` depend only on `wbl-core` (and `roost-*`). `wbl-openapi` and `wbl-interop` depend on `wbl-core` and
 `wbl-format` (D-H16, D-H19): it generates stored requests and environments and writes them into a
 collection with `wbl-format`'s operations. `wbl-engine` depends on `wbl-core`, `wbl-format`, `wbl-http`,
-`wbl-auth` (and `roost-*`); `wbl-mcp` on the `wbl-*` crates it serves (D-H23). Only `src-tauri`
+`wbl-auth`, `wbl-openapi`, `wbl-interop` (and `roost-*`); `wbl-mcp` on the `wbl-*` crates it serves (D-H23). Only `src-tauri`
 depends on everything.
 
 ## Data flow: sending a request

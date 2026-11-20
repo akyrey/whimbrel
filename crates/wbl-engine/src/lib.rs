@@ -7,6 +7,7 @@ pub mod auth;
 pub mod checks;
 pub mod deliver;
 pub mod error;
+pub mod interop;
 pub mod mask;
 pub mod oauth;
 pub mod resolve;
@@ -14,6 +15,7 @@ pub mod runner;
 pub mod runtime;
 pub mod secrets;
 pub mod send;
+pub mod spec;
 
 pub use args::RequestSendArgs;
 pub use error::EngineError;

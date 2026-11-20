@@ -9,13 +9,15 @@ publish.workspace = true
 
 [features]
 default = []
-ts = ["dep:ts-rs", "wbl-core/ts", "wbl-http/ts", "wbl-format/ts", "wbl-auth/ts"]
+ts = ["dep:ts-rs", "wbl-core/ts", "wbl-http/ts", "wbl-format/ts", "wbl-auth/ts", "wbl-openapi/ts", "wbl-interop/ts"]
 
 [dependencies]
 wbl-core.workspace = true
 wbl-format.workspace = true
 wbl-http.workspace = true
 wbl-auth.workspace = true
+wbl-openapi.workspace = true
+wbl-interop.workspace = true
 roost-keychain.workspace = true
 secrecy = "0.10"
 serde.workspace = true
@@ -23,6 +25,7 @@ serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tokio-util = "0.7"
+url = "2.5"
 ts-rs = { workspace = true, optional = true }
 
 [dev-dependencies]

@@ -11,6 +11,9 @@ publish.workspace = true
 wbl-core.workspace = true
 wbl-format.workspace = true
 wbl-engine.workspace = true
+wbl-http.workspace = true
+wbl-openapi.workspace = true
+wbl-interop.workspace = true
 roost-keychain.workspace = true
 rmcp = { version = "3.11", features = ["server", "transport-io", "macros", "schemars"] }
 schemars = "1"
