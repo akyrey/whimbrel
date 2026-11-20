@@ -5,7 +5,11 @@ import type { CollectionView, Node } from "../../ipc";
 import { AuthDialog } from "../auth/AuthDialog";
 import { TlsDialog } from "../auth/TlsDialog";
 import { EnvironmentEditor } from "../environments/EnvironmentEditor";
-import { NO_ENVIRONMENTS, useEnvironments } from "../environments/environmentsStore";
+import {
+  NO_ENVIRONMENTS,
+  environmentPickerId,
+  useEnvironments,
+} from "../environments/environmentsStore";
 import { fileTabId } from "../tabs/model";
 import { useTabs } from "../tabs/tabsStore";
 import {
@@ -270,6 +274,7 @@ function EnvironmentPicker({ root }: { root: string }) {
   return (
     <div className="flex items-center gap-1 px-2 pb-1">
       <select
+        id={environmentPickerId(root)}
         aria-label="Environment"
         className="input min-w-0 flex-1 py-0 text-xs"
         value={active ?? ""}

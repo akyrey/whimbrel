@@ -43,3 +43,6 @@ export function activeEnvironment(root: string | undefined): EnvironmentEntry | 
   const { entries, active } = useEnvironments.getState();
   return entries[root]?.find((e) => e.id === active[root]) ?? null;
 }
+
+/** The id of a collection's environment picker, so the request bar's chip can focus it. */
+export const environmentPickerId = (root: string): string => `environment-picker:${root}`;

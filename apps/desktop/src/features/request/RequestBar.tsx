@@ -7,7 +7,9 @@ import { useState } from "react";
 import { copyAsCurl } from "../curl/curlActions";
 import { PreviewDialog } from "../send/PreviewDialog";
 import { sendTab } from "../send/sendFlow";
-import { useTabs } from "../tabs/tabsStore";
+import { rootOf, useTabs } from "../tabs/tabsStore";
+import { EnvironmentChip } from "../environments/EnvironmentChip";
+import { useCollections } from "../collections/collectionsStore";
 import { setMethod, setUrl } from "./editing";
 import { VariableInput } from "../variables/VariableInput";
 
@@ -22,6 +24,8 @@ export function RequestBar({ tab }: { tab: Tab }) {
   const sending = tab.status.kind === "sending";
   const { edit, cancel } = useTabs.getState();
   const [previewing, setPreviewing] = useState(false);
+  // A scratch tab takes the first open collection's environment: follow collections opening.
+  useCollections((c) => c.views);
 
   return (
     <form
@@ -32,6 +36,7 @@ export function RequestBar({ tab }: { tab: Tab }) {
       }}
     >
       <div className="flex min-w-80 flex-1 items-center gap-2">
+        <EnvironmentChip root={rootOf(tab)} />
         <input
           aria-label="Method"
           list="request-methods"

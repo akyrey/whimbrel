@@ -74,6 +74,23 @@ describe("variables and environments", () => {
     expect(await screen.findByText("200 OK")).toBeInTheDocument();
   });
 
+  it("shows the active environment beside the URL, protected ones in rose", async () => {
+    await openPing();
+    const chip = () => screen.getByRole("button", { name: /^Environment:/ });
+    expect(chip()).toHaveTextContent("No environment");
+
+    await pickEnvironment("Local");
+    expect(chip()).toHaveTextContent("Local");
+    expect(chip()).not.toHaveClass("text-rose-300");
+
+    await pickEnvironment("Production");
+    expect(chip()).toHaveTextContent("🔒 Production");
+    expect(chip()).toHaveClass("text-rose-300");
+
+    await userEvent.click(chip());
+    expect(screen.getByRole("combobox", { name: "Environment" })).toHaveFocus();
+  });
+
   it("stores a secret, masks it, asks before a protected send, and refuses to save it", async () => {
     await openPing();
     await setUrl("{{base}}/echo");

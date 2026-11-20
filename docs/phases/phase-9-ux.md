@@ -19,7 +19,7 @@ Design: [PRD.md](../PRD.md) FR-1, FR-3, FR-4.6, FR-9.1; D-H17 (JSONPath).
       `wbl-core` with the same engine as captures.
 - [x] 9.5 Shortcuts: next and previous tab, duplicate the tab's request, filter the tree, beautify
       the body, toggle the response beside/below; each is also a palette command.
-- [ ] 9.6 Environment chip: the request bar shows the collection's active environment (none,
+- [x] 9.6 Environment chip: the request bar shows the collection's active environment (none,
       a name, or a protected name in rose with a lock); clicking it focuses the picker.
 - [ ] 9.7 Empty state: with no tab open, actions to open or create a collection, import
       OpenAPI / Postman / cURL, and start a new request, with their shortcuts where they have one.
