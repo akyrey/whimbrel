@@ -48,7 +48,7 @@ function Row({ name, schema, required, depth }: RowProps) {
           <span className="w-4" />
         )}
         <span className="font-mono text-zinc-100">{name}</span>
-        {required && <span className="text-xs text-red-400">required</span>}
+        {required && <span className="text-xs text-rose-400">required</span>}
         <TypeLink schema={schema} />
         {notes.length > 0 && <span className="text-xs text-zinc-500">{notes.join(" · ")}</span>}
       </div>

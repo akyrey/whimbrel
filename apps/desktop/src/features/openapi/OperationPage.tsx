@@ -31,7 +31,7 @@ function ParameterTable({ parameters }: { parameters: Parameter[] }) {
             <tr key={`${p.location}:${p.name}`} className="border-t border-zinc-800 align-top">
               <td className="font-mono">
                 {p.name}
-                {p.required && <span className="ml-1 text-xs text-red-400">required</span>}
+                {p.required && <span className="ml-1 text-xs text-rose-400">required</span>}
                 {p.deprecated && <span className="ml-1 text-xs text-amber-300">deprecated</span>}
               </td>
               <td>{p.location}</td>

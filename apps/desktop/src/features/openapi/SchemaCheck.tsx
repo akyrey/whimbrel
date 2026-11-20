@@ -12,7 +12,7 @@ function Result({ result }: { result: Validation }) {
     return <span className="text-emerald-400">✓ Matches the spec ({where})</span>;
   }
   return (
-    <div className="text-red-400">
+    <div className="text-rose-400">
       ✗ {String(result.errors.length)} difference{result.errors.length === 1 ? "" : "s"} from the
       spec ({where})
       <ul aria-label="Schema errors" className="ml-4 list-disc text-xs">
@@ -56,7 +56,7 @@ export function SchemaCheck({ tab }: { tab: Tab }) {
         <Button onClick={() => void run()}>Validate against the spec</Button>
       </div>
       {typeof shown === "string" && (
-        <span role="alert" className="text-red-400">
+        <span role="alert" className="text-rose-400">
           {shown}
         </span>
       )}

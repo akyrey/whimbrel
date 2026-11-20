@@ -62,7 +62,7 @@ it("assertions and captures are edited, checked and shown", async () => {
 
   const checks = screen.getByRole("list", { name: "Checks" });
   expect(within(checks).getByText(/status 200/)).toBeInTheDocument();
-  expect(within(checks).getByText(/\$\.method is "GET"/)).toHaveClass("text-red-400");
+  expect(within(checks).getByText(/\$\.method is "GET"/)).toHaveClass("text-rose-400");
   expect(within(checks).getByText(/← GET/)).toBeInTheDocument();
   expect(within(checks).getByText(/Nothing found at header X-None/)).toBeInTheDocument();
   expect(await runtimeList()).toEqual([{ name: "method", value: "GET", secret: false }]);

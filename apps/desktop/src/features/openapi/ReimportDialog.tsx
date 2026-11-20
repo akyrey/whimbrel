@@ -165,7 +165,7 @@ export function ReimportDialog({
           }}
         />
         {error && (
-          <p role="alert" className="text-red-400">
+          <p role="alert" className="text-rose-400">
             {error}
           </p>
         )}

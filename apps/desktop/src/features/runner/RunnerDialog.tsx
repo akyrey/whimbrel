@@ -78,7 +78,7 @@ function Results({ results }: { results: StepResult[] }) {
             </td>
             <td>{r.status ?? "—"}</td>
             <td>{r.totalMs === null ? "—" : `${String(r.totalMs)} ms`}</td>
-            <td className={r.passed ? "text-emerald-400" : "text-red-400"}>
+            <td className={r.passed ? "text-emerald-400" : "text-rose-400"}>
               {r.passed ? "passed" : (r.error ?? "failed")}
             </td>
           </tr>
@@ -184,7 +184,7 @@ function Runner({ target }: { target: RunTarget }) {
           <span className="text-xs text-zinc-500">Environment: {environment?.name ?? "none"}</span>
         </div>
         {error && (
-          <p role="alert" className="text-red-400">
+          <p role="alert" className="text-rose-400">
             {error}
           </p>
         )}

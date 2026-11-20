@@ -30,7 +30,7 @@ export function UsedVariables({ tab }: { tab: Tab }) {
             key={name}
             title={text}
             aria-label={text}
-            className={`rounded px-1.5 py-0.5 font-mono ${known ? "bg-zinc-800 text-zinc-300" : "bg-red-950 text-red-300"}`}
+            className={`rounded px-1.5 py-0.5 font-mono ${known ? "bg-zinc-800 text-zinc-300" : "bg-rose-950 text-rose-300"}`}
           >
             {name}
           </li>

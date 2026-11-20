@@ -171,7 +171,7 @@ export function SpecImportDialog({ onClose }: { onClose: () => void }) {
           </select>
         </label>
         {error && (
-          <p role="alert" className="text-red-400">
+          <p role="alert" className="text-rose-400">
             {error}
           </p>
         )}

@@ -1,6 +1,6 @@
 # Roadmap
 
-Nine phases (0–8). Each ends with something runnable. As in Dunlin, each phase gets a brief in
+Ten phases (0–9). Each ends with something runnable. As in Dunlin, each phase gets a brief in
 `docs/phases/` (tasks, tests, acceptance criteria) before work on it starts; the task lists below
 are the seeds for those briefs.
 
@@ -16,6 +16,7 @@ are the seeds for those briefs.
 - [x] Phase 6: OpenAPI import and spec browser
 - [x] Phase 7: Chaining, assertions, runner, re-import
 - [ ] Phase 8: Polish, interop, release
+- [ ] Phase 9: Everyday UX ([brief](phases/phase-9-ux.md))
 
 ## Order and dependencies
 
