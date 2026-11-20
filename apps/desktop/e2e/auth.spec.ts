@@ -17,7 +17,7 @@ test("a collection's OAuth 2: get a token, then requests send it", async ({ page
   const panel = page.getByRole("group", { name: "OAuth 2 token" });
   await expect(panel).toContainText("No token yet.");
   await panel.getByRole("button", { name: "Get token" }).click();
-  await expect(panel).toContainText("Token ready");
+  await expect(panel).toContainText("Using “Token 1”");
 
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByLabel("Response body")).toContainText("Bearer access-1");

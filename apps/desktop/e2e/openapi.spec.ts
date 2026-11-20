@@ -7,7 +7,8 @@ test("import an OpenAPI spec and browse it", async ({ page }) => {
   await page.getByRole("button", { name: "Open…" }).click();
   await expect(page.getByRole("region", { name: "Demo API" })).toBeVisible();
 
-  await page.getByRole("button", { name: "OpenAPI…" }).click();
+  await page.getByRole("button", { name: "Add or import" }).click();
+  await page.getByRole("menuitem", { name: "Import OpenAPI…" }).click();
   await page.getByRole("radio", { name: "URL" }).check();
   await page.getByRole("textbox", { name: "Spec URL" }).fill("http://localhost/remote.yaml");
   await page.getByRole("button", { name: "Read", exact: true }).click();
@@ -47,7 +48,8 @@ test("import an OpenAPI spec and browse it", async ({ page }) => {
 
 test("a document that is not OpenAPI is refused before importing", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "OpenAPI…" }).click();
+  await page.getByRole("button", { name: "Add or import" }).click();
+  await page.getByRole("menuitem", { name: "Import OpenAPI…" }).click();
   await page.getByRole("radio", { name: "URL" }).check();
   await page.getByRole("textbox", { name: "Spec URL" }).fill("http://localhost/broken.yaml");
   await page.getByRole("button", { name: "Read", exact: true }).click();

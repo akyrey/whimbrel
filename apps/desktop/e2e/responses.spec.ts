@@ -46,7 +46,9 @@ test("history and cURL import", async ({ page }) => {
     page.getByRole("navigation", { name: "History" }).getByRole("button", { name: /users/ }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Import cURL…" }).click();
+  await page.getByRole("tab", { name: "Collections" }).click();
+  await page.getByRole("button", { name: "Add or import" }).click();
+  await page.getByRole("menuitem", { name: "Import cURL…" }).click();
   await page
     .getByRole("textbox", { name: "cURL command" })
     .fill("curl 'http://localhost/echo' -H 'X-From: curl'");
