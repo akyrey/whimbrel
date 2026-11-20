@@ -42,9 +42,11 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
       path, order), `get_request` (the file's request, with examples, captures and assertions;
       inherited headers and auth listed separately), `list_environments`, `get_environment`
       (variables with values, secret ones as names with `secret: true`, `protected`).
-- [ ] 12.5 Request and folder tools: `create_request`, `update_request` (whole request, as the
-      app saves it; refuses literal secret values with the app's guard), `create_folder`,
-      `rename`, `move`, `reorder`, `duplicate`, `delete`. Each returns the canonical form.
+- [x] 12.5 Request and folder tools: `create_request` (fields left out take defaults),
+      `update_request` (the fields given replace the current ones; refuses literal secret
+      values with the app's guard), `create_folder`, `rename`, `move`, `reorder`, `duplicate`,
+      `delete`, and `set_headers` / `set_auth` for folders and the collection (guarded the same
+      way). Each returns the canonical form.
       Tests: an unchanged update leaves the file byte-identical; a move keeps the tree valid.
 - [ ] 12.6 Environment tools: `create_environment`, `set_variables` (add, change, remove;
       marking a variable secret stores the name only and removes any value from the file),
