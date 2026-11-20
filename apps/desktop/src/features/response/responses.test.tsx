@@ -99,6 +99,24 @@ describe("response views", () => {
     });
   });
 
+  it("shows where the time went, and says when the connection was reused", async () => {
+    render(<App />);
+    let panel = await send("http://localhost/echo");
+    await userEvent.click(within(panel).getByRole("tab", { name: "Timing" }));
+    const waterfall = within(panel).getByRole("list", { name: "Timing" });
+    expect(within(waterfall).getByText("DNS").closest("li")).toHaveTextContent("2 ms");
+    expect(within(waterfall).getByText("Connect (TCP + TLS)").closest("li")).toHaveTextContent(
+      "5 ms",
+    );
+    expect(within(waterfall).getByText("Waiting").closest("li")).toHaveTextContent("5 ms");
+    expect(within(waterfall).getByText("Download").closest("li")).toHaveTextContent("3 ms");
+    expect(within(panel).queryByText(/reused/i)).toBeNull();
+
+    panel = await send("http://localhost/users");
+    await userEvent.click(within(panel).getByRole("tab", { name: "Timing" }));
+    expect(within(panel).getByText(/Reused a connection/)).toBeInTheDocument();
+  });
+
   it("previews images and shows binary bodies as hex", async () => {
     render(<App />);
     const image = await send("http://localhost/image");

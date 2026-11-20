@@ -5,6 +5,7 @@ import type { Response } from "../../ipc";
 import type { SendStatus } from "../tabs/model";
 import { BodyView } from "./BodyView";
 import { EventsView } from "./EventsView";
+import { TimingView } from "./TimingView";
 import { ChecksView } from "../checks/ChecksView";
 import { summary } from "../checks/checks";
 import { cookiesOf, formatSize, statusTone } from "./format";
@@ -45,7 +46,7 @@ function Pairs({ label, pairs }: { label: string; pairs: [string, string][] }) {
   );
 }
 
-type View = "body" | "headers" | "cookies" | "events" | "checks";
+type View = "body" | "headers" | "cookies" | "events" | "checks" | "timing";
 
 function Tabs({
   views,
@@ -125,6 +126,7 @@ export function ResponsePanel({ status }: { status: SendStatus }) {
     ...(result
       ? [["checks", `Checks (${String(result.passed)}/${String(result.total)})`] as [View, string]]
       : []),
+    ["timing", "Timing"],
   ];
   return (
     <section aria-label="Response" className="flex min-h-0 flex-1 flex-col gap-2 p-4">
@@ -146,6 +148,7 @@ export function ResponsePanel({ status }: { status: SendStatus }) {
         )}
         {view === "events" && <EventsView events={events} live={false} />}
         {view === "checks" && checks && <ChecksView checks={checks} />}
+        {view === "timing" && <TimingView timing={response.timing} />}
       </div>
     </section>
   );
