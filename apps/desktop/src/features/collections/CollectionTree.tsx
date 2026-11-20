@@ -30,6 +30,7 @@ import {
 import { useCollections } from "./collectionsStore";
 import { filterNodes } from "./filter";
 import { type TreeDrag, dragProps, hoverClass, useTreeDrag } from "./treeDrag";
+import { CollectionsMenu } from "./CollectionsMenu";
 import { NameDialog } from "./NameDialog";
 import { useRunner } from "../runner/runnerStore";
 
@@ -398,25 +399,33 @@ export function CollectionTree() {
 
   return (
     <nav aria-label="Collections" className="flex min-h-0 flex-1 flex-col">
-      <div className="flex gap-1 p-2">
-        <Button onClick={() => void openCollection()}>Open…</Button>
-        <Button onClick={() => void startCollection()}>New collection…</Button>
+      <div className="flex items-center gap-1 px-2 pb-1 pt-2">
+        <input
+          id={TREE_FILTER_ID}
+          type="search"
+          aria-label="Filter requests"
+          placeholder="Filter requests"
+          className="input min-w-0 flex-1 py-0.5 text-xs"
+          value={filter}
+          spellCheck={false}
+          onChange={(e) => {
+            setFilter(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setFilter("");
+          }}
+        />
+        <CollectionsMenu onNewCollection={() => void startCollection()} />
       </div>
-      <input
-        id={TREE_FILTER_ID}
-        type="search"
-        aria-label="Filter requests"
-        placeholder="Filter requests"
-        className="input mx-2 mb-1 py-0.5 text-xs"
-        value={filter}
-        spellCheck={false}
-        onChange={(e) => {
-          setFilter(e.target.value);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") setFilter("");
-        }}
-      />
+      {Object.keys(views).length === 0 && (
+        <div className="flex flex-col items-start gap-2 p-2 text-xs text-zinc-400">
+          <p>No collection is open.</p>
+          <div className="flex gap-1">
+            <Button onClick={() => void openCollection()}>Open…</Button>
+            <Button onClick={() => void startCollection()}>New collection…</Button>
+          </div>
+        </div>
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {Object.values(views).map((view) => (
           <CollectionItem key={view.root} view={view} ui={ui} />

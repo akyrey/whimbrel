@@ -6,6 +6,7 @@ import { App } from "../../App";
 import { installMockBackend } from "../../test/mockBackend";
 import { useCollections } from "../collections/collectionsStore";
 import { useEnvironments } from "../environments/environmentsStore";
+import { useSidebar } from "../layout/sidebarStore";
 import { useTabs } from "../tabs/tabsStore";
 
 const writeText = vi.fn<(text: string) => Promise<void>>(() => Promise.resolve());
@@ -16,6 +17,7 @@ beforeEach(() => {
   useTabs.setState({ tabs: [], activeId: null });
   useCollections.setState({ views: {} });
   useEnvironments.setState({ entries: {}, active: {} });
+  useSidebar.setState({ side: "collections" });
   Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
   writeText.mockClear();
   vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(400);
@@ -222,7 +224,8 @@ describe("history", () => {
 describe("cURL", () => {
   it("imports a pasted command and copies a request back as cURL", async () => {
     render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: "Import cURL…" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add or import" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Import cURL…" }));
     await userEvent.type(
       screen.getByRole("textbox", { name: "cURL command" }),
       "curl -X PUT 'http://localhost/echo' -H 'X-Api: 1' --compressed",
@@ -245,7 +248,8 @@ describe("cURL", () => {
 
   it("explains a command it cannot read", async () => {
     render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: "Import cURL…" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add or import" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Import cURL…" }));
     await userEvent.type(screen.getByRole("textbox", { name: "cURL command" }), "wget http://x");
     await userEvent.click(screen.getByRole("button", { name: "Import" }));
     expect(await screen.findByText("This is not a cURL command")).toBeInTheDocument();

@@ -30,7 +30,8 @@ async function openDemo() {
 
 it("imports a Postman collection into a folder of the open collection", async () => {
   const tree = await openDemo();
-  await userEvent.click(screen.getByRole("button", { name: "Postman…" }));
+  await userEvent.click(screen.getByRole("button", { name: "Add or import" }));
+  await userEvent.click(screen.getByRole("menuitem", { name: "Import Postman or .http…" }));
   const dialog = screen.getByRole("dialog", { name: "Import from Postman or .http" });
   expect(within(dialog).getByRole("button", { name: "Import" })).toBeDisabled();
 
@@ -51,7 +52,8 @@ it("imports a Postman collection into a folder of the open collection", async ()
 
 it("a new collection that cannot be made is reported in the dialog", async () => {
   await openDemo();
-  await userEvent.click(screen.getByRole("button", { name: "Postman…" }));
+  await userEvent.click(screen.getByRole("button", { name: "Add or import" }));
+  await userEvent.click(screen.getByRole("menuitem", { name: "Import Postman or .http…" }));
   const dialog = screen.getByRole("dialog", { name: "Import from Postman or .http" });
   await userEvent.click(within(dialog).getByRole("button", { name: "Choose file…" }));
   await within(dialog).findByLabelText("Import summary");

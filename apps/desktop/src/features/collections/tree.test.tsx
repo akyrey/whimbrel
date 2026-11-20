@@ -159,3 +159,27 @@ describe("drag and drop", () => {
     expect(over).toBe(true);
   });
 });
+
+it("keeps open, create and import in one menu and hides the start buttons once a collection is open", async () => {
+  render(<App />);
+  const add = screen.getByRole("button", { name: "Add or import" });
+  await userEvent.click(add);
+  const items = within(screen.getByRole("menu", { name: "Add or import" })).getAllByRole(
+    "menuitem",
+  );
+  expect(items.map((i) => i.textContent)).toEqual([
+    "Open collection…",
+    "New collection…",
+    "Import cURL…",
+    "Import OpenAPI…",
+    "Import Postman or .http…",
+  ]);
+  await userEvent.click(add);
+  expect(screen.queryByRole("menu", { name: "Add or import" })).toBeNull();
+
+  await userEvent.click(add);
+  await userEvent.click(screen.getByRole("menuitem", { name: "Open collection…" }));
+  await screen.findByRole("region", { name: "Demo API" });
+  expect(screen.queryByRole("button", { name: "Open…" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "New collection…" })).toBeNull();
+});

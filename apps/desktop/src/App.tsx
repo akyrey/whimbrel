@@ -261,7 +261,7 @@ function RequestView({ tab }: { tab: Tab }) {
   );
 }
 
-/** Collections or history, and the cURL import. */
+/** Collections or history, and the settings. */
 function Sidebar() {
   const side = useSidebar((s) => s.side);
   const setSide = useSidebar.getState().show;
@@ -288,36 +288,9 @@ function Sidebar() {
         ))}
         <button
           type="button"
-          className="ml-auto text-xs text-zinc-400 hover:text-zinc-100"
-          onClick={() => {
-            useDialogs.getState().show("curl");
-          }}
-        >
-          Import cURL…
-        </button>
-        <button
-          type="button"
-          className="text-xs text-zinc-400 hover:text-zinc-100"
-          onClick={() => {
-            useDialogs.getState().show("openapi");
-          }}
-        >
-          OpenAPI…
-        </button>
-        <button
-          type="button"
-          className="text-xs text-zinc-400 hover:text-zinc-100"
-          onClick={() => {
-            useDialogs.getState().show("interop");
-          }}
-        >
-          Postman…
-        </button>
-        <button
-          type="button"
           aria-label="Settings"
           title="Settings"
-          className="text-xs text-zinc-400 hover:text-zinc-100"
+          className="ml-auto text-xs text-zinc-400 hover:text-zinc-100"
           onClick={() => {
             useDialogs.getState().show("settings");
           }}

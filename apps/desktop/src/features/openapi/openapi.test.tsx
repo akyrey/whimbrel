@@ -34,7 +34,8 @@ async function openDialog() {
   render(<App />);
   await userEvent.click(screen.getByRole("button", { name: "Open…" }));
   await screen.findByRole("region", { name: "Demo API" });
-  await userEvent.click(screen.getByRole("button", { name: "OpenAPI…" }));
+  await userEvent.click(screen.getByRole("button", { name: "Add or import" }));
+  await userEvent.click(screen.getByRole("menuitem", { name: "Import OpenAPI…" }));
   return screen.findByRole("dialog", { name: "Import OpenAPI" });
 }
 
