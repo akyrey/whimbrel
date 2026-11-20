@@ -1,7 +1,6 @@
 import { CommandPalette, type PaletteItem } from "@roost/palette";
 import { ShortcutsView } from "@roost/shortcuts";
 import {
-  Button,
   ConfirmDialog,
   EditorSettingsProvider,
   PanelBoundary,
@@ -43,6 +42,7 @@ import { VariablesContext, useScopeVariables } from "./features/variables/scope"
 import { RunnerDialog } from "./features/runner/RunnerDialog";
 import { ExamplesBar } from "./features/examples/ExamplesBar";
 import { AppDialogs } from "./features/shell/AppDialogs";
+import { EmptyState } from "./features/shell/EmptyState";
 import { UpdatePrompt } from "./features/updates/UpdatePrompt";
 import { useUpdates } from "./features/updates/updateStore";
 import { useDialogs } from "./features/shell/dialogsStore";
@@ -260,15 +260,6 @@ function RequestView({ tab }: { tab: Tab }) {
         </div>
       </div>
     </VariablesContext.Provider>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-zinc-400">
-      <p>Open a request from a collection, or start a new one.</p>
-      <Button onClick={useTabs.getState().newScratch}>New request</Button>
-    </div>
   );
 }
 

@@ -21,7 +21,7 @@ Design: [PRD.md](../PRD.md) FR-1, FR-3, FR-4.6, FR-9.1; D-H17 (JSONPath).
       the body, toggle the response beside/below; each is also a palette command.
 - [x] 9.6 Environment chip: the request bar shows the collection's active environment (none,
       a name, or a protected name in rose with a lock); clicking it focuses the picker.
-- [ ] 9.7 Empty state: with no tab open, actions to open or create a collection, import
+- [x] 9.7 Empty state: with no tab open, actions to open a collection, import
       OpenAPI / Postman / cURL, and start a new request, with their shortcuts where they have one.
 
 ## Notes
@@ -32,6 +32,7 @@ Design: [PRD.md](../PRD.md) FR-1, FR-3, FR-4.6, FR-9.1; D-H17 (JSONPath).
 - 9.5: next/previous tab are ⌃Tab / ⌃⇧Tab (or ⌘⌥→ / ⌘⌥←), duplicate ⌘⇧D, filter ⌘P, beautify
   ⌘⇧B, response placement ⌘J. CodeMirror's basic setup binds ⌘D, ⌘[ and ⌘], and the registry
   cannot match ⇧ with brackets, so those are avoided. A duplicate is a new unsaved tab.
+- 9.7: creating a collection needs the tree's name dialog, so it stays in the sidebar.
 
 ## Acceptance
 

@@ -90,3 +90,22 @@ it("the palette opens dialogs, runs collections and switches environments", asyn
   await command("run demo api");
   expect(screen.getByRole("dialog", { name: "Run Demo API" })).toBeInTheDocument();
 });
+
+it("offers ways to start when no tab is open", async () => {
+  render(<App />);
+  const start = screen.getByRole("region", { name: "Get started" });
+  expect(within(start).getByRole("button", { name: "New request" })).toHaveTextContent(/T$/);
+  for (const name of [
+    "Open a collection…",
+    "Import an OpenAPI document…",
+    "Import from Postman or .http…",
+  ]) {
+    expect(within(start).getByRole("button", { name })).toBeInTheDocument();
+  }
+
+  await userEvent.click(within(start).getByRole("button", { name: "Import a cURL command…" }));
+  expect(useDialogs.getState().open).toBe("curl");
+
+  await userEvent.click(within(start).getByRole("button", { name: "Open a collection…" }));
+  expect(await screen.findByRole("region", { name: "Demo API" })).toBeInTheDocument();
+});
