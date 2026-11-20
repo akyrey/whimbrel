@@ -19,7 +19,7 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
 
 ### Shared pipeline
 
-- [ ] 12.1 `wbl-engine` crate: move `resolve.rs`, `secrets.rs`, `auth_apply.rs`, `checks.rs`
+- [x] 12.1 `wbl-engine` crate: move `resolve.rs`, `secrets.rs`, `auth_apply.rs`, `checks.rs`
       and the runner core out of `src-tauri` with their tests, replacing Tauri types (channels,
       `AppError`) with the engine's own error enum (stable codes) and plain callbacks or
       streams. `src-tauri` commands call the engine. Behaviour unchanged: the existing

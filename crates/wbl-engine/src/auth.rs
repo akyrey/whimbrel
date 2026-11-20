@@ -8,8 +8,8 @@ use wbl_core::auth::{Auth, AuthError, ResolvedAuth, apply, effective, resolve_au
 use wbl_core::interpolate::{Resolved, Scope, SystemDynamic};
 use wbl_format::collection::{self, auth};
 
-use crate::error::AppError;
-use crate::ipc::RequestSendArgs;
+use crate::args::RequestSendArgs;
+use crate::error::EngineError;
 
 /// Tokens of requests outside any collection are cached under this id.
 pub const NO_COLLECTION: &str = "no-collection";
@@ -20,7 +20,7 @@ pub struct AuthContext {
     pub collection_id: String,
 }
 
-fn chain(root: Option<&Path>, args: &RequestSendArgs) -> Result<Vec<Auth>, AppError> {
+fn chain(root: Option<&Path>, args: &RequestSendArgs) -> Result<Vec<Auth>, EngineError> {
     let mut chain = vec![args.auth.clone().unwrap_or_default()];
     if let Some(root) = root {
         match &args.path {
@@ -35,11 +35,11 @@ pub fn context(
     root: Option<&Path>,
     args: &RequestSendArgs,
     scopes: &[Scope],
-) -> Result<AuthContext, AppError> {
+) -> Result<AuthContext, EngineError> {
     let links = chain(root, args)?;
     let refs: Vec<&Auth> = links.iter().collect();
     let auth = resolve_auth(effective(&refs), scopes, &SystemDynamic).map_err(|e| {
-        AppError::new("unresolved", e.to_string())
+        EngineError::new("unresolved", e.to_string())
             .with_detail(json!({ "undefined": e.undefined, "unsetSecrets": e.unset_secrets }))
     })?;
     let collection_id = match root {
@@ -57,14 +57,14 @@ pub fn finish(
     resolved: Resolved,
     context: &AuthContext,
     token: Option<&wbl_auth::Token>,
-) -> Result<Resolved, AppError> {
+) -> Result<Resolved, EngineError> {
     let request = apply(
         &resolved.request,
         &context.auth,
         token.map(|t| t.access_token.as_str()),
     )
     .map_err(|e| match e {
-        AuthError::TokenRequired => AppError::new("oauth_required", e.to_string()),
+        AuthError::TokenRequired => EngineError::new("oauth_required", e.to_string()),
     })?;
     let mut secrets = resolved.secrets;
     secrets.extend(context.auth.secrets.iter().cloned());

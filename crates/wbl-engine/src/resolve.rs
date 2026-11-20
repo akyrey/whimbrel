@@ -10,7 +10,7 @@ use wbl_core::example::{Example, apply};
 use wbl_core::interpolate::{Resolved, Scope, SystemDynamic, Value, resolve};
 use wbl_format::collection::{self, environments};
 
-use crate::error::AppError;
+use crate::error::EngineError;
 use crate::secrets::Secrets;
 
 /// Secrets this short are not looked for in saved files: they would match ordinary text.
@@ -25,7 +25,8 @@ fn plain(map: &std::collections::BTreeMap<String, String>) -> Scope {
 }
 
 /// Where a scope's values come from, for the editor's hints.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, ts_rs::TS)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum Source {
     Example,
@@ -46,7 +47,7 @@ pub fn labeled_scopes(
     request_variables: Option<&std::collections::BTreeMap<String, String>>,
     runtime: Scope,
     secrets: &Secrets,
-) -> Result<Vec<(Source, Scope)>, AppError> {
+) -> Result<Vec<(Source, Scope)>, EngineError> {
     let mut scopes: Vec<(Source, Scope)> = example
         .map(|e| (Source::Example, e.scope()))
         .into_iter()
@@ -82,7 +83,7 @@ pub fn scopes(
     request_variables: Option<&std::collections::BTreeMap<String, String>>,
     runtime: Scope,
     secrets: &Secrets,
-) -> Result<Vec<Scope>, AppError> {
+) -> Result<Vec<Scope>, EngineError> {
     Ok(labeled_scopes(
         root,
         environment,
@@ -97,7 +98,8 @@ pub fn scopes(
 }
 
 /// A variable the editor can complete and explain.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, ts_rs::TS)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ScopeVariable {
     pub name: String,
     /// `None` for a secret (never sent to the frontend) and for dynamic values.
@@ -153,10 +155,10 @@ pub fn resolved(
     request: &Request,
     example: Option<&Example>,
     scopes: &[Scope],
-) -> Result<Resolved, AppError> {
+) -> Result<Resolved, EngineError> {
     let base = example.map_or_else(|| request.clone(), |e| apply(request, e));
     resolve(&base, scopes, &SystemDynamic).map_err(|e| {
-        AppError::new("unresolved", e.to_string())
+        EngineError::new("unresolved", e.to_string())
             .with_detail(json!({ "undefined": e.undefined, "unsetSecrets": e.unset_secrets }))
     })
 }
@@ -168,7 +170,7 @@ pub fn masked(resolved: &Resolved) -> Request {
 
 /// Refuses to write `text` into the collection when it holds the value of one of the
 /// collection's secrets (FR-2.8.5); the error names the secret, never its value.
-pub fn guard(root: &Path, text: &str, secrets: &Secrets) -> Result<(), AppError> {
+pub fn guard(root: &Path, text: &str, secrets: &Secrets) -> Result<(), EngineError> {
     let collection_id = collection::id(root)?;
     for entry in environments::list(root)? {
         if entry.error.is_some() {
@@ -180,7 +182,7 @@ pub fn guard(root: &Path, text: &str, secrets: &Secrets) -> Result<(), AppError>
                 continue;
             };
             if value.chars().count() >= MIN_GUARDED_SECRET && text.contains(&value) {
-                return Err(AppError::new(
+                return Err(EngineError::new(
                     "contains_secret",
                     format!(
                         "This holds the value of the secret {} ({}). Use {{{{{}}}}} instead.",
@@ -191,4 +193,68 @@ pub fn guard(root: &Path, text: &str, secrets: &Secrets) -> Result<(), AppError>
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used)]
+
+    use wbl_format::collection::environments;
+    use wbl_format::{Environment, SecretName};
+
+    use super::*;
+    use crate::test_support::fixture;
+
+    #[test]
+    fn guard_refuses_a_secret_value_and_names_the_secret() {
+        let f = fixture();
+        let root = f.root();
+        let id = environments::create(
+            &root,
+            &Environment {
+                name: "Dev".into(),
+                protected: false,
+                variables: Default::default(),
+                secrets: vec![
+                    SecretName {
+                        name: "key".into(),
+                        description: String::new(),
+                    },
+                    SecretName {
+                        name: "pin".into(),
+                        description: String::new(),
+                    },
+                ],
+            },
+        )
+        .unwrap();
+        f.secrets
+            .set(&f.collection_id(), &id, "key", "s3cret-value")
+            .unwrap();
+        f.secrets.set(&f.collection_id(), &id, "pin", "12").unwrap();
+
+        let error = guard(&root, "token = \"s3cret-value\"", &f.secrets).unwrap_err();
+
+        assert_eq!(error.code, "contains_secret");
+        assert!(error.message.contains("key") && !error.message.contains("s3cret-value"));
+        assert!(
+            guard(&root, "{{key}} and 12", &f.secrets).is_ok(),
+            "short secrets are not looked for"
+        );
+    }
+
+    #[test]
+    fn states_say_which_secrets_are_set() {
+        let f = fixture();
+        f.secrets.set("c", "e", "a", "1").unwrap();
+
+        let states = f
+            .secrets
+            .states("c", "e", &["a".to_owned(), "b".to_owned()])
+            .unwrap();
+        f.secrets.clear("c", "e", "a").unwrap();
+
+        assert!(states[0].set && !states[1].set);
+        assert_eq!(f.secrets.get("c", "e", "a").unwrap(), None);
+    }
 }

@@ -2,36 +2,41 @@
 //! without a running app. Each is logged by name, duration and error code only.
 
 use tauri::State;
-use wbl_http::{Exchange, StreamEvent};
+use wbl_engine::send::Sources;
+use wbl_http::StreamEvent;
 
 use crate::collections::Collections;
 use crate::error::AppError;
 use crate::ipc::{RequestCancelArgs, RequestSendArgs};
 use crate::logging::logged;
-use crate::resolve::{masked, resolved, scopes};
+use crate::resolve::masked;
 use crate::secrets::Secrets;
 use crate::state::AppState;
 
-/// What resolving a request needs: its scopes, its auth and the headers it inherits.
-pub struct Parts {
-    pub scopes: Vec<wbl_core::interpolate::Scope>,
-    pub auth: crate::auth_apply::AuthContext,
-    /// Its folders' headers (innermost first), then its collection's (D-H22).
-    inherited: Vec<Vec<wbl_core::Header>>,
-    root: Option<std::path::PathBuf>,
+pub use wbl_engine::runtime::runtime_key;
+pub use wbl_engine::send::Parts;
+
+/// The request's collection, which must be open.
+fn root_of(
+    collections: &Collections,
+    args: &RequestSendArgs,
+) -> Result<Option<std::path::PathBuf>, AppError> {
+    args.root
+        .as_deref()
+        .map(|r| collections.opened(r))
+        .transpose()
 }
 
-/// The headers a request inherits: none outside a collection, the collection's when unsaved.
-fn inherited_headers(
-    root: Option<&std::path::Path>,
-    path: Option<&str>,
-) -> Result<Vec<Vec<wbl_core::Header>>, AppError> {
-    use wbl_format::collection::headers;
-    Ok(match (root, path) {
-        (None, _) => Vec::new(),
-        (Some(root), Some(path)) => headers::headers_chain(root, path)?,
-        (Some(root), None) => vec![headers::headers_of(root, "")?],
-    })
+fn sources<'a>(
+    collections: &'a Collections,
+    secrets: &'a Secrets,
+    root: Option<&'a std::path::Path>,
+) -> Sources<'a> {
+    Sources {
+        root,
+        runtime: &collections.runtime,
+        secrets,
+    }
 }
 
 pub fn parts(
@@ -39,91 +44,11 @@ pub fn parts(
     secrets: &Secrets,
     args: &RequestSendArgs,
 ) -> Result<Parts, AppError> {
-    let root = args
-        .root
-        .as_deref()
-        .map(|r| collections.opened(r))
-        .transpose()?;
-    let runtime = collections.runtime.scope(&runtime_key(root.as_deref()))?;
-    let scopes = scopes(
-        root.as_deref(),
-        args.environment.as_deref(),
-        args.example.as_ref(),
-        args.variables.as_ref(),
-        runtime,
-        secrets,
-    )?;
-    let auth = crate::auth_apply::context(root.as_deref(), args, &scopes)?;
-    let inherited = inherited_headers(root.as_deref(), args.path.as_deref())?;
-    Ok(Parts {
-        scopes,
-        auth,
-        inherited,
-        root,
-    })
-}
-
-/// The runtime variables of a collection are keyed by its canonical root.
-pub fn runtime_key(root: Option<&std::path::Path>) -> String {
-    root.map_or_else(
-        || crate::runtime::LOOSE.to_owned(),
-        |r| r.to_string_lossy().into_owned(),
-    )
-}
-
-/// The request as it will be sent: inherited headers, example, variables and auth applied.
-fn build(
-    args: &RequestSendArgs,
-    parts: &Parts,
-    token: Option<&wbl_auth::Token>,
-) -> Result<wbl_core::interpolate::Resolved, AppError> {
-    let request = wbl_core::inherit::with_inherited(&args.request, &parts.inherited);
-    let resolved = resolved(&request, args.example.as_ref(), &parts.scopes)?;
-    crate::auth_apply::finish(resolved, &parts.auth, token)
-}
-
-/// For showing (preview, cURL): the cached token as it is, not refreshed.
-fn prepare(
-    collections: &Collections,
-    secrets: &Secrets,
-    args: &RequestSendArgs,
-) -> Result<wbl_core::interpolate::Resolved, AppError> {
-    let parts = parts(collections, secrets, args)?;
-    let token = crate::oauth::cached(secrets, &parts.auth)?;
-    build(args, &parts, token.as_ref())
-}
-
-/// The collection's own TLS files, read for each send (they are small, and may change).
-fn tls_of(parts: &Parts) -> Result<wbl_http::TlsFiles, AppError> {
-    let Some(root) = &parts.root else {
-        return Ok(wbl_http::TlsFiles::default());
-    };
-    let settings = wbl_format::collection::auth::tls(root)?;
-    let read = |name: &str| -> Result<Option<Vec<u8>>, AppError> {
-        if name.is_empty() {
-            return Ok(None);
-        }
-        let path = wbl_format::collection::auth::tls_file(root, name);
-        std::fs::read(&path).map(Some).map_err(|e| {
-            AppError::new(
-                "tls",
-                format!("Cannot read the collection's TLS file {name}: {e}"),
-            )
-        })
-    };
-    Ok(wbl_http::TlsFiles {
-        ca_pem: read(&settings.ca_file)?,
-        client_pem: read(&settings.client_cert_file)?,
-    })
-}
-
-/// The cookie jar of the collection a request belongs to (by its stable id).
-fn jar_of(collections: &Collections, args: &RequestSendArgs) -> Option<String> {
-    let root = args
-        .root
-        .as_deref()
-        .and_then(|r| collections.opened(r).ok())?;
-    wbl_format::collection::id(&root).ok()
+    let root = root_of(collections, args)?;
+    Ok(wbl_engine::send::parts(
+        &sources(collections, secrets, root.as_deref()),
+        args,
+    )?)
 }
 
 /// Sends a request; a newer one from the same tab cancels it. Stream events go to `on_event`.
@@ -134,32 +59,23 @@ pub async fn send(
     on_event: &mut (dyn FnMut(StreamEvent) + Send),
     args: RequestSendArgs,
 ) -> Result<crate::checks::Sent, AppError> {
-    let parts = parts(collections, secrets, &args)?;
-    let token = crate::oauth::usable(&state.oauth, secrets, &parts.auth).await?;
-    let resolved = build(&args, &parts, token.as_ref())?;
-    let resolved = match &parts.root {
-        Some(root) => wbl_core::interpolate::Resolved {
-            request: wbl_core::Request {
-                body: resolved.request.body.with_files_under(root),
-                ..resolved.request
-            },
-            ..resolved
-        },
-        None => resolved,
-    };
-    let exchange = Exchange {
-        settings: args.settings.unwrap_or_default(),
-        jar: jar_of(collections, &args),
-        tls: tls_of(&parts)?,
-    };
+    let root = root_of(collections, &args)?;
+    let sources = sources(collections, secrets, root.as_deref());
+    let ready = wbl_engine::send::ready(&state.oauth, &sources, &args).await?;
     let sent_at_ms = crate::history::now_ms();
     let ticket = state.in_flight.start(&args.request_id)?;
     let result = state
         .sender
-        .send_with(&resolved.request, &exchange, &ticket.token, on_event)
+        .send_with(
+            &ready.resolved.request,
+            &ready.exchange,
+            &ticket.token,
+            on_event,
+        )
         .await
         .map_err(AppError::from);
     state.in_flight.finish(&args.request_id, &ticket)?;
+    let resolved = &ready.resolved;
     crate::history::record(
         state,
         &wbl_store::NewEntry {
@@ -169,12 +85,18 @@ pub async fn send(
                 .name
                 .clone()
                 .unwrap_or_else(|| resolved.request.url.clone()),
-            request: masked(&resolved),
+            request: masked(resolved),
             outcome: crate::history::outcome(&result, &resolved.secrets),
         },
     );
     let response = result?;
-    let checks = crate::checks::after_send(collections, secrets, &args, &response)?;
+    let checks = wbl_engine::checks::after_send(
+        &collections.runtime,
+        secrets,
+        root.as_deref(),
+        &args,
+        &response,
+    )?;
     Ok(crate::checks::Sent { response, checks })
 }
 
@@ -184,21 +106,11 @@ pub fn variables(
     secrets: &Secrets,
     args: &RequestSendArgs,
 ) -> Result<Vec<crate::resolve::ScopeVariable>, AppError> {
-    let root = args
-        .root
-        .as_deref()
-        .map(|r| collections.opened(r))
-        .transpose()?;
-    let runtime = collections.runtime.scope(&runtime_key(root.as_deref()))?;
-    let labeled = crate::resolve::labeled_scopes(
-        root.as_deref(),
-        args.environment.as_deref(),
-        args.example.as_ref(),
-        args.variables.as_ref(),
-        runtime,
-        secrets,
-    )?;
-    Ok(crate::resolve::in_scope(&labeled))
+    let root = root_of(collections, args)?;
+    Ok(wbl_engine::send::variables(
+        &sources(collections, secrets, root.as_deref()),
+        args,
+    )?)
 }
 
 #[tauri::command]
@@ -219,7 +131,11 @@ pub fn preview(
     secrets: &Secrets,
     args: &RequestSendArgs,
 ) -> Result<wbl_core::Request, AppError> {
-    Ok(masked(&prepare(collections, secrets, args)?))
+    let root = root_of(collections, args)?;
+    Ok(wbl_engine::send::preview(
+        &sources(collections, secrets, root.as_deref()),
+        args,
+    )?)
 }
 
 /// Cancels the tab's request; `false` when it had already finished.
@@ -303,13 +219,12 @@ pub fn curl_command(
     secrets: &Secrets,
     args: &crate::ipc::CurlExportArgs,
 ) -> Result<String, AppError> {
-    let resolved = prepare(collections, secrets, &args.send)?;
-    let request = if args.reveal {
-        resolved.request.clone()
-    } else {
-        masked(&resolved)
-    };
-    Ok(wbl_core::curl::to_curl(&request))
+    let root = root_of(collections, &args.send)?;
+    Ok(wbl_engine::send::curl(
+        &sources(collections, secrets, root.as_deref()),
+        &args.send,
+        args.reveal,
+    )?)
 }
 
 #[tauri::command]

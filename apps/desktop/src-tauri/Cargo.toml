@@ -22,6 +22,7 @@ wbl-store = { workspace = true, features = ["ts"] }
 wbl-auth = { workspace = true, features = ["ts"] }
 wbl-openapi = { workspace = true, features = ["ts"] }
 wbl-interop = { workspace = true, features = ["ts"] }
+wbl-engine = { workspace = true, features = ["ts"] }
 roost-shell = { workspace = true, features = ["ts"] }
 roost-keychain.workspace = true
 secrecy = "0.10"

@@ -4,11 +4,10 @@
 //! `<key>`; it is moved into the list the first time it is read.
 
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 use wbl_auth::Token;
 use wbl_core::auth::OAuth2Config;
 
-use crate::error::AppError;
+use crate::error::EngineError;
 use crate::secrets::Secrets;
 
 /// The keychain "environment" slot that holds tokens.
@@ -38,11 +37,11 @@ impl Index {
         self.tokens.iter().any(|e| e.id == id)
     }
 
-    fn require(&self, id: &str) -> Result<(), AppError> {
+    fn require(&self, id: &str) -> Result<(), EngineError> {
         if self.has(id) {
             Ok(())
         } else {
-            Err(AppError::new("not_found", "That token is gone"))
+            Err(EngineError::new("not_found", "That token is gone"))
         }
     }
 
@@ -54,7 +53,7 @@ impl Index {
         }
     }
 
-    pub fn renamed(&self, id: &str, name: &str) -> Result<Index, AppError> {
+    pub fn renamed(&self, id: &str, name: &str) -> Result<Index, EngineError> {
         self.require(id)?;
         let tokens = self
             .tokens
@@ -76,7 +75,7 @@ impl Index {
         })
     }
 
-    pub fn selected(&self, id: &str) -> Result<Index, AppError> {
+    pub fn selected(&self, id: &str) -> Result<Index, EngineError> {
         self.require(id)?;
         Ok(Index {
             active: Some(id.to_owned()),
@@ -85,7 +84,7 @@ impl Index {
     }
 
     /// Without `id`; removing the token in use leaves none in use.
-    pub fn without(&self, id: &str) -> Result<Index, AppError> {
+    pub fn without(&self, id: &str) -> Result<Index, EngineError> {
         self.require(id)?;
         Ok(Index {
             active: self.active.clone().filter(|a| a != id),
@@ -111,13 +110,13 @@ impl Index {
 }
 
 /// A name as typed: trimmed, not empty, not too long.
-pub fn clean_name(name: &str) -> Result<String, AppError> {
+pub fn clean_name(name: &str) -> Result<String, EngineError> {
     let name = name.trim();
     if name.is_empty() {
-        return Err(AppError::new("invalid_argument", "A token needs a name"));
+        return Err(EngineError::new("invalid_argument", "A token needs a name"));
     }
     if name.chars().count() > MAX_NAME_CHARS {
-        return Err(AppError::new(
+        return Err(EngineError::new(
             "invalid_argument",
             format!("A token name has at most {MAX_NAME_CHARS} characters"),
         ));
@@ -126,14 +125,15 @@ pub fn clean_name(name: &str) -> Result<String, AppError> {
 }
 
 /// What the frontend sees of a token: never the token itself.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct OAuthToken {
     pub id: String,
     pub name: String,
-    #[ts(type = "number")]
+    #[cfg_attr(feature = "ts", ts(type = "number"))]
     pub obtained_at_ms: i64,
-    #[ts(type = "number | null")]
+    #[cfg_attr(feature = "ts", ts(type = "number | null"))]
     pub expires_at_ms: Option<i64>,
     pub scope: Option<String>,
     pub can_refresh: bool,
@@ -147,8 +147,8 @@ pub struct Tokens<'a> {
     key: String,
 }
 
-fn to_json<T: Serialize>(value: &T) -> Result<String, AppError> {
-    serde_json::to_string(value).map_err(|e| AppError::internal(e.to_string()))
+fn to_json<T: Serialize>(value: &T) -> Result<String, EngineError> {
+    serde_json::to_string(value).map_err(|e| EngineError::internal(e.to_string()))
 }
 
 impl<'a> Tokens<'a> {
@@ -164,18 +164,18 @@ impl<'a> Tokens<'a> {
         format!("{}:{id}", self.key)
     }
 
-    fn save_index(&self, index: &Index) -> Result<(), AppError> {
+    fn save_index(&self, index: &Index) -> Result<(), EngineError> {
         self.secrets
             .set(self.collection, SLOT, &self.key, &to_json(index)?)
     }
 
-    fn save_token(&self, id: &str, token: &Token) -> Result<(), AppError> {
+    fn save_token(&self, id: &str, token: &Token) -> Result<(), EngineError> {
         self.secrets
             .set(self.collection, SLOT, &self.token_key(id), &to_json(token)?)
     }
 
     /// The index; an older single token becomes the first of the list.
-    pub fn index(&self) -> Result<Index, AppError> {
+    pub fn index(&self) -> Result<Index, EngineError> {
         let Some(text) = self.secrets.get(self.collection, SLOT, &self.key)? else {
             return Ok(Index::default());
         };
@@ -189,7 +189,7 @@ impl<'a> Tokens<'a> {
         self.add(&Index::default(), None, &token, wbl_auth::now_ms())
     }
 
-    pub fn get(&self, id: &str) -> Result<Option<Token>, AppError> {
+    pub fn get(&self, id: &str) -> Result<Option<Token>, EngineError> {
         let text = self
             .secrets
             .get(self.collection, SLOT, &self.token_key(id))?;
@@ -198,7 +198,7 @@ impl<'a> Tokens<'a> {
     }
 
     /// The token in use, with its id.
-    pub fn active(&self) -> Result<Option<(String, Token)>, AppError> {
+    pub fn active(&self) -> Result<Option<(String, Token)>, EngineError> {
         let Some(id) = self.index()?.active else {
             return Ok(None);
         };
@@ -212,7 +212,7 @@ impl<'a> Tokens<'a> {
         name: Option<&str>,
         token: &Token,
         now_ms: i64,
-    ) -> Result<Index, AppError> {
+    ) -> Result<Index, EngineError> {
         let name = match name.map(str::trim).filter(|n| !n.is_empty()) {
             Some(n) => clean_name(n)?,
             None => index.default_name(),
@@ -229,21 +229,21 @@ impl<'a> Tokens<'a> {
     }
 
     /// Replaces a token's value (after a refresh), keeping its name.
-    pub fn replace(&self, id: &str, token: &Token) -> Result<(), AppError> {
+    pub fn replace(&self, id: &str, token: &Token) -> Result<(), EngineError> {
         self.save_token(id, token)
     }
 
-    pub fn rename(&self, id: &str, name: &str) -> Result<(), AppError> {
+    pub fn rename(&self, id: &str, name: &str) -> Result<(), EngineError> {
         let next = self.index()?.renamed(id, &clean_name(name)?)?;
         self.save_index(&next)
     }
 
-    pub fn select(&self, id: &str) -> Result<(), AppError> {
+    pub fn select(&self, id: &str) -> Result<(), EngineError> {
         let next = self.index()?.selected(id)?;
         self.save_index(&next)
     }
 
-    pub fn remove(&self, id: &str) -> Result<(), AppError> {
+    pub fn remove(&self, id: &str) -> Result<(), EngineError> {
         let next = self.index()?.without(id)?;
         self.secrets
             .clear(self.collection, SLOT, &self.token_key(id))?;
@@ -251,7 +251,7 @@ impl<'a> Tokens<'a> {
     }
 
     /// Every token that is still in the keychain, oldest first.
-    pub fn list(&self) -> Result<Vec<OAuthToken>, AppError> {
+    pub fn list(&self) -> Result<Vec<OAuthToken>, EngineError> {
         let index = self.index()?;
         let shown = |entry: &Entry, token: Token| OAuthToken {
             id: entry.id.clone(),

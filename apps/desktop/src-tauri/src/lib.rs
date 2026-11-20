@@ -1,6 +1,5 @@
 //! Whimbrel desktop backend: Tauri commands over the HTTP engine.
 
-pub mod auth_apply;
 pub mod checks;
 pub mod collections;
 pub mod commands;
@@ -12,7 +11,6 @@ pub mod ipc;
 pub mod logging;
 pub mod oauth;
 pub mod registry;
-pub mod resolve;
 pub mod runner;
 pub mod runtime;
 pub mod secrets;
@@ -20,6 +18,8 @@ pub mod spec;
 pub mod state;
 pub mod updates;
 pub mod watch;
+
+pub use wbl_engine::{auth as auth_apply, resolve};
 
 #[cfg(test)]
 mod bindings;

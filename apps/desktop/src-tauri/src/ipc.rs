@@ -4,42 +4,8 @@ use serde::Deserialize;
 use ts_rs::TS;
 use wbl_core::Request;
 
-#[derive(Debug, Clone, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-pub struct RequestSendArgs {
-    /// The tab sending it; `request_cancel` names the same id.
-    pub request_id: String,
-    pub request: Request,
-    /// The collection whose variables apply, and its active environment.
-    #[ts(optional)]
-    pub root: Option<String>,
-    #[ts(optional)]
-    pub environment: Option<String>,
-    /// The example laid over the request, if one is picked.
-    #[ts(optional)]
-    pub example: Option<wbl_core::example::Example>,
-    /// The request's own settings; the defaults when absent.
-    #[ts(optional)]
-    pub settings: Option<wbl_core::RequestSettings>,
-    /// The request's name, for the history.
-    #[ts(optional)]
-    pub name: Option<String>,
-    /// The request's file in the collection: its folders' auth is inherited.
-    #[ts(optional)]
-    pub path: Option<String>,
-    /// The request's own auth (inherit when absent).
-    #[ts(optional)]
-    pub auth: Option<wbl_core::auth::Auth>,
-    /// The request's `[variables]`: after the example, before the environment.
-    #[ts(optional)]
-    pub variables: Option<std::collections::BTreeMap<String, String>>,
-    /// Values to take from the response into runtime variables.
-    #[ts(optional)]
-    pub captures: Option<Vec<wbl_core::check::Capture>>,
-    /// Checks of the response.
-    #[ts(optional)]
-    pub assertions: Option<Vec<wbl_core::check::Assertion>>,
-}
+/// What a send takes; shared with the engine.
+pub use wbl_engine::RequestSendArgs;
 
 #[derive(Debug, Clone, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]

@@ -109,12 +109,12 @@ pub fn set_secret(
             format!("{} declares no secret {}", read.environment.name, args.name),
         ));
     }
-    secrets.set(
+    Ok(secrets.set(
         &collection::id(&root)?,
         &args.environment,
         &args.name,
         &args.value,
-    )
+    )?)
 }
 
 pub fn clear_secret(
@@ -123,7 +123,7 @@ pub fn clear_secret(
     args: &SecretArgs,
 ) -> Result<(), AppError> {
     let root = state.opened(&args.root)?;
-    secrets.clear(&collection::id(&root)?, &args.environment, &args.name)
+    Ok(secrets.clear(&collection::id(&root)?, &args.environment, &args.name)?)
 }
 
 macro_rules! command {

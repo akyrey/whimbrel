@@ -6316,6 +6316,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "wbl-engine"
+version = "0.6.1"
+dependencies = [
+ "roost-keychain",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "ts-rs",
+ "wbl-auth",
+ "wbl-core",
+ "wbl-format",
+ "wbl-http",
+]
+
+[[package]]
 name = "wbl-format"
 version = "0.6.1"
 dependencies = [
@@ -6558,6 +6577,7 @@ dependencies = [
  "url",
  "wbl-auth",
  "wbl-core",
+ "wbl-engine",
  "wbl-format",
  "wbl-http",
  "wbl-interop",

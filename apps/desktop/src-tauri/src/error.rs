@@ -61,6 +61,27 @@ impl From<wbl_format::FormatError> for AppError {
     }
 }
 
+impl From<wbl_engine::EngineError> for AppError {
+    fn from(error: wbl_engine::EngineError) -> Self {
+        Self {
+            code: error.code,
+            message: error.message,
+            detail: error.detail,
+        }
+    }
+}
+
+/// For the runner, whose steps the app sends through its own `send`.
+impl From<AppError> for wbl_engine::EngineError {
+    fn from(error: AppError) -> Self {
+        Self {
+            code: error.code,
+            message: error.message,
+            detail: error.detail,
+        }
+    }
+}
+
 impl From<roost_shell::ShellError> for AppError {
     fn from(error: roost_shell::ShellError) -> Self {
         Self::new(error.code, error.message)

@@ -14,6 +14,8 @@ use wbl_http::SendOptions;
 use super::*;
 use crate::commands::{preview, send};
 use crate::ipc::{CollectionCreateArgs, RequestSendArgs};
+use wbl_auth::Token;
+use wbl_engine::oauth::tokens::Tokens;
 
 /// Answers `POST /token` with a new token (`access-N`) and every other request with the
 /// Authorization header it got, recorded in `seen`.
@@ -305,7 +307,7 @@ async fn a_bad_name_is_refused_before_signing_in() {
     let context = crate::commands::parts(&f.collections, &f.secrets, &a)
         .unwrap()
         .auth;
-    let long = "x".repeat(tokens::MAX_NAME_CHARS + 1);
+    let long = "x".repeat(MAX_NAME_CHARS + 1);
 
     let refused = authorize(
         &f.state.oauth,
