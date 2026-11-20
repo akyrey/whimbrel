@@ -67,6 +67,7 @@ function CollectionVariables({ root }: { root: string }) {
           onClick={() =>
             void attempt("save the variables", async () => {
               await variablesSave(root, null, toMap(rows));
+              useEnvironments.getState().changed();
               toast.success("Saved");
             })
           }
@@ -154,12 +155,14 @@ function EnvironmentForm({
         onSet={(name, value) =>
           attempt("store the secret", async () => {
             await secretSet(root, id, name, value);
+            useEnvironments.getState().changed();
             await reload();
           })
         }
         onClear={(name) =>
           attempt("clear the secret", async () => {
             await secretClear(root, id, name);
+            useEnvironments.getState().changed();
             await reload();
           })
         }

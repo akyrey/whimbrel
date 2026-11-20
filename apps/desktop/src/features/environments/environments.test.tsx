@@ -74,6 +74,31 @@ describe("variables and environments", () => {
     expect(await screen.findByText("200 OK")).toBeInTheDocument();
   });
 
+  it("makes a saved environment variable known to open tabs at once", async () => {
+    await openPing();
+    await pickEnvironment("Local");
+    await setUrl("{{base}}/{{fresh}}");
+    const used = screen.getByRole("list", { name: "Variables used" });
+    expect(await within(used).findByLabelText("fresh is not defined")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Edit environments" }));
+    const editor = screen.getByRole("dialog", { name: "Environments" });
+    await userEvent.click(within(editor).getByRole("button", { name: /Local/ }));
+    await userEvent.click(
+      (await within(editor).findAllByRole("button", { name: "Add" }))[0] as HTMLElement,
+    );
+    const names = within(editor).getAllByRole("textbox", { name: /^Variables \d+ name$/ });
+    const values = within(editor).getAllByRole("textbox", { name: /^Variables \d+ value$/ });
+    await userEvent.type(names.at(-1) as HTMLElement, "fresh");
+    await userEvent.type(values.at(-1) as HTMLElement, "new");
+    await userEvent.click(within(editor).getByRole("button", { name: "Save" }));
+    expect((await screen.findAllByText("Saved")).length).toBeGreaterThan(0);
+
+    expect(
+      await within(used).findByLabelText("fresh = new (from the environment)"),
+    ).toBeInTheDocument();
+  });
+
   it("shows the active environment beside the URL, protected ones in rose", async () => {
     await openPing();
     const chip = () => screen.getByRole("button", { name: /^Environment:/ });

@@ -14,13 +14,19 @@ type EnvironmentsState = {
   entries: Record<string, EnvironmentEntry[]>;
   /** The active environment of each collection (`null`: none), remembered across starts. */
   active: Record<string, string | null>;
+  /** Grows whenever an environment, its secrets or the collection variables change, so what
+   * caches resolved variables knows to fetch them again. */
+  revision: number;
   load: (root: string) => Promise<void>;
   setActive: (root: string, id: string | null) => void;
+  /** Records a change to variables that `load` would not see (values, secrets). */
+  changed: () => void;
 };
 
 export const useEnvironments = create<EnvironmentsState>()((set, get) => ({
   entries: {},
   active: loadJson<Record<string, string | null>>(STORAGE_KEY, {}),
+  revision: 0,
   load: async (root) => {
     const entries = await environmentList(root);
     const active = get().active[root] ?? null;
@@ -28,12 +34,16 @@ export const useEnvironments = create<EnvironmentsState>()((set, get) => ({
     set({
       entries: { ...get().entries, [root]: entries },
       active: { ...get().active, [root]: stillThere ? active : null },
+      revision: get().revision + 1,
     });
   },
   setActive: (root, id) => {
     const active = { ...get().active, [root]: id };
     set({ active });
     saveJson(STORAGE_KEY, active);
+  },
+  changed: () => {
+    set({ revision: get().revision + 1 });
   },
 }));
 
