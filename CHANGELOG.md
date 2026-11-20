@@ -4,6 +4,14 @@ All notable changes to Whimbrel. The format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-20
+
+### Added
+
+- Hovering a `{{variable}}` in the URL, a header or a query value shows its value (secrets
+  masked) and where it comes from; variables are highlighted there, red when undefined. The row
+  of variables under the URL shows the same tooltip, which also covers the body.
+
 ## [0.4.2] - 2026-11-20
 
 ### Fixed
