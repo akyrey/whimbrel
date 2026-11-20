@@ -356,6 +356,8 @@ through the watcher like any outside change (a dirty tab gets the conflict promp
   `oauth_required`, as in the app (sign in from the app).
 - Response bodies returned to the tool are capped (text, 256 kB, truncation reported).
 - MCP sends are not recorded in history in this phase.
+- Imports read the file path or URL the tool names, as the app's import dialog does; what they
+  write stays inside the named collection.
 **Consequences.** The dependency rule gains two exceptions: `wbl-engine` depends on `wbl-core`,
 `wbl-format`, `wbl-http`, `wbl-auth`, `wbl-openapi`, `wbl-interop` and Roost; `wbl-mcp` on the `wbl-*` crates it serves;
 `src-tauri` on both. Logging must never write to stdout in MCP mode, since stdout is

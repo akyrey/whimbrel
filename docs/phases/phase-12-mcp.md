@@ -12,8 +12,9 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
 - [x] **Verified** `rmcp` 3.11: `#[tool_router]` / `#[tool_handler]` macros, stdio transport,
   an in-process client over `tokio::io::duplex`. Elicitation and roots depend on the protocol
   version (D-H23), so neither is used.
-- **Verify** that `Whimbrel.app/Contents/MacOS/whimbrel mcp` runs headless from a terminal and
-  that the AppImage and deb binaries take arguments the same way.
+- **Verify** that the bundled executable (`Whimbrel.app/Contents/MacOS/Whimbrel` as the README
+  says) runs `mcp` headless from a terminal, and that the AppImage and deb binaries take
+  arguments the same way. The debug binary does (`target/debug/whimbrel mcp`, task 12.10).
 
 ## Tasks
 
@@ -76,14 +77,16 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
       keychain; the sentinel secret is covered in-process (`wbl-engine::deliver`,
       `wbl-mcp` send and environment tests). A running app's watcher picks up the new file
       (covered by the existing watcher tests for outside writes).
-- [ ] 12.11 Docs: a "Use with AI tools" section in the README with the configuration for
-      Claude Desktop, Claude Code and Cursor on macOS and Linux, the tool list, and what the
-      server never does (secret values, browser sign-in, history).
+- [x] 12.11 Docs: a "Use with AI tools (MCP)" section in the README with the configuration
+      for Claude Desktop, Claude Code and Cursor, the tool list, and what the server never
+      does (secret values, protected environments, sign-in, history).
 
 ## Notes
 
-- Tool inputs are validated with JSON Schemas generated from Rust types (via `schemars`, as
-  `rmcp` expects; **Verify**), so a malformed call fails before any file is touched.
+- Tool inputs have JSON Schemas generated from Rust types (`schemars` 1, as `rmcp` expects).
+  Requests, headers and auth are taken as JSON in the shape `get_request` returns and parsed
+  into the `wbl-core` types before any file is touched, so a malformed one fails with
+  `invalid_argument`.
 - Tool descriptions are written for the model: say what a tool changes on disk and that
   secrets are names only.
 - Concurrency with the running app needs nothing new: writes are atomic (`write_atomic`) and
