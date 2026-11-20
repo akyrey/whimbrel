@@ -2,7 +2,10 @@
 //! system browser and a loopback redirect (RFC 8252), device authorization (RFC 8628), refresh.
 //! The client authenticates with `client_secret_post` when it has a secret.
 
+mod endpoint;
 mod loopback;
+
+use endpoint::{endpoint, unreachable};
 
 use std::time::Duration;
 
@@ -17,6 +20,9 @@ const EARLY_MS: i64 = 60_000;
 /// Polling slows down by this much when the server asks (RFC 8628 §3.5).
 const SLOW_DOWN: Duration = Duration::from_secs(5);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+/// How the token URL field is named in errors.
+const TOKEN_URL: &str = "token URL";
+const DEVICE_URL: &str = "device URL";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -61,6 +67,9 @@ pub enum FlowError {
         error: String,
         description: Option<String>,
     },
+    /// A token, authorization or device URL that cannot be sent to.
+    #[error("{0}")]
+    Endpoint(String),
     #[error("The authorization server could not be reached ({0})")]
     Unreachable(String),
     #[error("The authorization server answered something that is not a token ({0})")]
@@ -79,6 +88,7 @@ impl FlowError {
     pub fn code(&self) -> &'static str {
         match self {
             Self::Server { .. } => "oauth_error",
+            Self::Endpoint(_) => "oauth_endpoint",
             Self::Unreachable(_) => "oauth_unreachable",
             Self::Invalid(_) => "oauth_invalid",
             Self::Cancelled => "cancelled",
@@ -155,9 +165,10 @@ impl OAuthClient {
         Self { http }
     }
 
-    /// Posts a form to `url` and reads a JSON answer, or the server's error.
+    /// Posts a form to `url` (the `label` field) and reads a JSON answer, or the server's error.
     async fn post<T: serde::de::DeserializeOwned>(
         &self,
+        label: &str,
         url: &str,
         config: &OAuth2Config,
         mut form: Vec<(&str, String)>,
@@ -166,6 +177,7 @@ impl OAuthClient {
         if !config.client_secret.is_empty() {
             form.push(("client_secret", config.client_secret.clone()));
         }
+        let url = endpoint(label, url)?;
         let response = self
             .http
             .post(url)
@@ -173,12 +185,9 @@ impl OAuthClient {
             .form(&form)
             .send()
             .await
-            .map_err(|e| FlowError::Unreachable(e.without_url().to_string()))?;
+            .map_err(unreachable)?;
         let ok = response.status().is_success();
-        let text = response
-            .text()
-            .await
-            .map_err(|e| FlowError::Unreachable(e.without_url().to_string()))?;
+        let text = response.text().await.map_err(unreachable)?;
         if ok {
             return serde_json::from_str(&text).map_err(|e| FlowError::Invalid(e.to_string()));
         }
@@ -200,7 +209,9 @@ impl OAuthClient {
         form: Vec<(&str, String)>,
     ) -> Result<Token, FlowError> {
         let started = now_ms();
-        let answer: TokenAnswer = self.post(&config.token_url, config, form).await?;
+        let answer: TokenAnswer = self
+            .post(TOKEN_URL, &config.token_url, config, form)
+            .await?;
         Ok(Token {
             access_token: answer.access_token,
             refresh_token: answer.refresh_token,
@@ -251,12 +262,12 @@ impl OAuthClient {
         cancel: &CancellationToken,
         open_browser: impl FnOnce(&str) -> Result<(), String>,
     ) -> Result<Token, FlowError> {
+        let mut url = endpoint("authorization URL", &config.auth_url)?;
+        endpoint(TOKEN_URL, &config.token_url)?;
         let listener = loopback::Listener::bind().await?;
         let redirect_uri = listener.redirect_uri();
         let verifier = random_text(3);
         let state = random_text(1);
-        let mut url = url::Url::parse(&config.auth_url)
-            .map_err(|e| FlowError::Invalid(format!("the authorization URL: {e}")))?;
         {
             let mut query = url.query_pairs_mut();
             query
@@ -286,8 +297,12 @@ impl OAuthClient {
 
     /// Starts the device flow: the user enters `user_code` at `verification_uri`.
     pub async fn device_start(&self, config: &OAuth2Config) -> Result<DeviceCode, FlowError> {
+        endpoint(DEVICE_URL, &config.device_url)?;
+        endpoint(TOKEN_URL, &config.token_url)?;
         let form = Self::scoped(config, Vec::new());
-        let answer: DeviceAnswer = self.post(&config.device_url, config, form).await?;
+        let answer: DeviceAnswer = self
+            .post(DEVICE_URL, &config.device_url, config, form)
+            .await?;
         let verification_uri = answer
             .verification_uri
             .or(answer.verification_url)

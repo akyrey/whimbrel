@@ -186,3 +186,82 @@ async fn an_unreachable_server_is_an_http_error() {
 
     assert_eq!(error.code(), "oauth_unreachable");
 }
+
+fn with_token_url(token_url: &str, grant: Grant) -> OAuth2Config {
+    OAuth2Config {
+        token_url: token_url.into(),
+        ..config("https://idp.example", grant)
+    }
+}
+
+#[tokio::test]
+async fn an_empty_token_url_is_named_before_anything_is_sent() {
+    let error = OAuthClient::new()
+        .client_credentials(&with_token_url("  ", Grant::ClientCredentials))
+        .await
+        .unwrap_err();
+
+    assert_eq!(error.code(), "oauth_endpoint");
+    assert_eq!(error.to_string(), "Enter the token URL");
+}
+
+#[tokio::test]
+async fn a_token_url_without_a_scheme_says_it_needs_one() {
+    let error = OAuthClient::new()
+        .client_credentials(&with_token_url(
+            "idp.example/token",
+            Grant::ClientCredentials,
+        ))
+        .await
+        .unwrap_err();
+
+    assert_eq!(error.code(), "oauth_endpoint");
+    assert_eq!(error.to_string(), "The token URL needs http:// or https://");
+}
+
+#[tokio::test]
+async fn an_invalid_token_url_says_why() {
+    let error = OAuthClient::new()
+        .client_credentials(&with_token_url("https://", Grant::ClientCredentials))
+        .await
+        .unwrap_err();
+
+    assert_eq!(error.code(), "oauth_endpoint");
+    assert!(
+        error
+            .to_string()
+            .starts_with("The token URL is not valid: "),
+        "{error}"
+    );
+}
+
+#[tokio::test]
+async fn authorization_code_checks_the_token_url_before_opening_the_browser() {
+    let mut opened = false;
+    let error = OAuthClient::new()
+        .authorization_code(
+            &with_token_url("", Grant::AuthorizationCode),
+            &CancellationToken::new(),
+            |_| {
+                opened = true;
+                Ok(())
+            },
+        )
+        .await
+        .unwrap_err();
+
+    assert_eq!(error.to_string(), "Enter the token URL");
+    assert!(!opened, "the browser stays closed");
+}
+
+#[tokio::test]
+async fn the_device_flow_names_a_missing_device_url() {
+    let config = OAuth2Config {
+        device_url: String::new(),
+        ..config("https://idp.example", Grant::DeviceCode)
+    };
+
+    let error = OAuthClient::new().device_start(&config).await.unwrap_err();
+
+    assert_eq!(error.to_string(), "Enter the device URL");
+}
