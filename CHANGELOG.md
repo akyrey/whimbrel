@@ -4,6 +4,15 @@ All notable changes to Whimbrel. The format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-20
+
+### Fixed
+
+- "Get token" names an empty or invalid token, authorization or device URL (for example one
+  without http:// or https://) instead of failing with "builder error", and the browser opens only
+  once both the authorization and token URLs are valid.
+- When the authorization server cannot be reached, the error says why.
+
 ## [0.4.1] - 2026-11-20
 
 ### Fixed
