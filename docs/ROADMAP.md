@@ -19,7 +19,7 @@ are the seeds for those briefs.
 - [x] Phase 9: Everyday UX ([brief](phases/phase-9-ux.md))
 - [x] Phase 10: Timing breakdown and response comparison ([brief](phases/phase-10-timings-compare.md))
 - [x] Phase 11: Drag and drop in the tree ([brief](phases/phase-11-tree-dnd.md))
-- [ ] Phase 12: MCP server for AI tools ([brief](phases/phase-12-mcp.md))
+- [x] Phase 12: MCP server for AI tools ([brief](phases/phase-12-mcp.md))
 
 ## Order and dependencies
 

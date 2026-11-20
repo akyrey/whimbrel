@@ -20,7 +20,7 @@ send requests:
 ```
 
 where `<whimbrel>` is the app's executable: on macOS
-`/Applications/Whimbrel.app/Contents/MacOS/Whimbrel`, on Linux the `whimbrel` command the package
+`/Applications/Whimbrel.app/Contents/MacOS/whimbrel`, on Linux the `whimbrel` command the package
 installs (or the AppImage). Only the collections named with `--collection` are reachable.
 
 Claude Desktop (`claude_desktop_config.json`), Cursor (`.cursor/mcp.json`) and other clients that
@@ -30,7 +30,7 @@ use the same format:
 {
   "mcpServers": {
     "whimbrel": {
-      "command": "/Applications/Whimbrel.app/Contents/MacOS/Whimbrel",
+      "command": "/Applications/Whimbrel.app/Contents/MacOS/whimbrel",
       "args": ["mcp", "--collection", "/Users/me/code/shop/api"]
     }
   }
@@ -40,7 +40,7 @@ use the same format:
 Claude Code:
 
 ```sh
-claude mcp add whimbrel -- /Applications/Whimbrel.app/Contents/MacOS/Whimbrel mcp --collection "$PWD/api"
+claude mcp add whimbrel -- /Applications/Whimbrel.app/Contents/MacOS/whimbrel mcp --collection "$PWD/api"
 ```
 
 Tools: `list_collections`, `get_tree`, `get_request`, `list_environments`, `get_environment`;

@@ -367,6 +367,6 @@ requests during a call (elicitation becomes a multi-round-trip `InputRequiredRes
 deprecates roots (SEP-2577), so asking the user mid-call or discovering collections from the
 client depends on the protocol version negotiated. Refusing protected environments and taking
 collections from arguments works with every version and keeps a human confirmation where it
-already is. **Verify**: that a binary inside the macOS `.app` bundle runs headless from a
-terminal.
+already is. **Verified**: the bundled macOS executable (`Contents/MacOS/whimbrel`) runs
+headless from a terminal.
 

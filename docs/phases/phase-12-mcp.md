@@ -12,9 +12,9 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
 - [x] **Verified** `rmcp` 3.11: `#[tool_router]` / `#[tool_handler]` macros, stdio transport,
   an in-process client over `tokio::io::duplex`. Elicitation and roots depend on the protocol
   version (D-H23), so neither is used.
-- **Verify** that the bundled executable (`Whimbrel.app/Contents/MacOS/Whimbrel` as the README
-  says) runs `mcp` headless from a terminal, and that the AppImage and deb binaries take
-  arguments the same way. The debug binary does (`target/debug/whimbrel mcp`, task 12.10).
+- [x] **Verified** with the v0.7.0 release: the bundled executable is
+  `Whimbrel.app/Contents/MacOS/whimbrel` and runs `mcp` headless from a terminal. Linux CI runs
+  the end-to-end test against the built binary.
 
 ## Tasks
 
