@@ -100,7 +100,9 @@ describe("auth", () => {
     expect(await screen.findByText(/needs an OAuth 2 token/)).toBeInTheDocument();
     await userEvent.click(within(panel).getByRole("button", { name: "Get token" }));
     await waitFor(() => {
-      expect(screen.getByRole("group", { name: "OAuth 2 token" })).toHaveTextContent("Token ready");
+      expect(screen.getByRole("group", { name: "OAuth 2 token" })).toHaveTextContent(
+        "Using “Token 1”",
+      );
     });
     await userEvent.click(screen.getByRole("button", { name: "Send" }));
     expect(await screen.findByLabelText("Response body")).toHaveTextContent("Bearer access-1");
@@ -110,6 +112,84 @@ describe("auth", () => {
         "No token yet.",
       );
     });
+  });
+
+  it("names tokens, keeps several, and switches, renames and deletes them", async () => {
+    const tree = await openPing();
+    await collectionAuth(tree, async (dialog) => {
+      await userEvent.selectOptions(
+        within(dialog).getByRole("combobox", { name: "Auth type" }),
+        "oauth2",
+      );
+      await userEvent.type(
+        within(dialog).getByRole("textbox", { name: "Token URL" }),
+        "https://idp/token",
+      );
+    });
+    await userEvent.click(screen.getByText("Auth"));
+    const panel = () => screen.getByRole("group", { name: "OAuth 2 token" });
+    await screen.findByRole("group", { name: "OAuth 2 token" });
+
+    await userEvent.type(within(panel()).getByRole("textbox", { name: "New token name" }), "Alice");
+    await userEvent.click(within(panel()).getByRole("button", { name: "Get token" }));
+    await waitFor(() => {
+      expect(panel()).toHaveTextContent("Using “Alice”");
+    });
+    expect(within(panel()).getByRole("textbox", { name: "New token name" })).toHaveValue("");
+    await userEvent.click(within(panel()).getByRole("button", { name: "Get a new token" }));
+    await waitFor(() => {
+      expect(panel()).toHaveTextContent("Using “Token 1”");
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    expect(await screen.findByLabelText("Response body")).toHaveTextContent("Bearer access-2");
+
+    await userEvent.click(within(panel()).getByRole("button", { name: "Manage tokens (2)" }));
+    const dialog = await screen.findByRole("dialog", { name: "OAuth 2 tokens" });
+    await userEvent.click(within(dialog).getByRole("radio", { name: "Use Alice" }));
+    await waitFor(() => {
+      expect(within(dialog).getByRole("radio", { name: "Use Alice" })).toBeChecked();
+    });
+    const second = within(dialog).getByRole("textbox", { name: "Name of Token 1" });
+    await userEvent.clear(second);
+    await userEvent.type(second, "Bob{Enter}");
+    expect(await within(dialog).findByRole("radio", { name: "Use Bob" })).not.toBeChecked();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+    expect(panel()).toHaveTextContent("Using “Alice”");
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Response body")).toHaveTextContent("Bearer access-1");
+    });
+
+    await userEvent.click(within(panel()).getByRole("button", { name: "Manage tokens (2)" }));
+    const again = await screen.findByRole("dialog", { name: "OAuth 2 tokens" });
+    await userEvent.click(within(again).getByRole("button", { name: "Delete Alice" }));
+    await waitFor(() => {
+      expect(within(again).queryByRole("radio", { name: "Use Alice" })).toBeNull();
+    });
+    await userEvent.click(within(again).getByRole("button", { name: "Close" }));
+    expect(panel()).toHaveTextContent("No token in use");
+  });
+
+  it("refuses an empty token name when renaming", async () => {
+    const tree = await openPing();
+    await collectionAuth(tree, async (dialog) => {
+      await userEvent.selectOptions(
+        within(dialog).getByRole("combobox", { name: "Auth type" }),
+        "oauth2",
+      );
+    });
+    await userEvent.click(screen.getByText("Auth"));
+    const panel = await screen.findByRole("group", { name: "OAuth 2 token" });
+    await userEvent.click(within(panel).getByRole("button", { name: "Get token" }));
+    await userEvent.click(await within(panel).findByRole("button", { name: "Manage tokens (1)" }));
+    const dialog = await screen.findByRole("dialog", { name: "OAuth 2 tokens" });
+    const name = within(dialog).getByRole("textbox", { name: "Name of Token 1" });
+
+    await userEvent.clear(name);
+    await userEvent.tab();
+
+    expect(await screen.findByText("A token needs a name")).toBeInTheDocument();
+    expect(name).toHaveValue("Token 1");
   });
 
   it("shows the fields of each API key place and OAuth grant", async () => {

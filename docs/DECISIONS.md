@@ -290,3 +290,20 @@ there. `Timing` gains `dnsMs` (`null` for an IP address or a reused connection) 
 that hyper finishes in the background after the send took a pooled connection records nothing,
 which is right, since that send did not wait for it. Supersedes the "breakdown waits" part of
 D-H10.
+
+## D-H21 Several named OAuth 2 tokens per configuration (2026-11-20)
+
+**Context.** Phase 5 kept one token per collection and OAuth 2 configuration, replaced by each
+sign-in. Testing as different users, or keeping a token while trying another scope, meant
+signing in again each time, and a token could not be told apart from another.
+**Decision.** A configuration keeps a list of named tokens, one of them in use. In the keychain
+slot `oauth`, the entry `<cacheKey>` holds an index (ids, names, when obtained, the id in use)
+and each token has its own entry `<cacheKey>:<id>`, so no entry grows with the list (Windows
+Credential Manager holds about 2.5 kB per entry). A sign-in adds a token, named by the user or
+`Token N`, and uses it; a refresh replaces the token in use and keeps its name. Removing the
+token in use leaves none in use rather than picking another. A single token stored by an
+earlier version becomes the first of the list when read. Token values still never reach the
+frontend (D-H12): it sees names, times, scope and whether a token can be refreshed.
+**Consequences.** `oauth_forget` is replaced by `oauth_token_change` (rename, select, remove).
+Tokens are listed per configuration, not across the collection, since the keychain cannot be
+enumerated.

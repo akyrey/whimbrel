@@ -23,6 +23,8 @@ D-H19.
       references.
 - [x] 8.8 Release (FR-9.2, 9.3): the updater (plugin, Roost's update commands and prompt), the
       release workflow through Roost's `release-app.yml`, an updater key pair, RELEASING.md.
+- [x] 8.9 OAuth 2 tokens (FR-5.2, D-H21): a sign-in can be named, several tokens are kept per
+      configuration, and "Manage tokens" switches the one in use, renames and deletes them.
 
 ## Notes
 

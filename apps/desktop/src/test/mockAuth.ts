@@ -7,14 +7,18 @@ import type {
   Auth,
   CollectionTls,
   OAuthStatus,
+  OAuthToken,
   Request,
   RequestSendArgs,
+  TokenChange,
 } from "../ipc/generated";
 
 const MASK = "••••••";
 const auths = new Map<string, Auth>();
 const tls = new Map<string, CollectionTls>();
-const tokens = new Map<string, string>();
+type Kept = { id: string; name: string; access: string; obtainedAtMs: number };
+type Kit = { active: string | null; tokens: Kept[] };
+const tokens = new Map<string, Kit>();
 let issued = 0;
 
 export function resetAuth(): void {
@@ -67,7 +71,8 @@ export function applyAuth(
             url: `${request.url}${request.url.includes("?") ? "&" : "?"}${auth.name}=${secret(auth.value)}`,
           };
     case "oauth2": {
-      const token = tokens.get(tokenKey(args));
+      const kit = tokens.get(tokenKey(args));
+      const token = kit?.tokens.find((t) => t.id === kit.active)?.access;
       if (token === undefined)
         return {
           code: "oauth_required",
@@ -80,23 +85,76 @@ export function applyAuth(
   }
 }
 
+const kitOf = (args: RequestSendArgs): Kit =>
+  tokens.get(tokenKey(args)) ?? { active: null, tokens: [] };
+
 function status(args: RequestSendArgs): OAuthStatus {
   const auth = effectiveAuth(args);
-  const has = tokens.has(tokenKey(args));
+  const kit = kitOf(args);
+  const shown: OAuthToken[] = kit.tokens.map((t) => ({
+    id: t.id,
+    name: t.name,
+    obtainedAtMs: t.obtainedAtMs,
+    expiresAtMs: t.obtainedAtMs + 3_600_000,
+    scope: null,
+    canRefresh: true,
+    active: t.id === kit.active,
+  }));
+  const active = shown.find((t) => t.active);
   return {
     configured: auth.type === "oauth2",
     grant: auth.type === "oauth2" ? auth.grant : null,
-    hasToken: has,
-    expiresAtMs: has ? Date.now() + 3_600_000 : null,
+    hasToken: active !== undefined,
+    expiresAtMs: active?.expiresAtMs ?? null,
     scope: null,
-    canRefresh: has,
+    canRefresh: active !== undefined,
+    tokens: shown,
   };
+}
+
+function defaultName(kit: Kit): string {
+  for (let n = 1; ; n += 1) {
+    const name = `Token ${String(n)}`;
+    if (kit.tokens.every((t) => t.name !== name)) return name;
+  }
+}
+
+function authorize(args: RequestSendArgs, name: string | null): OAuthStatus {
+  issued += 1;
+  const kit = kitOf(args);
+  const id = `t${String(issued)}`;
+  const token = {
+    id,
+    name: name?.trim() || defaultName(kit),
+    access: `access-${String(issued)}`,
+    obtainedAtMs: Date.now(),
+  };
+  tokens.set(tokenKey(args), { active: id, tokens: [...kit.tokens, token] });
+  return status(args);
+}
+
+function change(args: RequestSendArgs, request: TokenChange): OAuthStatus {
+  const kit = kitOf(args);
+  const next: Kit =
+    request.type === "select"
+      ? { ...kit, active: request.id }
+      : request.type === "rename"
+        ? {
+            ...kit,
+            tokens: kit.tokens.map((t) => (t.id === request.id ? { ...t, name: request.name } : t)),
+          }
+        : {
+            active: kit.active === request.id ? null : kit.active,
+            tokens: kit.tokens.filter((t) => t.id !== request.id),
+          };
+  tokens.set(tokenKey(args), next);
+  return status(args);
 }
 
 type Args = Record<string, unknown>;
 
-/** The auth commands, or `null` for any other. */
-export function authCommand(command: string, args: Args): Promise<unknown> | null {
+/** The auth commands, or `null` for any other. `extra` holds the parameters beside `args`. */
+export function authCommand(command: string, args: Args, extra: Args): Promise<unknown> | null {
   const send = args as unknown as RequestSendArgs;
   switch (command) {
     case "node_auth_read":
@@ -114,12 +172,9 @@ export function authCommand(command: string, args: Args): Promise<unknown> | nul
     case "oauth_status":
       return Promise.resolve(status(send));
     case "oauth_authorize":
-      issued += 1;
-      tokens.set(tokenKey(send), `access-${String(issued)}`);
-      return Promise.resolve(status(send));
-    case "oauth_forget":
-      tokens.delete(tokenKey(send));
-      return Promise.resolve(null);
+      return Promise.resolve(authorize(send, (extra.name as string | null | undefined) ?? null));
+    case "oauth_token_change":
+      return Promise.resolve(change(send, extra.change as TokenChange));
     default:
       return null;
   }

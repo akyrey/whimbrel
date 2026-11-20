@@ -1,8 +1,10 @@
-//! OAuth 2 tokens (FR-5.2): cached in the keychain per collection and configuration, refreshed
-//! when stale, fetched by the flow the configuration names. The token never reaches the
-//! frontend; only its state does.
+//! OAuth 2 tokens (FR-5.2): kept in the keychain per collection and configuration, refreshed
+//! when stale, fetched by the flow the configuration names. Several named tokens can be kept;
+//! one is in use. A token never reaches the frontend; only its name and state do.
 
-use serde::Serialize;
+mod tokens;
+
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 use ts_rs::TS;
 use wbl_auth::{DeviceCode, FlowError, OAuthClient, Token};
@@ -15,9 +17,8 @@ use crate::ipc::RequestSendArgs;
 use crate::logging::logged;
 use crate::secrets::Secrets;
 use crate::state::AppState;
-
-/// The keychain "environment" slot that holds tokens.
-const SLOT: &str = "oauth";
+pub use tokens::OAuthToken;
+use tokens::{Tokens, clean_name};
 
 impl From<FlowError> for AppError {
     fn from(error: FlowError) -> Self {
@@ -33,31 +34,24 @@ pub fn config_of(context: &AuthContext) -> Option<&OAuth2Config> {
     }
 }
 
+/// The tokens of the configuration that applies, if any.
+fn tokens_of<'a>(secrets: &'a Secrets, context: &'a AuthContext) -> Option<Tokens<'a>> {
+    config_of(context).map(|config| Tokens::new(secrets, &context.collection_id, config))
+}
+
+fn require_tokens<'a>(
+    secrets: &'a Secrets,
+    context: &'a AuthContext,
+) -> Result<Tokens<'a>, AppError> {
+    tokens_of(secrets, context)
+        .ok_or_else(|| AppError::new("invalid_argument", "This request does not use OAuth 2"))
+}
+
+/// The token in use, as it is (not refreshed).
 pub fn cached(secrets: &Secrets, context: &AuthContext) -> Result<Option<Token>, AppError> {
-    let Some(config) = config_of(context) else {
-        return Ok(None);
-    };
-    let Some(text) = secrets.get(&context.collection_id, SLOT, &config.cache_key())? else {
-        return Ok(None);
-    };
-    // An unreadable entry (an older format) is as good as none: get a new token.
-    Ok(serde_json::from_str(&text).ok())
-}
-
-fn store(
-    secrets: &Secrets,
-    context: &AuthContext,
-    config: &OAuth2Config,
-    token: &Token,
-) -> Result<(), AppError> {
-    let text = serde_json::to_string(token).map_err(|e| AppError::internal(e.to_string()))?;
-    secrets.set(&context.collection_id, SLOT, &config.cache_key(), &text)
-}
-
-pub fn forget(secrets: &Secrets, context: &AuthContext) -> Result<(), AppError> {
-    match config_of(context) {
-        Some(config) => secrets.clear(&context.collection_id, SLOT, &config.cache_key()),
-        None => Ok(()),
+    match tokens_of(secrets, context) {
+        Some(tokens) => Ok(tokens.active()?.map(|(_, token)| token)),
+        None => Ok(None),
     }
 }
 
@@ -67,10 +61,10 @@ pub async fn usable(
     secrets: &Secrets,
     context: &AuthContext,
 ) -> Result<Option<Token>, AppError> {
-    let Some(config) = config_of(context) else {
+    let (Some(config), Some(tokens)) = (config_of(context), tokens_of(secrets, context)) else {
         return Ok(None);
     };
-    let Some(token) = cached(secrets, context)? else {
+    let Some((id, token)) = tokens.active()? else {
         return Ok(None);
     };
     if token.is_fresh(wbl_auth::now_ms()) {
@@ -81,7 +75,7 @@ pub async fn usable(
     };
     match client.refresh(config, refresh).await {
         Ok(fresh) => {
-            store(secrets, context, config, &fresh)?;
+            tokens.replace(&id, &fresh)?;
             Ok(Some(fresh))
         }
         // A refused refresh means signing in again.
@@ -101,32 +95,72 @@ pub struct OAuthStatus {
     pub expires_at_ms: Option<i64>,
     pub scope: Option<String>,
     pub can_refresh: bool,
+    /// Every token kept for this configuration; the one in use is `active`.
+    pub tokens: Vec<OAuthToken>,
 }
 
+/// The state of the token in use and the list of kept tokens.
 pub fn status(secrets: &Secrets, context: &AuthContext) -> Result<OAuthStatus, AppError> {
-    let token = cached(secrets, context)?;
+    let tokens = match tokens_of(secrets, context) {
+        Some(tokens) => tokens.list()?,
+        None => Vec::new(),
+    };
+    let active = tokens.iter().find(|t| t.active);
     Ok(OAuthStatus {
         configured: config_of(context).is_some(),
         grant: config_of(context).map(|c| c.grant),
-        has_token: token.is_some(),
-        expires_at_ms: token.as_ref().and_then(|t| t.expires_at_ms),
-        scope: token.as_ref().and_then(|t| t.scope.clone()),
-        can_refresh: token.as_ref().is_some_and(|t| t.refresh_token.is_some()),
+        has_token: active.is_some(),
+        expires_at_ms: active.and_then(|t| t.expires_at_ms),
+        scope: active.and_then(|t| t.scope.clone()),
+        can_refresh: active.is_some_and(|t| t.can_refresh),
+        tokens,
     })
 }
 
-/// Gets a token by the configuration's grant and caches it. `open_browser` shows the
-/// authorization page; `on_device` shows the device code while polling.
+/// What the token list can be asked to do.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, TS)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum TokenChange {
+    Rename { id: String, name: String },
+    Select { id: String },
+    Remove { id: String },
+}
+
+pub fn change(
+    secrets: &Secrets,
+    context: &AuthContext,
+    change: &TokenChange,
+) -> Result<OAuthStatus, AppError> {
+    let tokens = require_tokens(secrets, context)?;
+    match change {
+        TokenChange::Rename { id, name } => tokens.rename(id, name)?,
+        TokenChange::Select { id } => tokens.select(id)?,
+        TokenChange::Remove { id } => tokens.remove(id)?,
+    }
+    status(secrets, context)
+}
+
+/// Gets a token by the configuration's grant and keeps it under `name` (a default when `None`)
+/// as the one in use. `open_browser` shows the authorization page; `on_device` shows the
+/// device code while polling.
 pub async fn authorize(
     client: &OAuthClient,
     secrets: &Secrets,
     context: &AuthContext,
+    name: Option<&str>,
     cancel: &tokio_util::sync::CancellationToken,
     open_browser: impl FnOnce(&str) -> Result<(), String>,
     on_device: impl FnOnce(&DeviceCode),
 ) -> Result<OAuthStatus, AppError> {
     let config = config_of(context)
         .ok_or_else(|| AppError::new("invalid_argument", "This request does not use OAuth 2"))?;
+    let tokens = require_tokens(secrets, context)?;
+    // A bad name is refused before the sign-in, not after it.
+    let name = name
+        .map(str::trim)
+        .filter(|n| !n.is_empty())
+        .map(clean_name)
+        .transpose()?;
     let token = match config.grant {
         Grant::ClientCredentials => client.client_credentials(config).await?,
         Grant::AuthorizationCode => {
@@ -140,7 +174,12 @@ pub async fn authorize(
             client.device_poll(config, &device, cancel).await?
         }
     };
-    store(secrets, context, config, &token)?;
+    tokens.add(
+        &tokens.index()?,
+        name.as_deref(),
+        &token,
+        wbl_auth::now_ms(),
+    )?;
     status(secrets, context)
 }
 
@@ -172,6 +211,7 @@ pub async fn oauth_authorize(
     collections: State<'_, Collections>,
     secrets: State<'_, Secrets>,
     args: RequestSendArgs,
+    name: Option<String>,
     on_device: tauri::ipc::Channel<DeviceCode>,
 ) -> Result<OAuthStatus, AppError> {
     use tauri_plugin_opener::OpenerExt;
@@ -194,21 +234,36 @@ pub async fn oauth_authorize(
                 .unwrap_or(&device.verification_uri);
             let _ = app.opener().open_url(page, None::<&str>);
         };
-        let result = authorize(&state.oauth, &secrets, &context, &ticket.token, open, show).await;
+        let result = authorize(
+            &state.oauth,
+            &secrets,
+            &context,
+            name.as_deref(),
+            &ticket.token,
+            open,
+            show,
+        )
+        .await;
         state.in_flight.finish(&id, &ticket)?;
         result
     })
     .await
 }
 
+/// Renames, uses or removes one of the kept tokens of the request's effective auth.
 #[tauri::command]
-pub async fn oauth_forget(
+pub async fn oauth_token_change(
     collections: State<'_, Collections>,
     secrets: State<'_, Secrets>,
     args: RequestSendArgs,
-) -> Result<(), AppError> {
-    logged("oauth_forget", async {
-        forget(&secrets, &context_for(&collections, &secrets, &args)?)
+    change: TokenChange,
+) -> Result<OAuthStatus, AppError> {
+    logged("oauth_token_change", async {
+        self::change(
+            &secrets,
+            &context_for(&collections, &secrets, &args)?,
+            &change,
+        )
     })
     .await
 }

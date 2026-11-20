@@ -89,7 +89,7 @@ pub fn run() -> Result<(), tauri::Error> {
             checks::response_select,
             oauth::oauth_status,
             oauth::oauth_authorize,
-            oauth::oauth_forget,
+            oauth::oauth_token_change,
             commands::curl_import,
             history::history_list,
             history::history_get,

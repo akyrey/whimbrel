@@ -182,6 +182,7 @@ async fn oauth_needs_a_token_then_sends_it_masked_and_forgets_it() {
         &f.state.oauth,
         &f.secrets,
         &context,
+        Some("Service"),
         &CancellationToken::new(),
         |_| Ok(()),
         |_| {},
@@ -190,17 +191,19 @@ async fn oauth_needs_a_token_then_sends_it_masked_and_forgets_it() {
     .unwrap();
     sent(&f, a.clone()).await.unwrap();
     let shown = preview(&f.collections, &f.secrets, &a).unwrap();
-    forget(&f.secrets, &context).unwrap();
+    let id = after.tokens[0].id.clone();
+    let removed = change(&f.secrets, &context, &TokenChange::Remove { id }).unwrap();
 
     assert_eq!(missing.code, "oauth_required");
     assert!(before.configured && !before.has_token);
     assert!(after.has_token && after.can_refresh);
+    assert_eq!(after.tokens[0].name, "Service");
     assert_eq!(
         seen.lock().unwrap().last().map(String::as_str),
         Some("Bearer access-1")
     );
     assert_eq!(shown.headers[0].value, "Bearer ••••••");
-    assert!(!status(&f.secrets, &context).unwrap().has_token);
+    assert!(!removed.has_token && removed.tokens.is_empty());
 }
 
 #[tokio::test]
@@ -213,13 +216,16 @@ async fn a_stale_token_is_refreshed_and_kept() {
         .unwrap()
         .auth;
     let config = config_of(&context).unwrap().clone();
+    let tokens = Tokens::new(&f.secrets, &context.collection_id, &config);
     let stale = Token {
         access_token: "old".into(),
         refresh_token: Some("refresh-0".into()),
         expires_at_ms: Some(1),
         scope: None,
     };
-    store(&f.secrets, &context, &config, &stale).unwrap();
+    tokens
+        .add(&tokens.index().unwrap(), Some("Kept"), &stale, 1)
+        .unwrap();
 
     sent(&f, a).await.unwrap();
 
@@ -231,4 +237,106 @@ async fn a_stale_token_is_refreshed_and_kept() {
         cached(&f.secrets, &context).unwrap().unwrap().access_token,
         "access-1"
     );
+    assert_eq!(status(&f.secrets, &context).unwrap().tokens[0].name, "Kept");
+}
+
+async fn sign_in(f: &Fixture, context: &AuthContext, name: Option<&str>) -> OAuthStatus {
+    authorize(
+        &f.state.oauth,
+        &f.secrets,
+        context,
+        name,
+        &CancellationToken::new(),
+        |_| Ok(()),
+        |_| {},
+    )
+    .await
+    .unwrap()
+}
+
+#[tokio::test]
+async fn the_token_in_use_is_the_one_sent_and_can_be_switched() {
+    let f = fixture();
+    let (base, seen) = server().await;
+    auth::save_auth(Path::new(&f.root), "", &oauth(&base)).unwrap();
+    let a = args(&f, format!("{base}/data"), None);
+    let context = crate::commands::parts(&f.collections, &f.secrets, &a)
+        .unwrap()
+        .auth;
+    sign_in(&f, &context, Some("Alice")).await;
+    let both = sign_in(&f, &context, None).await;
+    let alice = both.tokens[0].id.clone();
+
+    sent(&f, a.clone()).await.unwrap();
+    let switched = change(
+        &f.secrets,
+        &context,
+        &TokenChange::Select { id: alice.clone() },
+    )
+    .unwrap();
+    sent(&f, a.clone()).await.unwrap();
+    let renamed = change(
+        &f.secrets,
+        &context,
+        &TokenChange::Rename {
+            id: alice,
+            name: "Alice (admin)".into(),
+        },
+    )
+    .unwrap();
+
+    let names: Vec<_> = both.tokens.iter().map(|t| t.name.as_str()).collect();
+    assert_eq!(names, ["Alice", "Token 1"]);
+    assert!(both.tokens[1].active);
+    assert!(switched.tokens[0].active && !switched.tokens[1].active);
+    assert_eq!(
+        seen.lock().unwrap().as_slice(),
+        ["Bearer access-2", "Bearer access-1"]
+    );
+    assert_eq!(renamed.tokens[0].name, "Alice (admin)");
+}
+
+#[tokio::test]
+async fn a_bad_name_is_refused_before_signing_in() {
+    let f = fixture();
+    let (base, _) = server().await;
+    auth::save_auth(Path::new(&f.root), "", &oauth(&base)).unwrap();
+    let a = args(&f, format!("{base}/data"), None);
+    let context = crate::commands::parts(&f.collections, &f.secrets, &a)
+        .unwrap()
+        .auth;
+    let long = "x".repeat(tokens::MAX_NAME_CHARS + 1);
+
+    let refused = authorize(
+        &f.state.oauth,
+        &f.secrets,
+        &context,
+        Some(&long),
+        &CancellationToken::new(),
+        |_| Ok(()),
+        |_| {},
+    )
+    .await
+    .unwrap_err();
+
+    assert_eq!(refused.code, "invalid_argument");
+    assert!(status(&f.secrets, &context).unwrap().tokens.is_empty());
+}
+
+#[tokio::test]
+async fn token_changes_need_an_oauth_request() {
+    let f = fixture();
+    let a = args(&f, "http://127.0.0.1:9/x".into(), None);
+    let context = crate::commands::parts(&f.collections, &f.secrets, &a)
+        .unwrap()
+        .auth;
+
+    let refused = change(
+        &f.secrets,
+        &context,
+        &TokenChange::Select { id: "a".into() },
+    );
+
+    assert_eq!(refused.unwrap_err().code, "invalid_argument");
+    assert!(status(&f.secrets, &context).unwrap().tokens.is_empty());
 }

@@ -563,7 +563,7 @@ export function installMockBackend(): void {
       if (runtimeAnswer) return runtimeAnswer;
       const spec = specCommand(command, args);
       if (spec) return spec;
-      const auth = authCommand(command, args);
+      const auth = authCommand(command, args, (payload ?? {}) as Args);
       if (auth) return auth;
       const extra = phase4Command(command, args, (send, masked) =>
         resolveFor(send as unknown as RequestSendArgs, masked),

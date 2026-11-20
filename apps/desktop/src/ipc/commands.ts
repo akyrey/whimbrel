@@ -25,6 +25,7 @@ import type {
   CollectionTls,
   DeviceCode,
   OAuthStatus,
+  TokenChange,
   CollectionView,
   CurlImported,
   HistoryEntry,
@@ -77,18 +78,24 @@ export const historyClear = (): Promise<null> => call("history_clear");
 export const oauthStatus = (args: RequestSendArgs): Promise<OAuthStatus> =>
   call("oauth_status", args);
 
-/** Gets a token by the configured grant; the device code, if any, comes to `onDevice`.
+/** Gets a token by the configured grant and keeps it, as the one in use, under `name` (a
+ * default name when `null`); the device code, if any, comes to `onDevice`.
  * `requestCancel("oauth:<requestId>")` stops it. */
 export function oauthAuthorize(
   args: RequestSendArgs,
+  name: string | null,
   onDevice: (device: DeviceCode) => void,
 ): Promise<OAuthStatus> {
   const channel = new Channel<DeviceCode>();
   channel.onmessage = onDevice;
-  return callWith("oauth_authorize", args, { onDevice: channel });
+  return callWith("oauth_authorize", args, { name, onDevice: channel });
 }
 
-export const oauthForget = (args: RequestSendArgs): Promise<null> => call("oauth_forget", args);
+/** Renames, uses or removes one of the kept tokens of the request's effective auth. */
+export const oauthTokenChange = (
+  args: RequestSendArgs,
+  change: TokenChange,
+): Promise<OAuthStatus> => callWith("oauth_token_change", args, { change });
 
 /** A folder's auth (`path`), or the collection's (`path` empty). */
 export const nodeAuthRead = (root: string, path: string): Promise<Auth> =>
