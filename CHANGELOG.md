@@ -4,6 +4,13 @@ All notable changes to Whimbrel. The format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-20
+
+### Fixed
+
+- Open tabs see environment changes as soon as they are saved (variables, secrets and collection
+  variables); they no longer need to be closed and reopened.
+
 ## [0.6.0] - 2026-11-20
 
 ### Added
