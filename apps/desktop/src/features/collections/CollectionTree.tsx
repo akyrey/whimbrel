@@ -23,6 +23,7 @@ import {
   renameFolder,
 } from "./actions";
 import { useCollections } from "./collectionsStore";
+import { filterNodes } from "./filter";
 import { NameDialog } from "./NameDialog";
 import { useRunner } from "../runner/runnerStore";
 
@@ -37,7 +38,12 @@ type Dialog =
 type Ui = {
   menu: (event: MouseEvent, label: string, items: ContextMenuItem[]) => void;
   ask: (dialog: Dialog) => void;
+  /** The filter text; while set, folders are shown open. */
+  filter: string;
 };
+
+/** The tree's filter box, for the shortcut that focuses it. */
+export const TREE_FILTER_ID = "tree-filter";
 
 const METHOD_CLASS: Record<string, string> = {
   GET: "text-emerald-400",
@@ -127,7 +133,8 @@ function moveItems(root: string, siblings: Node[], index: number): ContextMenuIt
 }
 
 function NodeItem({ node, root, ui, depth, siblings, index }: ItemProps) {
-  const [open, setOpen] = useState(true);
+  const [opened, setOpen] = useState(true);
+  const open = opened || ui.filter.trim() !== "";
   const indent = { paddingLeft: `${String(depth * 12 + 8)}px` };
   if (node.kind === "broken") {
     return (
@@ -221,7 +228,7 @@ function NodeItem({ node, root, ui, depth, siblings, index }: ItemProps) {
         className="flex w-full items-center gap-1 py-0.5 text-left text-sm text-zinc-200 hover:bg-zinc-800"
         style={indent}
         onClick={() => {
-          setOpen(!open);
+          setOpen(!opened);
         }}
         onContextMenu={(e) => {
           ui.menu(e, `Actions for ${node.name}`, items);
@@ -304,6 +311,7 @@ function EnvironmentPicker({ root }: { root: string }) {
 }
 
 function CollectionItem({ view, ui }: { view: CollectionView; ui: Ui }) {
+  const shown = filterNodes(view.collection.children, ui.filter);
   const items = [
     ...containerItems(ui, view.root, "", view.collection.name),
     {
@@ -334,8 +342,10 @@ function CollectionItem({ view, ui }: { view: CollectionView; ui: Ui }) {
       <EnvironmentPicker root={view.root} />
       {view.collection.children.length === 0 ? (
         <p className="px-2 text-xs text-zinc-500">Empty. Right-click the name to add a request.</p>
+      ) : shown.length === 0 ? (
+        <p className="px-2 text-xs text-zinc-500">No matches.</p>
       ) : (
-        <Nodes nodes={view.collection.children} root={view.root} ui={ui} depth={0} />
+        <Nodes nodes={shown} root={view.root} ui={ui} depth={0} />
       )}
     </section>
   );
@@ -346,7 +356,9 @@ export function CollectionTree() {
   const views = useCollections((s) => s.views);
   const [menu, setMenu] = useState<Menu | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
+  const [filter, setFilter] = useState("");
   const ui: Ui = {
+    filter,
     menu: (event, label, items) => {
       event.preventDefault();
       setMenu({ x: event.clientX, y: event.clientY, label, items });
@@ -371,6 +383,21 @@ export function CollectionTree() {
         <Button onClick={() => void openCollection()}>Open…</Button>
         <Button onClick={() => void startCollection()}>New collection…</Button>
       </div>
+      <input
+        id={TREE_FILTER_ID}
+        type="search"
+        aria-label="Filter requests"
+        placeholder="Filter requests"
+        className="input mx-2 mb-1 py-0.5 text-xs"
+        value={filter}
+        spellCheck={false}
+        onChange={(e) => {
+          setFilter(e.target.value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setFilter("");
+        }}
+      />
       <div className="min-h-0 flex-1 overflow-y-auto">
         {Object.values(views).map((view) => (
           <CollectionItem key={view.root} view={view} ui={ui} />

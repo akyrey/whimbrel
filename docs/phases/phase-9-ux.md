@@ -7,9 +7,10 @@ Design: [PRD.md](../PRD.md) FR-1, FR-3, FR-4.6, FR-9.1; D-H17 (JSONPath).
 
 ## Tasks
 
-- [x] 9.1 Light theme: every colour class comes from a scale `@roost/ui/theme-light.css` mirrors
-      (zinc, sky, rose, amber, emerald); a test fails on any other scale.
-- [ ] 9.2 Tree filter: a box above the tree keeps requests whose name, method or URL path
+- [x] 9.1 Light theme: every colour class comes from a scale the light theme mirrors (zinc,
+      sky, rose, amber, emerald from `@roost/ui/theme-light.css`; violet from `index.css`); a
+      test fails on any other scale.
+- [x] 9.2 Tree filter: a box above the tree keeps requests whose name, method or file path
       contains the text (case-insensitive), with their folders; examples are hidden while
       filtering; Escape clears it.
 - [ ] 9.3 Response body: "Copy body" and a wrap toggle next to "Save to file".
@@ -22,6 +23,11 @@ Design: [PRD.md](../PRD.md) FR-1, FR-3, FR-4.6, FR-9.1; D-H17 (JSONPath).
       a name, or a protected name in rose with a lock); clicking it focuses the picker.
 - [ ] 9.7 Empty state: with no tab open, actions to open or create a collection, import
       OpenAPI / Postman / cURL, and start a new request, with their shortcuts where they have one.
+
+## Notes
+
+- 9.2: the tree's nodes carry no URL, so the filter matches the file path instead; a folder
+  whose name matches keeps all of its contents.
 
 ## Acceptance
 

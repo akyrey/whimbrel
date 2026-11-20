@@ -60,3 +60,28 @@ it("folders are renamed and requests move up and down", async () => {
     expect(requestsIn(tree, /Auth flow/)).toEqual(["POSTGet a token", "GETMe"]);
   });
 });
+
+it("filters the tree by name, keeps the folders above matches, and Escape clears it", async () => {
+  render(<App />);
+  await userEvent.click(screen.getByRole("button", { name: "Open…" }));
+  const tree = await screen.findByRole("region", { name: "Demo API" });
+  const filter = screen.getByRole("searchbox", { name: "Filter requests" });
+
+  await userEvent.type(filter, "TOKEN");
+  expect(within(tree).getByRole("button", { name: /Session/ })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  expect(within(tree).getByRole("button", { name: /Get a token/ })).toBeInTheDocument();
+  expect(within(tree).queryByRole("button", { name: /Ping/ })).toBeNull();
+  expect(within(tree).queryByRole("button", { name: /Users/ })).toBeNull();
+
+  await userEvent.clear(filter);
+  await userEvent.type(filter, "nothing-here");
+  expect(within(tree).getByText("No matches.")).toBeInTheDocument();
+
+  await userEvent.type(filter, "{Escape}");
+  expect(filter).toHaveValue("");
+  expect(within(tree).getByRole("button", { name: /Ping/ })).toBeInTheDocument();
+  expect(within(tree).getByRole("button", { name: /Forged/ })).toBeInTheDocument();
+});
