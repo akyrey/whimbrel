@@ -117,6 +117,30 @@ describe("response views", () => {
     expect(within(panel).getByText(/Reused a connection/)).toBeInTheDocument();
   });
 
+  it("compares the response with the one before it", async () => {
+    render(<App />);
+    let panel = await send("http://localhost/echo");
+    expect(within(panel).queryByRole("tab", { name: "Compare" })).toBeNull();
+
+    panel = await send("http://localhost/nope");
+    await userEvent.click(within(panel).getByRole("tab", { name: "Compare" }));
+    expect(within(panel).getByText("200 OK → 404 Not Found")).toBeInTheDocument();
+    const headers = within(panel).getByRole("table", { name: "Header changes" });
+    expect(within(headers).getByRole("row", { name: /content-type/ })).toHaveTextContent(
+      /application\/json.*text\/plain/,
+    );
+    const body = within(panel).getByRole("list", { name: "Body changes" });
+    expect(within(body).getByText("no such route").closest("li")).toHaveAttribute(
+      "data-change",
+      "added",
+    );
+    expect(
+      within(body)
+        .getByText(/"method": "GET"/)
+        .closest("li"),
+    ).toHaveAttribute("data-change", "removed");
+  });
+
   it("previews images and shows binary bodies as hex", async () => {
     render(<App />);
     const image = await send("http://localhost/image");

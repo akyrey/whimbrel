@@ -13,7 +13,7 @@ Design: [PRD.md](../PRD.md) FR-3.1; D-H10 (superseded in part by D-H20).
       Old history entries without them still read.
 - [x] 10.2 Timing view: a "Timing" tab in the response with a waterfall (DNS, connect,
       waiting, download) and "reused connection" when there was no connect.
-- [ ] 10.3 Compare responses: a tab keeps the response before the current one; a "Compare"
+- [x] 10.3 Compare responses: a tab keeps the response before the current one; a "Compare"
       tab shows the status, the header changes, and a line diff of the (pretty) bodies.
 
 ## Acceptance

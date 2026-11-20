@@ -6,6 +6,7 @@ import type { SendStatus } from "../tabs/model";
 import { BodyView } from "./BodyView";
 import { EventsView } from "./EventsView";
 import { TimingView } from "./TimingView";
+import { CompareView } from "./CompareView";
 import { ChecksView } from "../checks/ChecksView";
 import { summary } from "../checks/checks";
 import { cookiesOf, formatSize, statusTone } from "./format";
@@ -46,7 +47,7 @@ function Pairs({ label, pairs }: { label: string; pairs: [string, string][] }) {
   );
 }
 
-type View = "body" | "headers" | "cookies" | "events" | "checks" | "timing";
+type View = "body" | "headers" | "cookies" | "events" | "checks" | "timing" | "compare";
 
 function Tabs({
   views,
@@ -85,7 +86,13 @@ function Tabs({
   );
 }
 
-export function ResponsePanel({ status }: { status: SendStatus }) {
+type Props = {
+  status: SendStatus;
+  /** The response before this one, when there was one (task 10.3). */
+  previous?: Response | null;
+};
+
+export function ResponsePanel({ status, previous = null }: Props) {
   const [view, setView] = useState<View>("body");
 
   if (status.kind === "idle") {
@@ -127,17 +134,20 @@ export function ResponsePanel({ status }: { status: SendStatus }) {
       ? [["checks", `Checks (${String(result.passed)}/${String(result.total)})`] as [View, string]]
       : []),
     ["timing", "Timing"],
+    ...(previous ? [["compare", "Compare"] as [View, string]] : []),
   ];
+  // A view the next response does not offer (no cookies, nothing to compare) falls back to Body.
+  const shown = views.some(([v]) => v === view) ? view : "body";
   return (
     <section aria-label="Response" className="flex min-h-0 flex-1 flex-col gap-2 p-4">
       <Summary response={response} />
-      <Tabs views={views} view={view} onView={setView} />
+      <Tabs views={views} view={shown} onView={setView} />
       <div className="min-h-0 flex-1 overflow-auto">
-        {view === "body" && <BodyView response={response} />}
-        {view === "headers" && (
+        {shown === "body" && <BodyView response={response} />}
+        {shown === "headers" && (
           <Pairs label="Response headers" pairs={response.headers.map((h) => [h.name, h.value])} />
         )}
-        {view === "cookies" && (
+        {shown === "cookies" && (
           <Pairs
             label="Cookies set"
             pairs={cookies.map((c) => [
@@ -146,9 +156,10 @@ export function ResponsePanel({ status }: { status: SendStatus }) {
             ])}
           />
         )}
-        {view === "events" && <EventsView events={events} live={false} />}
-        {view === "checks" && checks && <ChecksView checks={checks} />}
-        {view === "timing" && <TimingView timing={response.timing} />}
+        {shown === "events" && <EventsView events={events} live={false} />}
+        {shown === "checks" && checks && <ChecksView checks={checks} />}
+        {shown === "timing" && <TimingView timing={response.timing} />}
+        {shown === "compare" && previous && <CompareView before={previous} after={response} />}
       </div>
     </section>
   );

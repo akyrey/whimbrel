@@ -29,6 +29,7 @@ import {
   pickedExample,
   resolved,
   savedAs,
+  sending,
   scratchTab,
 } from "./model";
 
@@ -194,7 +195,7 @@ export const useTabs = create<TabsState>()((set, get) => {
     send: async (id) => {
       const tab = find(id);
       if (!tab || tab.status.kind === "sending") return;
-      replace(id, (t) => ({ ...t, status: { kind: "sending", events: [] } }));
+      replace(id, sending);
       const events = () => {
         const status = find(id)?.status;
         return status && status.kind !== "idle" ? status.events : [];

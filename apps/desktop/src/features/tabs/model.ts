@@ -34,6 +34,8 @@ export type Tab = {
   missing: boolean;
   /** The example sending uses, if one is picked. */
   exampleId: string | null;
+  /** The last response before the current one, to compare with (task 10.3). */
+  previous: Response | null;
 };
 
 export const NEW_REQUEST: StoredRequest = {
@@ -61,6 +63,7 @@ export function fileTab(file: FileRef, read: ReadRequest): Tab {
     conflict: null,
     missing: false,
     exampleId: null,
+    previous: null,
   };
 }
 
@@ -84,6 +87,7 @@ export function scratchTab(id: string): Tab {
     conflict: null,
     missing: false,
     exampleId: null,
+    previous: null,
   };
 }
 
@@ -95,6 +99,13 @@ function same(a: unknown, b: unknown): boolean {
 export const isDirty = (tab: Tab): boolean => tab.file === null || !same(tab.saved, tab.draft);
 
 export const edited = (tab: Tab, draft: StoredRequest): Tab => ({ ...tab, draft });
+
+/** The tab as a send starts: the response shown so far becomes the one to compare with. */
+export const sending = (tab: Tab): Tab => ({
+  ...tab,
+  status: { kind: "sending", events: [] },
+  previous: tab.status.kind === "done" ? tab.status.response : tab.previous,
+});
 
 export const savedAs = (
   tab: Tab,

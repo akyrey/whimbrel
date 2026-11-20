@@ -255,7 +255,7 @@ function RequestView({ tab }: { tab: Tab }) {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <PanelBoundary name="Response">
             <SchemaCheck tab={tab} />
-            <ResponsePanel status={tab.status} />
+            <ResponsePanel status={tab.status} previous={tab.previous} />
           </PanelBoundary>
         </div>
       </div>
