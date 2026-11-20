@@ -11,7 +11,7 @@ Design: [PRD.md](../PRD.md) FR-1; [FILE_FORMAT.md](../FILE_FORMAT.md) (order, fo
       another folder of the same collection, last among its new siblings, under a unique file
       name; a folder cannot move into itself or one of its folders. The `node_move` command
       replaces `request_move`.
-- [ ] 11.2 Drop planning (pure): dropping a node before or after a sibling, or into a folder or
+- [x] 11.2 Drop planning (pure): dropping a node before or after a sibling, or into a folder or
       the collection, gives the move (when the parent changes) and the fewest order writes,
       renumbering 10, 20, … like "Move up". Dropping a node on itself or into its own folder
       tree does nothing.
