@@ -17,7 +17,7 @@ are the seeds for those briefs.
 - [x] Phase 7: Chaining, assertions, runner, re-import
 - [ ] Phase 8: Polish, interop, release
 - [x] Phase 9: Everyday UX ([brief](phases/phase-9-ux.md))
-- [ ] Phase 10: Timing breakdown and response comparison ([brief](phases/phase-10-timings-compare.md))
+- [x] Phase 10: Timing breakdown and response comparison ([brief](phases/phase-10-timings-compare.md))
 
 ## Order and dependencies
 

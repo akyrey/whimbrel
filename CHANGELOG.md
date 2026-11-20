@@ -4,6 +4,19 @@ All notable changes to Whimbrel. The format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-20
+
+### Added
+
+- A Timing tab with a waterfall: DNS, connect (TCP and TLS), waiting and download; a reused
+  connection is named as such.
+- A Compare tab: the response against the one before it in the same tab (status, header changes,
+  a line diff of the pretty bodies).
+
+### Changed
+
+- Switching to a response without the open view (cookies, events, compare) shows its body.
+
 ## [0.2.0] - 2026-11-20
 
 ### Added
