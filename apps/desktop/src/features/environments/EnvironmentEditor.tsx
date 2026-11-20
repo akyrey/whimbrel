@@ -225,7 +225,12 @@ export function EnvironmentEditor({ root, onClose }: { root: string; onClose: ()
     });
 
   return (
-    <Modal title="Environments" onClose={onClose} footer={<Button onClick={onClose}>Close</Button>}>
+    <Modal
+      title="Environments"
+      size="wide"
+      onClose={onClose}
+      footer={<Button onClick={onClose}>Close</Button>}
+    >
       <div className="flex max-h-[65vh] gap-4 overflow-y-auto">
         <ul aria-label="Environments" className="flex w-40 shrink-0 flex-col gap-1 text-sm">
           {entries.map((entry) => (
