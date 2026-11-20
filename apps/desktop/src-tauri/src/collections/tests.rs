@@ -217,3 +217,30 @@ fn folder_and_collection_auth_and_tls_are_read_and_saved() {
         "ca.pem"
     );
 }
+
+#[test]
+fn folder_and_collection_headers_are_read_and_saved() {
+    let (_dir, state, root) = created();
+    let headers = vec![wbl_core::Header {
+        name: "X-Tenant".into(),
+        value: "{{tenant}}".into(),
+        enabled: true,
+    }];
+
+    headers_save(
+        &state,
+        &secrets(),
+        &crate::ipc::HeadersSaveArgs {
+            root: root.clone(),
+            path: String::new(),
+            headers: headers.clone(),
+        },
+    )
+    .unwrap();
+
+    assert_eq!(headers_read(&state, &node(&root, "")).unwrap(), headers);
+    assert_eq!(
+        headers_read(&state, &node(&root, "../x")).unwrap_err().code,
+        "invalid_path"
+    );
+}

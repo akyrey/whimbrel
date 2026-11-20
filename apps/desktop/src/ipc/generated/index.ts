@@ -41,6 +41,7 @@ export type * from "./FolderNode";
 export type * from "./FormField";
 export type * from "./Grant";
 export type * from "./Header";
+export type * from "./HeadersSaveArgs";
 export type * from "./HistoryEntry";
 export type * from "./HistoryIdArgs";
 export type * from "./HistoryListArgs";

@@ -4,6 +4,7 @@
 pub mod auth;
 pub mod environments;
 mod files;
+pub mod headers;
 mod ops;
 mod paths;
 

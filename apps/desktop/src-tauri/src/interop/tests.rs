@@ -42,6 +42,16 @@ fn a_postman_collection_is_summarised_imported_and_exported_as_http() {
         },
     )
     .unwrap();
+    wbl_format::collection::headers::save_headers(
+        std::path::Path::new(&root),
+        "",
+        &[wbl_core::Header {
+            name: "X-Tenant".into(),
+            value: "{{tenant}}".into(),
+            enabled: true,
+        }],
+    )
+    .unwrap();
     let out = dir.path().join("shop.http");
     let count = export(
         &collections,
@@ -65,6 +75,10 @@ fn a_postman_collection_is_summarised_imported_and_exported_as_http() {
     assert!(
         text.contains("Authorization: Bearer {{bearerToken}}"),
         "the folder's auth is inherited: {text}"
+    );
+    assert!(
+        text.contains("X-Tenant: {{tenant}}"),
+        "the collection's headers are inherited: {text}"
     );
 }
 

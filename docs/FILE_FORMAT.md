@@ -7,7 +7,7 @@ so saving an unchanged request is a no-op, and no secret values anywhere.
 
 ```
 my-api/
-  collection.toml            id, name, format version, default auth, collection variables
+  collection.toml            id, name, format version, default auth and headers, variables
   .gitignore                 contains ".local/" (added by the app)
   environments/
     local.toml
@@ -38,7 +38,16 @@ apiVersion = "v2"
 [auth]
 type = "bearer"
 token = "{{accessToken}}"
+
+[[headers]]                 # sent by every request in the collection (D-H22)
+name = "X-Tenant"
+value = "{{tenant}}"
 ```
+
+`_folder.toml` takes `[auth]` and `[[headers]]` the same way, for the requests under the
+folder. Headers apply from the collection inwards, then the request's own; a header at a deeper
+level replaces every inherited one of the same name (ignoring case), and a disabled one
+(`enabled = false`) turns it off.
 
 ## A request
 

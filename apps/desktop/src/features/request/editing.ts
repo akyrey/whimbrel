@@ -1,5 +1,6 @@
 /** Edits of the active tab's request, as functions of the draft. Pure. */
 import type { Body, BodyKind, FormField, Header, StoredRequest } from "../../ipc";
+import * as lists from "../headers/inherit";
 
 type Change = (draft: StoredRequest) => StoredRequest;
 
@@ -12,18 +13,16 @@ export const setMethod = (method: string): Change =>
 
 export const setUrl = (url: string): Change => request((r) => ({ ...r, url }));
 
-const EMPTY_HEADER: Header = { name: "", value: "", enabled: true };
+/** The request's headers with `change` applied (see features/headers/inherit.ts). */
+export const editHeaders = (change: (headers: Header[]) => Header[]): Change =>
+  request((r) => ({ ...r, headers: change(r.headers) }));
 
-export const addHeader: Change = request((r) => ({ ...r, headers: [...r.headers, EMPTY_HEADER] }));
+export const addHeader: Change = editHeaders(lists.addHeader);
 
 export const updateHeader = (index: number, change: Partial<Header>): Change =>
-  request((r) => ({
-    ...r,
-    headers: r.headers.map((h, i) => (i === index ? { ...h, ...change } : h)),
-  }));
+  editHeaders(lists.updateHeader(index, change));
 
-export const removeHeader = (index: number): Change =>
-  request((r) => ({ ...r, headers: r.headers.filter((_, i) => i !== index) }));
+export const removeHeader = (index: number): Change => editHeaders(lists.removeHeader(index));
 
 /** What the body type menu offers. */
 export type BodyChoice = BodyKind | "none" | "form" | "multipart" | "file";

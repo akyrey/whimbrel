@@ -12,11 +12,26 @@ use crate::resolve::{masked, resolved, scopes};
 use crate::secrets::Secrets;
 use crate::state::AppState;
 
-/// What resolving a request needs: its scopes and its auth.
+/// What resolving a request needs: its scopes, its auth and the headers it inherits.
 pub struct Parts {
     pub scopes: Vec<wbl_core::interpolate::Scope>,
     pub auth: crate::auth_apply::AuthContext,
+    /// Its folders' headers (innermost first), then its collection's (D-H22).
+    inherited: Vec<Vec<wbl_core::Header>>,
     root: Option<std::path::PathBuf>,
+}
+
+/// The headers a request inherits: none outside a collection, the collection's when unsaved.
+fn inherited_headers(
+    root: Option<&std::path::Path>,
+    path: Option<&str>,
+) -> Result<Vec<Vec<wbl_core::Header>>, AppError> {
+    use wbl_format::collection::headers;
+    Ok(match (root, path) {
+        (None, _) => Vec::new(),
+        (Some(root), Some(path)) => headers::headers_chain(root, path)?,
+        (Some(root), None) => vec![headers::headers_of(root, "")?],
+    })
 }
 
 pub fn parts(
@@ -39,7 +54,13 @@ pub fn parts(
         secrets,
     )?;
     let auth = crate::auth_apply::context(root.as_deref(), args, &scopes)?;
-    Ok(Parts { scopes, auth, root })
+    let inherited = inherited_headers(root.as_deref(), args.path.as_deref())?;
+    Ok(Parts {
+        scopes,
+        auth,
+        inherited,
+        root,
+    })
 }
 
 /// The runtime variables of a collection are keyed by its canonical root.
@@ -50,13 +71,14 @@ pub fn runtime_key(root: Option<&std::path::Path>) -> String {
     )
 }
 
-/// The request as it will be sent: example, variables and auth applied.
+/// The request as it will be sent: inherited headers, example, variables and auth applied.
 fn build(
     args: &RequestSendArgs,
     parts: &Parts,
     token: Option<&wbl_auth::Token>,
 ) -> Result<wbl_core::interpolate::Resolved, AppError> {
-    let resolved = resolved(&args.request, args.example.as_ref(), &parts.scopes)?;
+    let request = wbl_core::inherit::with_inherited(&args.request, &parts.inherited);
+    let resolved = resolved(&request, args.example.as_ref(), &parts.scopes)?;
     crate::auth_apply::finish(resolved, &parts.auth, token)
 }
 

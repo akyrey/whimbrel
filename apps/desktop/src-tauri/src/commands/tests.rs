@@ -212,3 +212,74 @@ fn bodies_are_saved_from_text_base64_or_a_file_of_ours_only() {
     );
     assert_eq!(refused.code, "invalid_path");
 }
+
+fn header(name: &str, value: &str) -> wbl_core::Header {
+    wbl_core::Header {
+        name: name.into(),
+        value: value.into(),
+        enabled: true,
+    }
+}
+
+#[test]
+fn folder_and_collection_headers_are_sent_before_the_requests_own() {
+    let (collections, secrets) = deps();
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let root_text = root.to_string_lossy().into_owned();
+    collections
+        .create(&crate::ipc::CollectionCreateArgs {
+            root: root_text.clone(),
+            name: "API".into(),
+        })
+        .unwrap();
+    let users = wbl_format::collection::create_folder(&root, "", "Users").unwrap();
+    wbl_format::collection::save_variables(
+        &root,
+        &[("tenant".to_owned(), "acme".to_owned())].into(),
+    )
+    .unwrap();
+    wbl_format::collection::headers::save_headers(
+        &root,
+        "",
+        &[header("X-Tenant", "{{tenant}}"), header("Accept", "*/*")],
+    )
+    .unwrap();
+    wbl_format::collection::headers::save_headers(&root, &users, &[header("X-Area", "users")])
+        .unwrap();
+    let mut saved = args("tab", "https://example.com".into());
+    saved.request.headers = vec![header("accept", "application/json")];
+    saved.root = Some(root_text.clone());
+    saved.path = Some(format!("{users}/list.req.toml"));
+    let unsaved = RequestSendArgs {
+        path: None,
+        ..saved.clone()
+    };
+
+    let shown = preview(&collections, &secrets, &saved).unwrap();
+    let loose = preview(&collections, &secrets, &unsaved).unwrap();
+    let outside = preview(
+        &collections,
+        &secrets,
+        &args("tab", "https://example.com".into()),
+    )
+    .unwrap();
+
+    assert_eq!(
+        shown.headers,
+        vec![
+            header("X-Tenant", "acme"),
+            header("X-Area", "users"),
+            header("accept", "application/json"),
+        ]
+    );
+    assert_eq!(
+        loose.headers,
+        vec![
+            header("X-Tenant", "acme"),
+            header("accept", "application/json")
+        ],
+        "an unsaved request inherits the collection's only"
+    );
+    assert!(outside.headers.is_empty());
+}

@@ -307,3 +307,21 @@ frontend (D-H12): it sees names, times, scope and whether a token can be refresh
 **Consequences.** `oauth_forget` is replaced by `oauth_token_change` (rename, select, remove).
 Tokens are listed per configuration, not across the collection, since the keychain cannot be
 enumerated.
+
+## D-H22 Headers inherited from folders and the collection (2026-11-20)
+
+**Context.** Large collections repeat the same headers (tenant, client version, `Accept`) on
+every request. FILE_FORMAT.md already reserved `_folder.toml` for "auth/headers/variables
+inherited by children", but only auth was built.
+**Decision.** `collection.toml` and `_folder.toml` take `[[headers]]` in the request's format.
+A request sends the collection's headers first, then each folder's from the outside in, then
+its own. A header at a deeper level replaces every inherited header of the same name, ignoring
+case; a disabled one turns the inherited header off without sending anything. Replacing by
+name (rather than the example overlay's in-place update) keeps a request's duplicate headers.
+Inheritance applies before the example and variables, so inherited values use the request's
+variables. A `_folder.toml` that cannot be read fails the send with its error instead of
+dropping its headers unnoticed (unlike auth, which treats it as inheriting). `.http` export
+writes each request with the headers it inherits. Saving refuses literal secret values, like
+auth. The request's Headers tab lists what it inherits, struck through where replaced.
+**Consequences.** Older versions keep the `[[headers]]` of these files on rewrite (unknown keys
+are preserved) but do not send them. Folder variables (FR-4.4) are still to do.

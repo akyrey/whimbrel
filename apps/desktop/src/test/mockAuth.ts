@@ -1,20 +1,23 @@
 /**
  * Auth for the mocked backend (see mockBackend.ts), following src-tauri/src/auth_apply.rs and
- * oauth.rs: folder and collection auth, inheritance, OAuth 2 tokens kept in memory.
+ * oauth.rs: folder and collection auth and headers, inheritance, OAuth 2 tokens in memory.
  */
 import type {
   AppError,
   Auth,
   CollectionTls,
+  Header,
   OAuthStatus,
   OAuthToken,
   Request,
   RequestSendArgs,
   TokenChange,
 } from "../ipc/generated";
+import { withInherited } from "../features/headers/inherit";
 
 const MASK = "••••••";
 const auths = new Map<string, Auth>();
+const headers = new Map<string, Header[]>();
 const tls = new Map<string, CollectionTls>();
 type Kept = { id: string; name: string; access: string; obtainedAtMs: number };
 type Kit = { active: string | null; tokens: Kept[] };
@@ -23,12 +26,30 @@ let issued = 0;
 
 export function resetAuth(): void {
   auths.clear();
+  headers.clear();
   tls.clear();
   tokens.clear();
   issued = 0;
 }
 
 const key = (root: string, folder: string) => `${root}|${folder}`;
+
+/** The folders around the request (innermost first), then the collection, as keys. */
+function chainKeys(args: RequestSendArgs, root: string): string[] {
+  const folders = (args.path ?? "").split("/").slice(0, -1);
+  const keys = folders.map((_, i) => key(root, folders.slice(0, folders.length - i).join("/")));
+  return [...keys, key(root, "")];
+}
+
+/** The request with the headers of its folders and collection before its own (D-H22). */
+export function inheritHeaders(args: RequestSendArgs): RequestSendArgs {
+  if (args.root === undefined) return args;
+  const levels = chainKeys(args, args.root).map((k) => headers.get(k) ?? []);
+  return {
+    ...args,
+    request: { ...args.request, headers: withInherited(levels, args.request.headers) },
+  };
+}
 
 /** The request's own auth, else its folders' (innermost first), else the collection's. */
 export function effectiveAuth(args: RequestSendArgs): Auth {
@@ -163,6 +184,11 @@ export function authCommand(command: string, args: Args, extra: Args): Promise<u
       );
     case "node_auth_save":
       auths.set(key(String(args.root), String(args.path)), args.auth as Auth);
+      return Promise.resolve(null);
+    case "node_headers_read":
+      return Promise.resolve(headers.get(key(String(args.root), String(args.path))) ?? []);
+    case "node_headers_save":
+      headers.set(key(String(args.root), String(args.path)), args.headers as Header[]);
       return Promise.resolve(null);
     case "collection_tls_read":
       return Promise.resolve(tls.get(String(args.root)) ?? { caFile: "", clientCertFile: "" });

@@ -45,6 +45,7 @@ fn export_all(dir: &Path) {
     crate::oauth::OAuthStatus::export_all(&config).unwrap();
     crate::oauth::TokenChange::export_all(&config).unwrap();
     crate::ipc::AuthSaveArgs::export_all(&config).unwrap();
+    crate::ipc::HeadersSaveArgs::export_all(&config).unwrap();
     crate::ipc::TlsSaveArgs::export_all(&config).unwrap();
     wbl_auth::DeviceCode::export_all(&config).unwrap();
     crate::ipc::CurlImportArgs::export_all(&config).unwrap();

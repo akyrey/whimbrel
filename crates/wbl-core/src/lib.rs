@@ -4,6 +4,7 @@ pub mod auth;
 pub mod check;
 pub mod curl;
 pub mod example;
+pub mod inherit;
 pub mod interpolate;
 pub mod request;
 pub mod settings;

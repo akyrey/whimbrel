@@ -267,6 +267,33 @@ pub fn auth_save(
     )?)
 }
 
+pub fn headers_read(
+    state: &Collections,
+    args: &NodeArgs,
+) -> Result<Vec<wbl_core::Header>, AppError> {
+    Ok(wbl_format::collection::headers::headers_of(
+        &state.opened(&args.root)?,
+        &args.path,
+    )?)
+}
+
+/// Saves the headers a folder or the collection adds, refusing literal secret values.
+pub fn headers_save(
+    state: &Collections,
+    secrets: &Secrets,
+    args: &crate::ipc::HeadersSaveArgs,
+) -> Result<(), AppError> {
+    let root = state.opened(&args.root)?;
+    let text =
+        serde_json::to_string(&args.headers).map_err(|e| AppError::internal(e.to_string()))?;
+    guard(&root, &text, secrets)?;
+    Ok(wbl_format::collection::headers::save_headers(
+        &root,
+        &args.path,
+        &args.headers,
+    )?)
+}
+
 pub fn tls_read(
     state: &Collections,
     args: &CollectionArgs,
@@ -295,7 +322,25 @@ pub async fn node_auth_save(
     .await
 }
 
+#[tauri::command]
+pub async fn node_headers_save(
+    state: State<'_, Collections>,
+    secrets: State<'_, Secrets>,
+    args: crate::ipc::HeadersSaveArgs,
+) -> Result<(), AppError> {
+    logged("node_headers_save", async {
+        headers_save(&state, &secrets, &args)
+    })
+    .await
+}
+
 command!(node_auth_read, NodeArgs, wbl_core::auth::Auth, auth_read);
+command!(
+    node_headers_read,
+    NodeArgs,
+    Vec<wbl_core::Header>,
+    headers_read
+);
 command!(
     collection_tls_read,
     CollectionArgs,

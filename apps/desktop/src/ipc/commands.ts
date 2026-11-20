@@ -23,6 +23,7 @@ import type {
   StoredSpec,
   Auth,
   CollectionTls,
+  Header,
   DeviceCode,
   OAuthStatus,
   TokenChange,
@@ -103,6 +104,13 @@ export const nodeAuthRead = (root: string, path: string): Promise<Auth> =>
 
 export const nodeAuthSave = (root: string, path: string, auth: Auth): Promise<null> =>
   call("node_auth_save", { root, path, auth });
+
+/** The headers a folder (`path`), or the collection (`path` empty), adds to its requests. */
+export const nodeHeadersRead = (root: string, path: string): Promise<Header[]> =>
+  call("node_headers_read", { root, path });
+
+export const nodeHeadersSave = (root: string, path: string, headers: Header[]): Promise<null> =>
+  call("node_headers_save", { root, path, headers });
 
 export const collectionTlsRead = (root: string): Promise<CollectionTls> =>
   call("collection_tls_read", { root });

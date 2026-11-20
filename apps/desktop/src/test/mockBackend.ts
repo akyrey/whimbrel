@@ -13,7 +13,7 @@
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC } from "@tauri-apps/api/mocks";
 
-import { applyAuth, authCommand, resetAuth } from "./mockAuth";
+import { applyAuth, authCommand, inheritHeaders, resetAuth } from "./mockAuth";
 import { checksFor, resetRuntime, runtimeCommand } from "./mockChecks";
 import { resetSpecs, specCommand } from "./mockSpecs";
 import { phase4Command, phase4Route, recordHistory, resetHistory } from "./mockExtras";
@@ -430,7 +430,8 @@ const isError = (value: Response | AppError): value is AppError => "code" in val
 const pending = new Map<string, (error: AppError) => void>();
 
 /** request_send and request_preview, as src-tauri/src/commands.rs. */
-function mockSend(sendArgs: RequestSendArgs, preview: boolean): Promise<unknown> {
+function mockSend(own: RequestSendArgs, preview: boolean): Promise<unknown> {
+  const sendArgs = inheritHeaders(own);
   const variables = resolveFor(sendArgs, preview);
   if ("code" in variables) return Promise.reject(variables);
   const resolved = applyAuth(sendArgs, variables, preview);

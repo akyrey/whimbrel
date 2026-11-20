@@ -253,6 +253,15 @@ pub struct AuthSaveArgs {
     pub auth: wbl_core::auth::Auth,
 }
 
+/// The headers a folder (`path`), or the collection (`path` empty), adds to its requests.
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct HeadersSaveArgs {
+    pub root: String,
+    pub path: String,
+    pub headers: Vec<wbl_core::Header>,
+}
+
 #[derive(Debug, Clone, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct TlsSaveArgs {

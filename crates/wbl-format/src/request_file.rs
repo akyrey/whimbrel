@@ -112,7 +112,7 @@ impl std::fmt::Display for RequestFile {
     }
 }
 
-fn read_headers(root: &Table) -> Result<Vec<Header>, FormatError> {
+pub(crate) fn read_headers(root: &Table) -> Result<Vec<Header>, FormatError> {
     let Some(item) = root.get("headers") else {
         return Ok(Vec::new());
     };
@@ -131,7 +131,7 @@ fn read_headers(root: &Table) -> Result<Vec<Header>, FormatError> {
         .collect()
 }
 
-fn write_headers(root: &mut Table, headers: &[Header]) {
+pub(crate) fn write_headers(root: &mut Table, headers: &[Header]) {
     if read_headers(root).ok().as_deref() == Some(headers) {
         return;
     }

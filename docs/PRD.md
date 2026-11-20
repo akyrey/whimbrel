@@ -52,6 +52,8 @@ collection.
   An open request with unsaved edits that changes on disk prompts: keep mine / take theirs.
 - FR-1.6 Files the app cannot parse are shown as errors in the tree with the parser message;
   they are never overwritten.
+- FR-1.7 Headers set on the collection or a folder are sent by every request under it; a
+  request or inner folder replaces one by name or turns it off (D-H22).
 
 ### FR-2 Request editor
 

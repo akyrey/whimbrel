@@ -3,7 +3,7 @@ import { useState } from "react";
 import { AuthDialog } from "../auth/AuthDialog";
 import { AuthEditor } from "../auth/AuthEditor";
 import { OAuthPanel } from "../auth/OAuthPanel";
-import { type AuthSource, inheritedFrom } from "../auth/inheritance";
+import { type InheritSource, inheritedFrom } from "../auth/inheritance";
 import { useCollections } from "../collections/collectionsStore";
 import type { FileRef, Tab } from "../tabs/model";
 import { useTabs } from "../tabs/tabsStore";
@@ -11,7 +11,7 @@ import { useTabs } from "../tabs/tabsStore";
 /** The folders and collection an inheriting request takes its auth from, each one editable. */
 function InheritedAuth({ file }: { file: FileRef }) {
   const collection = useCollections((s) => s.views[file.root]?.collection);
-  const [editing, setEditing] = useState<AuthSource | null>(null);
+  const [editing, setEditing] = useState<InheritSource | null>(null);
   if (!collection) return null;
   return (
     <div role="group" aria-label="Inherited auth" className="flex flex-wrap items-center gap-1">

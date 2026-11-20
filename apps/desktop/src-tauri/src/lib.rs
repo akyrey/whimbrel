@@ -120,6 +120,8 @@ pub fn run() -> Result<(), tauri::Error> {
             collections::node_delete,
             collections::node_auth_read,
             collections::node_auth_save,
+            collections::node_headers_read,
+            collections::node_headers_save,
             collections::collection_tls_read,
             collections::collection_tls_save,
             spec::spec_read,

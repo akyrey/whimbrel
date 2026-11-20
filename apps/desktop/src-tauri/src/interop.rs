@@ -134,7 +134,8 @@ fn requests_under<'a>(nodes: &'a [Node], folder: &str, inside: bool, out: &mut V
     }
 }
 
-/// Writes the folder's requests (in tree order, each with the auth it inherits) as `.http`.
+/// Writes the folder's requests (in tree order, each with the auth and headers it inherits)
+/// as `.http`.
 pub fn export(collections: &Collections, args: &HttpExportArgs) -> Result<usize, AppError> {
     let root = collections.opened(&args.root)?;
     let tree = collection::load(&root)?;
@@ -150,7 +151,9 @@ pub fn export(collections: &Collections, args: &HttpExportArgs) -> Result<usize,
         let stored = collection::read_request(&root, path)?.stored;
         let chain = collection::auth::auth_chain(&root, path)?;
         let inherited = effective(&chain.iter().collect::<Vec<&Auth>>()).clone();
-        requests.push((stored, inherited));
+        let headers = collection::headers::headers_chain(&root, path)?;
+        let request = wbl_core::inherit::with_inherited(&stored.request, &headers);
+        requests.push((wbl_format::StoredRequest { request, ..stored }, inherited));
     }
     std::fs::write(
         &args.destination,

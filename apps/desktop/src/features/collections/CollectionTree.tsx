@@ -4,6 +4,7 @@ import { type MouseEvent, useEffect, useState } from "react";
 import type { CollectionView, Node } from "../../ipc";
 import { AuthDialog } from "../auth/AuthDialog";
 import { TlsDialog } from "../auth/TlsDialog";
+import { HeadersDialog } from "../headers/HeadersDialog";
 import { EnvironmentEditor } from "../environments/EnvironmentEditor";
 import {
   NO_ENVIRONMENTS,
@@ -35,7 +36,7 @@ import { useRunner } from "../runner/runnerStore";
 type Menu = { x: number; y: number; label: string; items: ContextMenuItem[] };
 
 type Dialog =
-  | { kind: "auth"; root: string; folder: string; name: string }
+  | { kind: "auth" | "headers"; root: string; folder: string; name: string }
   | { kind: "tls"; root: string }
   | { kind: "name"; title: string; initial: string; confirm: string; run: (name: string) => void }
   | { kind: "confirm"; title: string; message: string; run: () => void };
@@ -78,6 +79,12 @@ function containerItems(ui: Ui, root: string, folder: string, name: string): Con
       label: "Auth…",
       onSelect: () => {
         ui.ask({ kind: "auth", root, folder, name });
+      },
+    },
+    {
+      label: "Headers…",
+      onSelect: () => {
+        ui.ask({ kind: "headers", root, folder, name });
       },
     },
     {
@@ -443,6 +450,16 @@ export function CollectionTree() {
       )}
       {dialog?.kind === "auth" && (
         <AuthDialog
+          root={dialog.root}
+          folder={dialog.folder}
+          name={dialog.name}
+          onClose={() => {
+            setDialog(null);
+          }}
+        />
+      )}
+      {dialog?.kind === "headers" && (
+        <HeadersDialog
           root={dialog.root}
           folder={dialog.folder}
           name={dialog.name}
