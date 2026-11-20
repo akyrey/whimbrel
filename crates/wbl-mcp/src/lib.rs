@@ -2,6 +2,7 @@
 //! environments, and send requests, the way the app does, without ever seeing a secret value.
 //! The app binary runs it as `whimbrel mcp --collection <folder>…` over stdio.
 
+pub mod cli;
 pub mod error;
 pub mod reachable;
 pub mod server;

@@ -66,9 +66,10 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
 
 ### Shipping
 
-- [ ] 12.9 `whimbrel mcp [--collection <dir>]…` in `main.rs`: parse arguments before Tauri
-      starts and run the server on a tokio runtime; logging goes to the log file only (a test
-      checks nothing but protocol messages reach stdout). `whimbrel mcp --help` prints usage.
+- [x] 12.9 `whimbrel mcp [--collection <dir>]…` in `main.rs`: parse arguments before Tauri
+      starts and run the server on a tokio runtime. Nothing is logged in this mode; messages
+      for people go to stderr (the end-to-end test checks stdout holds only protocol
+      messages). `whimbrel mcp --help` prints usage; bad arguments exit with 2.
 - [ ] 12.10 End to end: an MCP client process starts the built binary, creates a request,
       sends it to a local server with an environment holding a sentinel secret, and gets a
       redacted result; a running app's watcher picks up the new file (covered by the existing

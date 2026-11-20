@@ -9,6 +9,7 @@ pub mod history;
 pub mod interop;
 pub mod ipc;
 pub mod logging;
+pub mod mcp;
 pub mod oauth;
 pub mod registry;
 pub mod runner;

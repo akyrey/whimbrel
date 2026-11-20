@@ -6716,6 +6716,7 @@ dependencies = [
  "wbl-format",
  "wbl-http",
  "wbl-interop",
+ "wbl-mcp",
  "wbl-openapi",
  "wbl-store",
 ]
