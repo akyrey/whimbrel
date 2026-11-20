@@ -4,6 +4,14 @@ All notable changes to Whimbrel. The format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-20
+
+### Fixed
+
+- Folders have "Auth…" in their menu, so requests inside can inherit a folder's auth.
+- A request set to inherit its auth lists the folders and the collection it inherits from, each
+  opening that auth to edit.
+
 ## [0.4.0] - 2026-11-20
 
 ### Added

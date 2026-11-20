@@ -6282,7 +6282,7 @@ dependencies = [
 
 [[package]]
 name = "wbl-auth"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "base64 0.22.1",
  "reqwest",
@@ -6300,7 +6300,7 @@ dependencies = [
 
 [[package]]
 name = "wbl-core"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "base64 0.22.1",
  "proptest",
@@ -6317,7 +6317,7 @@ dependencies = [
 
 [[package]]
 name = "wbl-format"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "proptest",
  "rstest",
@@ -6333,7 +6333,7 @@ dependencies = [
 
 [[package]]
 name = "wbl-http"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "base64 0.22.1",
  "rcgen",
@@ -6354,7 +6354,7 @@ dependencies = [
 
 [[package]]
 name = "wbl-interop"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -6367,7 +6367,7 @@ dependencies = [
 
 [[package]]
 name = "wbl-openapi"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "insta",
  "jsonschema",
@@ -6386,7 +6386,7 @@ dependencies = [
 
 [[package]]
 name = "wbl-store"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "rusqlite",
  "serde",
@@ -6531,7 +6531,7 @@ dependencies = [
 
 [[package]]
 name = "whimbrel"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "base64 0.22.1",
  "notify",
