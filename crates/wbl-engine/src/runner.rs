@@ -6,7 +6,7 @@ use std::future::Future;
 use serde::{Deserialize, Serialize};
 use tokio_util::sync::CancellationToken;
 use wbl_core::example::Example;
-use wbl_format::collection;
+use wbl_format::collection::{self, Node};
 
 use crate::args::RequestSendArgs;
 use crate::checks::{Checks, Sent};
@@ -124,6 +124,24 @@ fn expand(root: &std::path::Path, steps: &[RunStep]) -> Result<Vec<Planned>, Eng
         }));
     }
     Ok(out)
+}
+
+fn requests_under(nodes: &[Node], folder: &str, inside: bool, out: &mut Vec<String>) {
+    for node in nodes {
+        match node {
+            Node::Request(r) if inside => out.push(r.path.clone()),
+            Node::Folder(f) => requests_under(&f.children, folder, inside || f.path == folder, out),
+            _ => {}
+        }
+    }
+}
+
+/// The request files in `folder` (`""`: the whole collection) and its folders, in tree order.
+pub fn requests_in(root: &std::path::Path, folder: &str) -> Result<Vec<String>, EngineError> {
+    let tree = collection::load(root)?;
+    let mut paths = Vec::new();
+    requests_under(&tree.children, folder, folder.is_empty(), &mut paths);
+    Ok(paths)
 }
 
 /// The request id every send of run `run_id` uses, so cancelling the run cancels its send.

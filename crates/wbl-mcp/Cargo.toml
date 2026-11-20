@@ -12,6 +12,7 @@ wbl-core.workspace = true
 wbl-format.workspace = true
 wbl-engine.workspace = true
 wbl-http.workspace = true
+wbl-auth.workspace = true
 wbl-openapi.workspace = true
 wbl-interop.workspace = true
 roost-keychain.workspace = true
@@ -20,6 +21,7 @@ schemars = "1"
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
+tokio-util = "0.7"
 tokio = { workspace = true, features = ["io-std"] }
 
 [dev-dependencies]

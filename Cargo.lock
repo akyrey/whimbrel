@@ -6509,6 +6509,8 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
+ "tokio-util",
+ "wbl-auth",
  "wbl-core",
  "wbl-engine",
  "wbl-format",

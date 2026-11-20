@@ -255,3 +255,18 @@ async fn an_unknown_example_fails_before_sending() {
     assert_eq!(error.code, "not_found");
     assert!(fake.seen.lock().unwrap().is_empty());
 }
+
+#[test]
+fn requests_are_listed_in_tree_order_inside_a_folder() {
+    let f = fixture();
+    let root = f.root();
+    let users = wbl_format::collection::create_folder(&root, "", "Users").unwrap();
+    let top = wbl_format::collection::create_request(&root, "", &stored("Top", "http://t", vec![]))
+        .unwrap();
+    let a = wbl_format::collection::create_request(&root, &users, &stored("A", "http://a", vec![]))
+        .unwrap();
+
+    assert_eq!(requests_in(&root, "").unwrap(), [a.clone(), top]);
+    assert_eq!(requests_in(&root, &users).unwrap(), [a]);
+    assert!(requests_in(&root, "nowhere").unwrap().is_empty());
+}

@@ -59,7 +59,7 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
       (returns the text; writes nothing), through `wbl-openapi` and `wbl-interop`, returning
       the import report (what was skipped and why). Reading specs and files moves from
       `src-tauri` into `wbl-engine` so the app and the server share it.
-- [ ] 12.8 `send_request` (a stored request, optional environment and example) and
+- [x] 12.8 `send_request` (a stored request, optional environment and example) and
       `run_folder` (captures and assertions, returns the results grid as rows). A protected
       environment is refused with `protected_environment`. Response bodies are text up to 256 kB; binary bodies are
       described (type, size), not returned.

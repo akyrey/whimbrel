@@ -75,3 +75,38 @@ impl Harness {
             .to_owned()
     }
 }
+
+pub const TOKEN: &str = "tok-sentinel-31";
+
+/// `/login` answers a token; `/me` answers 200 with that token as a bearer, else 401; `/echo`
+/// answers the request it got.
+pub async fn server() -> String {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    tokio::spawn(async move {
+        while let Ok((mut socket, _)) = listener.accept().await {
+            tokio::spawn(async move {
+                let mut buf = vec![0u8; 16384];
+                let n = socket.read(&mut buf).await.unwrap_or(0);
+                let head = String::from_utf8_lossy(&buf[..n]).into_owned();
+                let lower = head.to_ascii_lowercase();
+                let (status, body) = if lower.contains(" /login ") {
+                    ("200 OK", format!(r#"{{"token":"{TOKEN}"}}"#))
+                } else if lower.contains(" /echo") {
+                    ("200 OK", head.clone())
+                } else if lower.contains(&format!("authorization: bearer {TOKEN}")) {
+                    ("200 OK", r#"{"name":"ada"}"#.to_owned())
+                } else {
+                    ("401 Unauthorized", "{}".to_owned())
+                };
+                let reply = format!(
+                    "HTTP/1.1 {status}\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                let _ = socket.write_all(reply.as_bytes()).await;
+            });
+        }
+    });
+    base
+}

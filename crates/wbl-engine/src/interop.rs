@@ -5,7 +5,7 @@ use std::path::Path;
 
 use serde::Serialize;
 use wbl_core::auth::{Auth, effective};
-use wbl_format::collection::{self, Node};
+use wbl_format::collection;
 use wbl_interop::Imported;
 
 use crate::error::EngineError;
@@ -51,22 +51,10 @@ pub fn summary(path: &str) -> Result<InteropSummary, EngineError> {
     })
 }
 
-fn requests_under<'a>(nodes: &'a [Node], folder: &str, inside: bool, out: &mut Vec<&'a str>) {
-    for node in nodes {
-        match node {
-            Node::Request(r) if inside => out.push(&r.path),
-            Node::Folder(f) => requests_under(&f.children, folder, inside || f.path == folder, out),
-            _ => {}
-        }
-    }
-}
-
 /// The folder's requests (`""`: the whole collection) as `.http`, in tree order, each with
 /// the auth and headers it inherits; and how many there are.
 pub fn export(root: &Path, folder: &str) -> Result<(String, usize), EngineError> {
-    let tree = collection::load(root)?;
-    let mut paths = Vec::new();
-    requests_under(&tree.children, folder, folder.is_empty(), &mut paths);
+    let paths = crate::runner::requests_in(root, folder)?;
     let mut requests = Vec::new();
     for path in &paths {
         let stored = collection::read_request(root, path)?.stored;

@@ -30,6 +30,9 @@ pub(crate) struct State {
     pub secrets: Secrets,
     /// One connection pool for sends and spec downloads.
     pub sender: wbl_http::Sender,
+    pub oauth: wbl_auth::OAuthClient,
+    /// What captures took, per collection, for the life of the server.
+    pub runtime: wbl_engine::runtime::Runtime,
 }
 
 impl Server {
@@ -42,6 +45,8 @@ impl Server {
                 collections: Collections::open(folders)?,
                 secrets,
                 sender,
+                oauth: wbl_auth::OAuthClient::new(),
+                runtime: wbl_engine::runtime::Runtime::default(),
             }),
         })
     }
@@ -50,11 +55,30 @@ impl Server {
         self.state.collections.root(collection).map(PathBuf::from)
     }
 
+    pub(crate) fn sources<'a>(
+        &'a self,
+        root: &'a std::path::Path,
+    ) -> wbl_engine::send::Sources<'a> {
+        wbl_engine::send::Sources {
+            root: Some(root),
+            runtime: &self.state.runtime,
+            secrets: &self.state.secrets,
+        }
+    }
+
+    pub(crate) fn clients(&self) -> wbl_engine::deliver::Clients<'_> {
+        wbl_engine::deliver::Clients {
+            sender: &self.state.sender,
+            oauth: &self.state.oauth,
+        }
+    }
+
     fn tool_router() -> ToolRouter<Self> {
         Self::read_tools()
             + Self::request_tools()
             + Self::environment_tools()
             + Self::import_tools()
+            + Self::send_tools()
     }
 }
 
