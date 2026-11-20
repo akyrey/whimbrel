@@ -11,14 +11,21 @@
 
 ## A release
 
-1. Move the `[Unreleased]` section of `CHANGELOG.md` under a new version heading.
-2. Set that version in the workspace `Cargo.toml` and in `apps/desktop/package.json` (the
-   `packaging` test fails if they differ), and commit.
-3. Tag `vX.Y.Z` and push the tag. `.github/workflows/release.yml` (which runs the shared
-   `release-app.yml` from Roost, D-H09) builds the universal macOS
-   app and dmg (and checks both architectures), and the Linux deb, rpm and AppImage for x86_64
-   and arm64. Then it creates a draft release with every package, a `SHA256SUMS` file and the
-   changelog section. Review the draft and publish it.
+1. Run `scripts/release.sh X.Y.Z` on a clean `main` (needs `git-cliff`: `brew install git-cliff`).
+   It writes the `## [X.Y.Z] - date` section of `CHANGELOG.md` and sets the version in the
+   workspace `Cargo.toml`, `Cargo.lock` and `apps/desktop/package.json` (the `packaging` test
+   fails if they differ, or if the version has no changelog section).
+   - Notes written by hand under `## [Unreleased]` become the section as they are.
+   - With none, git-cliff (`cliff.toml`) drafts it from the conventional commits since the last
+     tag: `feat` under Added, `perf` under Changed, `fix` under Fixed; other types are left out.
+     Commit subjects are terse, so reword the draft for users where it helps.
+2. Review `CHANGELOG.md`, then commit (`chore: release X.Y.Z`), tag `vX.Y.Z` and push both.
+   `.github/workflows/release.yml` (which runs the shared `release-app.yml` from Roost, D-H09)
+   first checks that the tag matches `Cargo.toml` and that `CHANGELOG.md` has a non-empty section
+   for it, then builds the universal macOS app and dmg (and checks both architectures), and the
+   Linux deb, rpm and AppImage for x86_64 and arm64. Then it creates a draft release with every
+   package, a `SHA256SUMS` file, and that changelog section as its notes; the same notes go into
+   `latest.json`, so the in-app update prompt shows them. Review the draft and publish it.
 
 `workflow_dispatch` runs the same builds without a release; the packages are downloadable
 artifacts of the run (kept 14 days).

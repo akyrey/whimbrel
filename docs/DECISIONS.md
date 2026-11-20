@@ -370,3 +370,18 @@ collections from arguments works with every version and keeps a human confirmati
 already is. **Verified**: the bundled macOS executable (`Contents/MacOS/whimbrel`) runs
 headless from a terminal.
 
+
+## D-H24 Release notes drafted from conventional commits, published from CHANGELOG.md (2026-11-20)
+
+**Context.** Releases took the first `## [` section of `CHANGELOG.md` as their notes, which is
+the empty `[Unreleased]` one, so v0.5.0 to v0.7.0 went out with no notes on GitHub or in the
+update prompt. Writing each section by hand was also a manual step of every release.
+**Decision.** `CHANGELOG.md` stays the one source of release notes, in Keep a Changelog form.
+`scripts/release.sh X.Y.Z` writes the version's section: notes under `[Unreleased]` are used as
+written, otherwise git-cliff (`cliff.toml`) drafts them from the `feat`, `perf` and `fix` commits
+since the last tag, for review before the release commit. Roost's `release-app.yml` (v0.1.5)
+publishes the section whose heading matches the tag (`scripts/release-notes.mjs`), on the release
+and in `latest.json`, and fails before building when it is missing or empty.
+**Consequences.** Commit subjects of `feat`, `perf` and `fix` commits are user-facing text. The
+`packaging` test fails when the version in `Cargo.toml` has no changelog section. git-cliff is
+needed only on the machine that prepares a release, not in CI.

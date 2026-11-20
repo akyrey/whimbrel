@@ -70,3 +70,29 @@ fn updates_come_signed_from_whimbrels_own_releases() {
         true
     );
 }
+
+/// The lines under the `## [version]` heading of CHANGELOG.md, or `None` without one.
+fn changelog_section(changelog: &str, version: &str) -> Option<String> {
+    let heading = format!("## [{version}]");
+    let mut lines = changelog
+        .lines()
+        .skip_while(|line| !line.starts_with(&heading));
+    lines.next()?;
+    let body: Vec<&str> = lines.take_while(|line| !line.starts_with("## [")).collect();
+    Some(body.join("\n").trim().to_owned())
+}
+
+#[test]
+fn the_changelog_has_notes_for_the_version() {
+    // The release workflow publishes this section as the release notes and fails without it.
+    let path = format!("{}/../../../CHANGELOG.md", env!("CARGO_MANIFEST_DIR"));
+    let changelog = std::fs::read_to_string(path).unwrap();
+    let version = env!("CARGO_PKG_VERSION");
+
+    let notes = changelog_section(&changelog, version)
+        .unwrap_or_else(|| panic!("CHANGELOG.md has no section for {version}"));
+    assert!(
+        !notes.is_empty(),
+        "CHANGELOG.md's section for {version} is empty"
+    );
+}

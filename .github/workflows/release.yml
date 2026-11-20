@@ -2,7 +2,8 @@ name: Release
 
 # Builds the macOS universal app and dmg and the Linux deb, rpm and AppImage for x86_64 and arm64
 # with Roost's shared release-app.yml (D-H09). A tag `v*` publishes a draft release with every
-# package; a manual run only uploads the packages as workflow artifacts. See docs/RELEASING.md.
+# package and the tag's CHANGELOG.md section as its notes (D-H24); a manual run only uploads the
+# packages as workflow artifacts. See docs/RELEASING.md.
 #
 # The macOS app is always signed, with the first of:
 #   1. A Developer ID certificate, notarised: APPLE_CERTIFICATE (base64 .p12),
@@ -27,9 +28,9 @@ permissions:
 
 jobs:
   release:
-    uses: akyrey/roost/.github/workflows/release-app.yml@v0.1.4
+    uses: akyrey/roost/.github/workflows/release-app.yml@v0.1.5
     with:
-      roost-ref: v0.1.4
+      roost-ref: v0.1.5
       app-dir: apps/desktop
       product-name: Whimbrel
       binary-name: whimbrel

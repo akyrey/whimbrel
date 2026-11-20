@@ -4215,7 +4215,7 @@ dependencies = [
 [[package]]
 name = "roost-keychain"
 version = "0.1.0"
-source = "git+https://github.com/akyrey/roost?tag=v0.1.4#4310f43a1f04ac40b2e056e55e534dd211ac9b60"
+source = "git+https://github.com/akyrey/roost?tag=v0.1.5#30b86db221df5ea404e88f38c65116b9d86d292c"
 dependencies = [
  "apple-native-keyring-store",
  "keyring-core",
@@ -4227,7 +4227,7 @@ dependencies = [
 [[package]]
 name = "roost-shell"
 version = "0.1.0"
-source = "git+https://github.com/akyrey/roost?tag=v0.1.4#4310f43a1f04ac40b2e056e55e534dd211ac9b60"
+source = "git+https://github.com/akyrey/roost?tag=v0.1.5#30b86db221df5ea404e88f38c65116b9d86d292c"
 dependencies = [
  "serde",
  "tauri-plugin-updater",
