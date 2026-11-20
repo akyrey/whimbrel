@@ -15,7 +15,7 @@ Design: [PRD.md](../PRD.md) FR-1; [FILE_FORMAT.md](../FILE_FORMAT.md) (order, fo
       the collection, gives the move (when the parent changes) and the fewest order writes,
       renumbering 10, 20, … like "Move up". Dropping a node on itself or into its own folder
       tree does nothing.
-- [ ] 11.3 The tree: rows are draggable; over a request the upper half drops before it and the
+- [x] 11.3 The tree: rows are draggable; over a request the upper half drops before it and the
       lower half after it; over a folder the upper quarter drops before it and the rest into
       it; over the collection's name, into the collection. The target is highlighted. Open tabs
       follow the files they show. Only within one collection.

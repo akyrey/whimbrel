@@ -86,3 +86,19 @@ export function planDrop(
     .map(({ path, order }) => ({ path, order }));
   return writes.length === 0 ? null : { into: spot.into, move, writes };
 }
+
+/** The share of a folder row, from its top, that drops before the folder rather than into it. */
+const FOLDER_BEFORE_SHARE = 0.25;
+
+/** Where over a row the pointer drops (task 11.3): a request's upper half is before it, the lower
+ * half after; a folder's upper quarter is before it, the rest into it. Without a usable size
+ * (no layout), after a request and into a folder. */
+export function dropPosition(
+  kind: "request" | "folder",
+  offsetY: number,
+  height: number,
+): DropPosition {
+  const share = height > 0 && Number.isFinite(offsetY) ? offsetY / height : null;
+  if (kind === "folder") return share !== null && share < FOLDER_BEFORE_SHARE ? "before" : "into";
+  return share !== null && share < 0.5 ? "before" : "after";
+}

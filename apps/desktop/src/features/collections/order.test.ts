@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Node } from "../../ipc";
-import { moves, planDrop } from "./order";
+import { dropPosition, moves, planDrop } from "./order";
 
 const request = (path: string, order: number): Node => ({
   kind: "request",
@@ -110,5 +110,19 @@ describe("planning a drop", () => {
     expect(planDrop(tree, "a.req.toml", "c.req.toml", "into")).toBeNull();
     expect(planDrop(tree, "gone", "a.req.toml", "before")).toBeNull();
     expect(planDrop(tree, "a.req.toml", "gone.req.toml", "after")).toBeNull();
+  });
+});
+
+describe("dropPosition", () => {
+  it("splits a request row in halves and a folder row at a quarter", () => {
+    expect(dropPosition("request", 4, 20)).toBe("before");
+    expect(dropPosition("request", 12, 20)).toBe("after");
+    expect(dropPosition("folder", 4, 20)).toBe("before");
+    expect(dropPosition("folder", 6, 20)).toBe("into");
+  });
+
+  it("falls back to after a request and into a folder without a usable size", () => {
+    expect(dropPosition("request", Number.NaN, 0)).toBe("after");
+    expect(dropPosition("folder", 3, 0)).toBe("into");
   });
 });

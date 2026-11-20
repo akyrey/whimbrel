@@ -7,6 +7,7 @@ import {
   chooseFolder,
   chooseSaveFile,
   httpExport,
+  nodeMove,
   nodeOrder,
   folderCreate,
   nodeDelete,
@@ -18,7 +19,7 @@ import {
 import { NEW_REQUEST } from "../tabs/model";
 import { useTabs } from "../tabs/tabsStore";
 import { useCollections } from "./collectionsStore";
-import { moves } from "./order";
+import { type DropPosition, moves, planDrop } from "./order";
 
 async function attempt(what: string, run: () => Promise<void>): Promise<void> {
   try {
@@ -104,6 +105,26 @@ export const moveNode = (root: string, siblings: Node[], index: number, delta: -
   attempt("move it", async () => {
     for (const { path, order } of moves(siblings, index, delta)) {
       await nodeOrder(root, path, order);
+    }
+    await refresh(root);
+  });
+
+/** Drops `dragged` before or after `target`, or into the folder `target` (task 11.3): moves it
+ * when its folder changes, writes the new orders, and lets open tabs follow. */
+export const dropNode = (
+  root: string,
+  tree: Node[],
+  dragged: string,
+  target: string,
+  position: DropPosition,
+) =>
+  attempt("move it", async () => {
+    const plan = planDrop(tree, dragged, target, position);
+    if (!plan) return;
+    const path = plan.move ? await nodeMove({ root, path: dragged, folder: plan.into }) : dragged;
+    if (path !== dragged) useTabs.getState().relocated(root, dragged, path);
+    for (const write of plan.writes) {
+      await nodeOrder(root, write.path === dragged ? path : write.path, write.order);
     }
     await refresh(root);
   });

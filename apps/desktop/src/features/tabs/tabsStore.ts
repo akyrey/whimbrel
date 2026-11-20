@@ -27,6 +27,7 @@ import {
   looseTab,
   moved,
   pickedExample,
+  relocated,
   resolved,
   savedAs,
   sending,
@@ -65,6 +66,8 @@ type TabsState = {
   cancel: (id: string) => Promise<void>;
   changedOnDisk: (root: string, paths: string[]) => Promise<void>;
   renamed: (root: string, from: string, to: string, name: string) => void;
+  /** A request or folder moved: tabs of it, or of what is inside, follow. */
+  relocated: (root: string, from: string, to: string) => void;
   removed: (root: string, path: string) => void;
   restore: () => Promise<void>;
 };
@@ -258,6 +261,13 @@ export const useTabs = create<TabsState>()((set, get) => {
             ? fileTabId({ root, path: to })
             : get().activeId,
       });
+      remember();
+    },
+    relocated: (root, from, to) => {
+      const before = get().tabs;
+      const tabs = before.map((t) => relocated(t, root, from, to));
+      const index = before.findIndex((t) => t.id === get().activeId);
+      set({ tabs, activeId: index === -1 ? get().activeId : (tabs[index]?.id ?? null) });
       remember();
     },
     removed: (root, path) => {

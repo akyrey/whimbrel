@@ -85,3 +85,77 @@ it("filters the tree by name, keeps the folders above matches, and Escape clears
   expect(within(tree).getByRole("button", { name: /Ping/ })).toBeInTheDocument();
   expect(within(tree).getByRole("button", { name: /Forged/ })).toBeInTheDocument();
 });
+
+describe("drag and drop", () => {
+  /** jsdom has no DataTransfer; the tree only sets data and effects on it. */
+  const transfer = () => ({
+    dataTransfer: { setData: vi.fn(), effectAllowed: "", dropEffect: "" },
+  });
+  const drag = (from: HTMLElement, onto: HTMLElement) => {
+    fireEvent.dragStart(from, transfer());
+    fireEvent.dragEnter(onto, transfer());
+    fireEvent.dragOver(onto, transfer());
+    fireEvent.drop(onto, transfer());
+    fireEvent.dragEnd(from, transfer());
+  };
+
+  it("moves a request into a folder, and its open tab follows it", async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Open…" }));
+    const tree = await screen.findByRole("region", { name: "Demo API" });
+    await userEvent.click(within(tree).getByRole("button", { name: /Ping/ }));
+    await screen.findByRole("textbox", { name: "URL" });
+
+    drag(
+      within(tree).getByRole("button", { name: /Ping/ }),
+      within(tree).getByRole("button", { name: /Session/ }),
+    );
+
+    await waitFor(() => {
+      expect(requestsIn(tree, /Session/)).toEqual(["POSTGet a token", "GETMe", "GETPing"]);
+    });
+    expect(useTabs.getState().tabs[0]?.file?.path).toBe("session/ping.req.toml");
+    expect(useTabs.getState().activeId).toBe(useTabs.getState().tabs[0]?.id);
+  });
+
+  it("reorders by dropping after a sibling, and moves a folder into another", async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Open…" }));
+    const tree = await screen.findByRole("region", { name: "Demo API" });
+
+    drag(
+      within(tree).getByRole("button", { name: /Get a token/ }),
+      within(tree).getByRole("button", { name: /Me$/ }),
+    );
+    await waitFor(() => {
+      expect(requestsIn(tree, /Session/)).toEqual(["GETMe", "POSTGet a token"]);
+    });
+
+    drag(
+      within(tree).getByRole("button", { name: /Users/ }),
+      within(tree).getByRole("button", { name: /Session/ }),
+    );
+    await waitFor(() => {
+      const session = within(tree)
+        .getByRole("button", { name: /Session/ })
+        .closest("li");
+      expect(
+        within(session as HTMLElement).getByRole("button", { name: /Users/ }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("refuses to drop a folder into itself", async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Open…" }));
+    const tree = await screen.findByRole("region", { name: "Demo API" });
+    const session = within(tree).getByRole("button", { name: /Session/ });
+
+    fireEvent.dragStart(session, transfer());
+    const over = fireEvent.dragOver(session, transfer());
+    fireEvent.dragEnd(session, transfer());
+
+    // An allowed drop target cancels dragover; this one does not.
+    expect(over).toBe(true);
+  });
+});

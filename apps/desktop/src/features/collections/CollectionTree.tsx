@@ -28,6 +28,7 @@ import {
 } from "./actions";
 import { useCollections } from "./collectionsStore";
 import { filterNodes } from "./filter";
+import { type TreeDrag, dragProps, hoverClass, useTreeDrag } from "./treeDrag";
 import { NameDialog } from "./NameDialog";
 import { useRunner } from "../runner/runnerStore";
 
@@ -44,6 +45,7 @@ type Ui = {
   ask: (dialog: Dialog) => void;
   /** The filter text; while set, folders are shown open. */
   filter: string;
+  drag: TreeDrag;
 };
 
 /** The tree's filter box, for the shortcut that focuses it. */
@@ -174,8 +176,9 @@ function NodeItem({ node, root, ui, depth, siblings, index }: ItemProps) {
       <li>
         <button
           type="button"
-          className="flex w-full items-center gap-2 py-0.5 text-left text-sm text-zinc-300 hover:bg-zinc-800"
+          className={`flex w-full items-center gap-2 py-0.5 text-left text-sm text-zinc-300 hover:bg-zinc-800 ${hoverClass(ui.drag, { root, path: node.path })}`}
           style={indent}
+          {...dragProps(ui.drag, { root, path: node.path }, "request")}
           onClick={() => void useTabs.getState().openFile({ root, path: node.path })}
           onContextMenu={(e) => {
             ui.menu(e, `Actions for ${node.name}`, items);
@@ -229,8 +232,9 @@ function NodeItem({ node, root, ui, depth, siblings, index }: ItemProps) {
       <button
         type="button"
         aria-expanded={open}
-        className="flex w-full items-center gap-1 py-0.5 text-left text-sm text-zinc-200 hover:bg-zinc-800"
+        className={`flex w-full items-center gap-1 py-0.5 text-left text-sm text-zinc-200 hover:bg-zinc-800 ${hoverClass(ui.drag, { root, path: node.path })}`}
         style={indent}
+        {...dragProps(ui.drag, { root, path: node.path }, "folder")}
         onClick={() => {
           setOpen(!opened);
         }}
@@ -336,8 +340,9 @@ function CollectionItem({ view, ui }: { view: CollectionView; ui: Ui }) {
   return (
     <section aria-label={view.collection.name} className="py-1">
       <h2
-        className="truncate px-2 py-1 text-xs font-semibold uppercase tracking-wide text-zinc-400"
+        className={`truncate px-2 py-1 text-xs font-semibold uppercase tracking-wide text-zinc-400 ${hoverClass(ui.drag, { root: view.root, path: "" })}`}
         title={view.root}
+        {...dragProps(ui.drag, { root: view.root, path: "" }, "collection")}
         onContextMenu={(e) => {
           ui.menu(e, `Actions for ${view.collection.name}`, items);
         }}
@@ -362,8 +367,10 @@ export function CollectionTree() {
   const [menu, setMenu] = useState<Menu | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [filter, setFilter] = useState("");
+  const drag = useTreeDrag((root) => views[root]?.collection.children);
   const ui: Ui = {
     filter,
+    drag,
     menu: (event, label, items) => {
       event.preventDefault();
       setMenu({ x: event.clientX, y: event.clientY, label, items });

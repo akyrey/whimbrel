@@ -150,6 +150,13 @@ export function moved(tab: Tab, file: FileRef, name: string): Tab {
   };
 }
 
+/** The tab with its file moved from `from` to `to` (a request, or a folder it is inside). */
+export function relocated(tab: Tab, root: string, from: string, to: string): Tab {
+  if (!tab.file || !isUnder(tab, root, from)) return tab;
+  const file = { root, path: `${to}${tab.file.path.slice(from.length)}` };
+  return { ...tab, id: fileTabId(file), file };
+}
+
 /** Whether `tab` shows `path` of `root`, or something inside the folder `path`. */
 export function isUnder(tab: Tab, root: string, path: string): boolean {
   if (!tab.file || tab.file.root !== root) return false;
