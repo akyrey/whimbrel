@@ -4,6 +4,17 @@ All notable changes to Whimbrel. The format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-20
+
+### Added
+
+- AI tools (Claude Desktop, Claude Code, Cursor and other MCP clients) can work with collections
+  through `whimbrel mcp --collection <folder>`: read the tree, requests and environments; create,
+  change, move and delete requests and folders; manage environments and variables; import
+  OpenAPI, Postman, .http and cURL; send requests and run folders. Secret values are never shown
+  or set, protected environments are refused, and sends are not recorded in history. Setup is in
+  the README under "Use with AI tools (MCP)".
+
 ## [0.6.1] - 2026-11-20
 
 ### Fixed
