@@ -346,12 +346,13 @@ through the watcher like any outside change (a dirty tab gets the conflict promp
 - Secret values never leave the server (D-H04, D-H12). Variables are listed as names with
   `secret: true`; a tool may mark a variable secret but never set its value (MCP elicitation
   must not ask for sensitive data). Saving refuses literal secret values, as the app does.
-  Sent requests are returned masked, and known secret values in response headers and bodies
-  are replaced with `«secret:<name>»`.
+  Sent requests are returned masked, and every known secret value (those the request used, the
+  environment's, and what a secret capture just took) is masked in the response, the capture
+  values and the assertion messages, as history masks them (`wbl-engine::deliver`).
 - Sending with a protected environment asks through MCP elicitation; a client without
   elicitation gets the error `mcp.protected_environment`.
-- OAuth 2 uses the cached token and refreshes it; a flow that needs the browser fails with
-  `auth.sign_in_required` (sign in from the app).
+- OAuth 2 uses the cached token and refreshes it; without one the send fails with
+  `oauth_required`, as in the app (sign in from the app).
 - Response bodies returned to the tool are capped (text, 256 kB, truncation reported).
 - MCP sends are not recorded in history in this phase.
 **Consequences.** The dependency rule gains two exceptions: `wbl-engine` depends on `wbl-core`,

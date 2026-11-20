@@ -24,11 +24,12 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
       `AppError`) with the engine's own error enum (stable codes) and plain callbacks or
       streams. `src-tauri` commands call the engine. Behaviour unchanged: the existing
       `src-tauri` and frontend suites, including the sentinel-secret test, are the gate.
-- [ ] 12.2 `wbl-engine::send_once`: resolve, apply auth (cached or refreshed OAuth 2 token
-      only; a browser flow fails with `auth.sign_in_required`), send with `wbl-http`, and
-      return a masked request, status, headers, timings and the body up to a cap. Known secret
-      values in response headers and body become `«secret:<name>»`. Tests against a local
-      server, including a response that echoes a secret.
+- [x] 12.2 `wbl-engine::deliver::send_once`: resolve, apply auth (cached or refreshed OAuth 2
+      token only; without one, `oauth_required`), send with `wbl-http`, and return a masked
+      request, the response cut to 256 kB, and the checks. Every known secret value (used,
+      in the environment, just captured) is masked as history masks it; history and the
+      server share `wbl-engine::mask`. Tests against a local server, including a response
+      that echoes a secret.
 
 ### Server
 
