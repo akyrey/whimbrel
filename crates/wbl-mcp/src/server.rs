@@ -46,7 +46,7 @@ impl Server {
     }
 
     fn tool_router() -> ToolRouter<Self> {
-        Self::read_tools() + Self::request_tools()
+        Self::read_tools() + Self::request_tools() + Self::environment_tools()
     }
 }
 

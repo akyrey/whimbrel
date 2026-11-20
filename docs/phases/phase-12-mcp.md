@@ -48,9 +48,11 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
       `delete`, and `set_headers` / `set_auth` for folders and the collection (guarded the same
       way). Each returns the canonical form.
       Tests: an unchanged update leaves the file byte-identical; a move keeps the tree valid.
-- [ ] 12.6 Environment tools: `create_environment`, `set_variables` (add, change, remove;
+- [x] 12.6 Environment tools: `create_environment`, `set_variables` (add, change, remove;
       marking a variable secret stores the name only and removes any value from the file),
-      `set_collection_variables`, `delete_environment`. No tool sets a secret value. The
+      `set_collection_variables`, `delete_environment` (the file and `.local`; keychain values
+      stay, so restoring the file from git restores them). No tool sets a secret value or
+      changes whether an environment is protected. The
       sentinel test: after every write tool, no secret value appears on disk or in any result.
 - [ ] 12.7 Import tools: `import_openapi` (file path or URL), `import_postman`, `import_curl`
       (into a folder), and `export_http`, through `wbl-openapi` and `wbl-interop`, returning

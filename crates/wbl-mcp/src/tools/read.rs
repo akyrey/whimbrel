@@ -70,7 +70,7 @@ fn request(root: &Path, path: &str) -> Result<Value, McpError> {
     }))
 }
 
-fn environment(server: &Server, root: &Path, id: &str) -> Result<Value, McpError> {
+pub(crate) fn environment(server: &Server, root: &Path, id: &str) -> Result<Value, McpError> {
     let read = environments::read(root, id)?;
     let collection_id = collection::id(root)?;
     let secrets = read

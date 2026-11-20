@@ -328,4 +328,4 @@ in it that inherit."
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
