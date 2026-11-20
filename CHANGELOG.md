@@ -4,6 +4,24 @@ All notable changes to Whimbrel. The format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-20
+
+### Added
+
+- A filter above the collection tree (name, method or file path).
+- A JSONPath filter over JSON responses, with the same RFC 9535 engine as captures.
+- "Copy body" and a wrap toggle in the response view.
+- The active environment shown beside the URL; protected ones in rose with a lock.
+- Shortcuts and palette commands: next/previous tab, duplicate the request, filter the
+  requests, beautify the body, put the response beside or below.
+- Ways to start (new request, open a collection, imports) when no tab is open.
+
+### Fixed
+
+- Error text and PATCH colours keep their contrast in the light theme.
+
+## [0.1.1] - 2026-11-20
+
 ### Added
 
 - Requests as TOML files in git: collections, folders, saved examples, request variables.

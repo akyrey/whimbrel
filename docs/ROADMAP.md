@@ -16,7 +16,7 @@ are the seeds for those briefs.
 - [x] Phase 6: OpenAPI import and spec browser
 - [x] Phase 7: Chaining, assertions, runner, re-import
 - [ ] Phase 8: Polish, interop, release
-- [ ] Phase 9: Everyday UX ([brief](phases/phase-9-ux.md))
+- [x] Phase 9: Everyday UX ([brief](phases/phase-9-ux.md))
 
 ## Order and dependencies
 
