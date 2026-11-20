@@ -4,6 +4,28 @@ All notable changes to Whimbrel. The format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-20
+
+### Added
+
+- Collections and folders can set headers that every request under them sends ("Headers…" in
+  their menus). A deeper header replaces inherited ones of the same name; the request's Headers
+  tab lists what it inherits, struck through where replaced.
+- An OAuth 2 configuration keeps several named tokens; "Manage tokens" switches the one in use,
+  renames and deletes them. A single token from an earlier version becomes the first of the list.
+- The spec validation result can be hidden.
+
+### Changed
+
+- Opening, creating and importing (cURL, OpenAPI, Postman or .http) moved into a + menu beside the
+  request filter. "Open…" and "New collection…" stay visible while no collection is open.
+- The Environments editor opens as a wide dialog.
+
+### Fixed
+
+- The request bar stays usable in a narrow pane: it has two rows, and "Copy cURL" moved into a
+  cURL menu.
+
 ## [0.5.0] - 2026-11-20
 
 ### Added
