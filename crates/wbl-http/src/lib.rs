@@ -2,10 +2,12 @@
 //! store, HTTP/2, decompression, per-request settings, a cookie jar per collection, large bodies
 //! to disk, streams parsed as they arrive, and cancellation.
 //!
-//! Timings are the time to the response headers and the total (D-H10).
+//! Timings are the time to the response headers and the total, and DNS and connect times when
+//! the send opened a connection (D-H10, D-H20).
 
 mod body;
 mod error;
+mod phases;
 mod response;
 mod stream;
 
@@ -162,6 +164,8 @@ impl Sender {
             .timeout(self.options.timeout)
             .redirect(redirects)
             .danger_accept_invalid_certs(!key.verify_tls)
+            .dns_resolver(Arc::new(phases::TimedResolver))
+            .connector_layer(phases::TimedConnect)
             .user_agent(concat!("Whimbrel/", env!("CARGO_PKG_VERSION")));
         builder = with_tls(builder, &key.tls)?;
         if let Some(name) = &key.jar {
@@ -216,12 +220,13 @@ impl Sender {
         on_event: &mut (dyn FnMut(StreamEvent) + Send),
     ) -> Result<Response, HttpError> {
         let started = Instant::now();
-        let response = client.execute(request).await.map_err(HttpError::from)?;
+        let (sent, phases) = phases::recorded(client.execute(request)).await;
+        let response = sent.map_err(HttpError::from)?;
         let headers_at = started.elapsed();
         let head = response::Head::of(&response);
         let parser = StreamKind::of(head.content_type()).map(stream::Parser::new);
         let collected = body::collect(response, &self.options, parser, on_event).await?;
-        Ok(head.into_response(collected, Timing::of(headers_at, started.elapsed())))
+        Ok(head.into_response(collected, Timing::of(headers_at, started.elapsed(), phases)))
     }
 }
 

@@ -1,6 +1,6 @@
 # Roadmap
 
-Ten phases (0–9). Each ends with something runnable. As in Dunlin, each phase gets a brief in
+Eleven phases (0–10). Each ends with something runnable. As in Dunlin, each phase gets a brief in
 `docs/phases/` (tasks, tests, acceptance criteria) before work on it starts; the task lists below
 are the seeds for those briefs.
 
@@ -17,6 +17,7 @@ are the seeds for those briefs.
 - [x] Phase 7: Chaining, assertions, runner, re-import
 - [ ] Phase 8: Polish, interop, release
 - [x] Phase 9: Everyday UX ([brief](phases/phase-9-ux.md))
+- [ ] Phase 10: Timing breakdown and response comparison ([brief](phases/phase-10-timings-compare.md))
 
 ## Order and dependencies
 

@@ -191,3 +191,26 @@ pub async fn streaming_server() -> String {
     });
     base
 }
+
+/// Like [`server`], but keeps each connection open for further requests (`/echo` only), so a
+/// second send can reuse the first one's connection.
+pub async fn keep_alive_server() -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://localhost:{}", listener.local_addr().unwrap().port());
+    tokio::spawn(async move {
+        loop {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            tokio::spawn(async move {
+                while read_request(&mut socket).await.is_some() {
+                    let reply = b"HTTP/1.1 200 OK\r\ncontent-length: 2\r\n\r\nok";
+                    if socket.write_all(reply).await.is_err() {
+                        return;
+                    }
+                }
+            });
+        }
+    });
+    base
+}

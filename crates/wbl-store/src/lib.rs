@@ -24,7 +24,7 @@ pub enum StoreError {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Outcome {
-    Completed { response: Response },
+    Completed { response: Box<Response> },
     Failed { code: String, message: String },
 }
 

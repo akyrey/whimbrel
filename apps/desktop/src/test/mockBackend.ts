@@ -342,7 +342,7 @@ function response(status: number, reason: string, contentType: string, text: str
       { name: "x-mock", value: "1" },
     ],
     body: { text, base64: null, size: text.length, truncated: false, file: null, contentType },
-    timing: { headersMs: 12, totalMs: 15 },
+    timing: { headersMs: 12, totalMs: 15, dnsMs: 2, connectMs: 5 },
     streamEvents: 0,
   };
 }

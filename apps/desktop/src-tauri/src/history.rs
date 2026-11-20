@@ -74,7 +74,7 @@ pub fn record(state: &AppState, entry: &NewEntry) {
 pub fn outcome(result: &Result<Response, AppError>, secrets: &[String]) -> Outcome {
     match result {
         Ok(response) => Outcome::Completed {
-            response: masked_response(response, secrets),
+            response: Box::new(masked_response(response, secrets)),
         },
         Err(error) => Outcome::Failed {
             code: error.code.clone(),
@@ -156,6 +156,8 @@ mod tests {
             timing: Timing {
                 headers_ms: 1,
                 total_ms: 2,
+                dns_ms: None,
+                connect_ms: Some(1),
             },
             stream_events: 0,
         }

@@ -18,8 +18,11 @@ reqwest = { version = "0.13", features = ["gzip", "brotli", "deflate", "zstd", "
 base64 = "0.22"
 serde.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["fs"] }
+tokio = { workspace = true, features = ["fs", "net"] }
 tokio-util = "0.7"
+# The connector layer that times connections (D-H20); the versions reqwest uses.
+tower-layer = "0.3"
+tower-service = "0.3"
 url = "2.5"
 ts-rs = { workspace = true, optional = true }
 

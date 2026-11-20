@@ -8,4 +8,12 @@ headersMs: number,
 /**
  * From sending to the end of the body.
  */
-totalMs: number, };
+totalMs: number, 
+/**
+ * Resolving the host name, when the send opened a connection to a name (D-H20).
+ */
+dnsMs: number | null, 
+/**
+ * TCP and TLS, when the send opened a connection; `None`: it reused one.
+ */
+connectMs: number | null, };

@@ -6345,6 +6345,8 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tokio-util",
+ "tower-layer",
+ "tower-service",
  "ts-rs",
  "url",
  "wbl-core",

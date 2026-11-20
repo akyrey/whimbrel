@@ -39,6 +39,14 @@ pub struct Timing {
     /// From sending to the end of the body.
     #[cfg_attr(feature = "ts", ts(type = "number"))]
     pub total_ms: u64,
+    /// Resolving the host name, when the send opened a connection to a name (D-H20).
+    #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(type = "number | null"))]
+    pub dns_ms: Option<u64>,
+    /// TCP and TLS, when the send opened a connection; `None`: it reused one.
+    #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(type = "number | null"))]
+    pub connect_ms: Option<u64>,
 }
 
 fn millis(duration: Duration) -> u64 {
@@ -46,10 +54,12 @@ fn millis(duration: Duration) -> u64 {
 }
 
 impl Timing {
-    pub(crate) fn of(headers: Duration, total: Duration) -> Self {
+    pub(crate) fn of(headers: Duration, total: Duration, phases: crate::phases::Phases) -> Self {
         Self {
             headers_ms: millis(headers),
             total_ms: millis(total),
+            dns_ms: phases.dns.map(millis),
+            connect_ms: phases.connect_only().map(millis),
         }
     }
 }

@@ -144,7 +144,7 @@ connection info beyond the remote address.
 **Decision.** `wbl-http` reports the time to the response headers and the total. A breakdown
 waits for Phase 4, where it would need our own `hyper-util` connector that wraps DNS, TCP and
 rustls and times each step, and reqwest's pool and redirects rebuilt on top of it.
-**Consequences.** The response panel shows "headers after X ms, total Y ms" until then. Phase 4
+**Consequences.** (Breakdown done in D-H20.) The response panel shows "headers after X ms, total Y ms" until then. Phase 4
 decides whether the breakdown is worth owning the connector.
 
 ## D-H11 HTTP errors: stable codes, messages without the URL (2026-11-18)
@@ -273,3 +273,20 @@ inherits as a header (with its variables); examples, captures and assertions hav
 form and are left out.
 **Consequences.** Users set imported secrets once in the keychain. Postman's dynamic variables
 other than `$guid`, `$randomUUID`, `$timestamp`, `$isoTimestamp` stay as written, with a warning.
+
+## D-H20 Timing breakdown: a timed resolver and connector layer, not our own connector (2026-11-20)
+
+**Context.** D-H10 left DNS, connect and TLS times for later, expecting them to need our own
+`hyper-util` connector. reqwest 0.13 has two hooks that avoid that: `dns_resolver` (a public
+`Resolve` trait) and `connector_layer` (a tower layer around its whole connector, TLS included).
+Clients are shared and cached, so neither hook knows which send it serves.
+**Decision.** `wbl-http` installs a resolver that times `getaddrinfo` (as reqwest's default does
+it, on a blocking thread) and a generic layer that times each connection. Each send runs inside
+a tokio task-local recorder; hyper connects inside the send's own future, so the hooks find it
+there. `Timing` gains `dnsMs` (`null` for an IP address or a reused connection) and `connectMs`
+(TCP and TLS together, `null` for a reused connection); waiting and download are derived from
+`headersMs` and `totalMs`. Both new fields default to `null`, so history saved before still reads.
+**Consequences.** TCP and TLS are not separate: reqwest does both inside the layer. A connect
+that hyper finishes in the background after the send took a pooled connection records nothing,
+which is right, since that send did not wait for it. Supersedes the "breakdown waits" part of
+D-H10.

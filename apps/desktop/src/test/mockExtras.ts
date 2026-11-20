@@ -38,7 +38,7 @@ function make(
       contentType,
       ...body,
     },
-    timing: { headersMs: 12, totalMs: 15 },
+    timing: { headersMs: 12, totalMs: 15, dnsMs: null, connectMs: null },
     streamEvents: 0,
   };
 }
