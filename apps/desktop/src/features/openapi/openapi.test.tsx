@@ -178,6 +178,13 @@ describe("spec browser", () => {
     expect(within(section).getByRole("list", { name: "Schema errors" })).toHaveTextContent(
       'not of type "array"',
     );
+
+    await userEvent.click(within(section).getByRole("button", { name: "Hide result" }));
+    expect(within(section).queryByText(/difference from the spec/)).toBeNull();
+    expect(within(section).queryByRole("button", { name: "Hide result" })).toBeNull();
+    expect(
+      within(section).getByRole("button", { name: "Validate against the spec" }),
+    ).toBeInTheDocument();
   });
 
   it("re-imports: compares, lets a conflict take the spec's side, applies", async () => {

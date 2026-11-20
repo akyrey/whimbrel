@@ -52,8 +52,18 @@ export function SchemaCheck({ tab }: { tab: Tab }) {
   const shown = result?.for === response ? result.value : null;
   return (
     <section aria-label="Spec validation" className="flex flex-col gap-1 px-4 text-sm">
-      <div>
+      <div className="flex gap-2">
         <Button onClick={() => void run()}>Validate against the spec</Button>
+        {shown !== null && (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setResult(null);
+            }}
+          >
+            Hide result
+          </Button>
+        )}
       </div>
       {typeof shown === "string" && (
         <span role="alert" className="text-rose-400">
