@@ -1,7 +1,7 @@
 import { describe as group, expect, it } from "vitest";
 
 import type { ScopeVariable } from "../../ipc";
-import { accept, completionAt, describe, matching, namesIn } from "./completion";
+import { accept, completionAt, describe, explain, matching, namesIn, tokensIn } from "./completion";
 
 const v = (name: string, extra: Partial<ScopeVariable> = {}): ScopeVariable => ({
   name,
@@ -56,5 +56,50 @@ group("completion", () => {
     expect(describe("unset", vars).known).toBe(false);
     expect(describe("$uuid", vars).text).toBe("$uuid: generated when sent");
     expect(describe("nope", vars)).toEqual({ text: "nope is not defined", known: false });
+  });
+
+  it("finds where each variable sits in a text", () => {
+    expect(tokensIn("{{a}}/x/{{ b }}?q={{a}}")).toEqual([
+      { start: 0, end: 5, name: "a" },
+      { start: 8, end: 15, name: "b" },
+      { start: 18, end: 23, name: "a" },
+    ]);
+    expect(tokensIn("{{unclosed")).toEqual([]);
+  });
+
+  it("explains a variable for its tooltip", () => {
+    const vars = [
+      v("host"),
+      v("empty", { value: null }),
+      v("key", { secret: true, value: null }),
+      v("unset", { secret: true, set: false, value: null }),
+      v("$uuid", { source: "dynamic", value: null }),
+    ];
+    expect(explain("host", vars)).toEqual({
+      known: true,
+      value: "x",
+      note: "From the environment",
+    });
+    expect(explain("empty", vars).value).toBe("");
+    expect(explain("key", vars)).toEqual({
+      known: true,
+      value: "••••••",
+      note: "Secret, from the environment",
+    });
+    expect(explain("unset", vars)).toEqual({
+      known: false,
+      value: null,
+      note: "Secret with no value in the keychain",
+    });
+    expect(explain("$uuid", vars)).toEqual({
+      known: true,
+      value: null,
+      note: "Generated when sent",
+    });
+    expect(explain("nope", vars)).toEqual({
+      known: false,
+      value: null,
+      note: "Not defined here",
+    });
   });
 });

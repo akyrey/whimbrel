@@ -27,8 +27,11 @@ D-H19.
 ## Notes
 
 - 8.3: completion works in the URL, header values and query values; the body editor does not
-  complete yet. The "hover" is the row of variables under the URL (a plain input has no
-  per-token tooltip): each shows its value and source, red when undefined.
+  complete yet. In the URL, header and query inputs each `{{variable}}` is highlighted (red when
+  undefined) by a layer drawn over the input, and hovering it shows a tooltip with its value
+  (secrets masked) and source. The row of variables under the URL shows the same tooltip on
+  hover or focus, and covers the body. It is a React tooltip, not `title`: with `title` no value
+  could be seen in the app.
 
 - 8.7: XML `nodeType` (3.2) is not shown yet; XML bodies are rare in the specs seen so far.
 

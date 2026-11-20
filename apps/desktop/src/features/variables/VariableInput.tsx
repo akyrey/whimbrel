@@ -2,6 +2,7 @@ import { type InputHTMLAttributes, useId, useLayoutEffect, useRef, useState } fr
 
 import { type Completion, accept, completionAt, matching } from "./completion";
 import { useVariables } from "./scope";
+import { VariableMarks } from "./VariableMarks";
 
 const MAX_SHOWN = 8;
 
@@ -79,6 +80,7 @@ export function VariableInput({ value, onValue, onKeyDown, ...rest }: Props) {
           onKeyDown?.(e);
         }}
       />
+      <VariableMarks text={value} input={input} />
       {open && (
         <ul
           id={listId}

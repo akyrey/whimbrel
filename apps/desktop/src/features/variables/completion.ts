@@ -41,14 +41,22 @@ export function accept(
   };
 }
 
+/** A `{{name}}` in a text: where it starts, where it ends (exclusive) and the name. */
+export type Token = { start: number; end: number; name: string };
+
+/** Every variable a text uses, in order, with its position. */
+export function tokensIn(text: string): Token[] {
+  return [...text.matchAll(/\{\{\s*([^{}\s]+)\s*\}\}/g)].flatMap((match) => {
+    const name = match[1];
+    return name === undefined
+      ? []
+      : [{ start: match.index, end: match.index + match[0].length, name }];
+  });
+}
+
 /** The names a text uses, each once, in order. */
 export function namesIn(text: string): string[] {
-  const names: string[] = [];
-  for (const match of text.matchAll(/\{\{\s*([^{}\s]+)\s*\}\}/g)) {
-    const name = match[1];
-    if (name !== undefined && !names.includes(name)) names.push(name);
-  }
-  return names;
+  return [...new Set(tokensIn(text).map((t) => t.name))];
 }
 
 const SOURCE_LABEL: Record<ScopeVariable["source"], string> = {
@@ -76,4 +84,22 @@ export function describe(
       : { text: `${name}: a secret with no value in the keychain`, known: false };
   }
   return { text: `${name} = ${found.value ?? ""} (from ${from})`, known: true };
+}
+
+/** What a variable's tooltip shows: the value (secrets masked, `null` when there is none to
+ * show) and a note on where it comes from or why it will not resolve. */
+export function explain(
+  name: string,
+  variables: ScopeVariable[],
+): { known: boolean; value: string | null; note: string } {
+  const found = variables.find((v) => v.name === name);
+  if (!found) return { known: false, value: null, note: "Not defined here" };
+  const from = SOURCE_LABEL[found.source];
+  if (found.source === "dynamic") return { known: true, value: null, note: "Generated when sent" };
+  if (found.secret) {
+    return found.set
+      ? { known: true, value: "••••••", note: `Secret, from ${from}` }
+      : { known: false, value: null, note: "Secret with no value in the keychain" };
+  }
+  return { known: true, value: found.value ?? "", note: `From ${from}` };
 }

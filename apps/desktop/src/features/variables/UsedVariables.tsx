@@ -1,6 +1,9 @@
+import { useState } from "react";
+
 import type { Tab } from "../tabs/model";
 import { describe, namesIn } from "./completion";
 import { useVariables } from "./scope";
+import { type Hovered, VariableTooltip } from "./VariableTooltip";
 
 /** The texts of a request that hold variables. */
 function textsOf(tab: Tab): string[] {
@@ -19,6 +22,7 @@ function textsOf(tab: Tab): string[] {
 /** The variables the request uses; hovering one shows its value and where it comes from. */
 export function UsedVariables({ tab }: { tab: Tab }) {
   const variables = useVariables();
+  const [hovered, setHovered] = useState<Hovered | null>(null);
   const names = [...new Set(textsOf(tab).flatMap(namesIn))];
   if (names.length === 0) return null;
   return (
@@ -28,14 +32,27 @@ export function UsedVariables({ tab }: { tab: Tab }) {
         return (
           <li
             key={name}
-            title={text}
+            tabIndex={0}
             aria-label={text}
+            onMouseEnter={(e) => {
+              setHovered({ name, rect: e.currentTarget.getBoundingClientRect() });
+            }}
+            onFocus={(e) => {
+              setHovered({ name, rect: e.currentTarget.getBoundingClientRect() });
+            }}
+            onMouseLeave={() => {
+              setHovered(null);
+            }}
+            onBlur={() => {
+              setHovered(null);
+            }}
             className={`rounded px-1.5 py-0.5 font-mono ${known ? "bg-zinc-800 text-zinc-300" : "bg-rose-950 text-rose-300"}`}
           >
             {name}
           </li>
         );
       })}
+      {hovered && <VariableTooltip {...hovered} />}
     </ul>
   );
 }
