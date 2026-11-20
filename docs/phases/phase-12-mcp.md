@@ -9,9 +9,9 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
 
 ## Before starting
 
-- **Verify** `rmcp` 3.x (crates.io `rmcp`, latest 3.11): the server API (tool router macros or
-  hand-written handlers), stdio transport, `roots/list`, elicitation, and an in-process client
-  for tests (a duplex transport). Record anything that changes the plan in D-H23.
+- [x] **Verified** `rmcp` 3.11: `#[tool_router]` / `#[tool_handler]` macros, stdio transport,
+  an in-process client over `tokio::io::duplex`. Elicitation and roots depend on the protocol
+  version (D-H23), so neither is used.
 - **Verify** that `Whimbrel.app/Contents/MacOS/whimbrel mcp` runs headless from a terminal and
   that the AppImage and deb binaries take arguments the same way.
 
@@ -33,12 +33,12 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
 
 ### Server
 
-- [ ] 12.3 `wbl-mcp` crate skeleton: server info, stdio transport, the set of reachable
-      collections from `--collection` arguments and client roots (a directory with a
-      `collection.toml`). A path outside them, or escaping a collection, fails with
-      `mcp.not_reachable`. Errors map to MCP tool errors carrying the stable code and a message
+- [x] 12.3 `wbl-mcp` crate skeleton: server info, the set of reachable collections from
+      `--collection` arguments (a directory with a `collection.toml`), named by folder or
+      name. Another collection fails with `not_reachable`, a path escaping one with
+      `invalid_path`. Errors map to MCP tool errors carrying the stable code and a message
       without URLs or values (D-H11). Tests through an in-process client.
-- [ ] 12.4 Read tools: `list_collections`, `get_tree` (folders and requests with method, name,
+- [x] 12.4 Read tools: `list_collections`, `get_tree` (folders and requests with method, name,
       path, order), `get_request` (the file's request, with examples, captures and assertions;
       inherited headers and auth listed separately), `list_environments`, `get_environment`
       (variables with values, secret ones as names with `secret: true`, `protected`).
@@ -55,8 +55,7 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
       the import report (what was skipped and why).
 - [ ] 12.8 `send_request` (a stored request, optional environment and example) and
       `run_folder` (captures and assertions, returns the results grid as rows). A protected
-      environment asks through elicitation; declined or unsupported gives
-      `mcp.protected_environment`. Response bodies are text up to 256 kB; binary bodies are
+      environment is refused with `protected_environment`. Response bodies are text up to 256 kB; binary bodies are
       described (type, size), not returned.
 
 ### Shipping

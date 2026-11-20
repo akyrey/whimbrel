@@ -341,16 +341,16 @@ built on the official Rust SDK `rmcp` over stdio, with tools over `wbl-format`, 
 <dir>]…` starts the server instead of the window, so there is one signed binary, updated with
 the app, and no sidecar. The server works on files directly; the running app sees its writes
 through the watcher like any outside change (a dirty tab gets the conflict prompt). Rules:
-- Only collections passed with `--collection` or announced as client roots are reachable;
-  paths go through `wbl-format`'s path resolution, so nothing escapes a collection.
+- Only collections passed with `--collection` are reachable, by folder or name; paths go
+  through `wbl-format`'s path resolution, so nothing escapes a collection (`not_reachable`,
+  `invalid_path`).
 - Secret values never leave the server (D-H04, D-H12). Variables are listed as names with
-  `secret: true`; a tool may mark a variable secret but never set its value (MCP elicitation
-  must not ask for sensitive data). Saving refuses literal secret values, as the app does.
+  `secret: true`; a tool may mark a variable secret but never set its value. Saving refuses literal secret values, as the app does.
   Sent requests are returned masked, and every known secret value (those the request used, the
   environment's, and what a secret capture just took) is masked in the response, the capture
   values and the assertion messages, as history masks them (`wbl-engine::deliver`).
-- Sending with a protected environment asks through MCP elicitation; a client without
-  elicitation gets the error `mcp.protected_environment`.
+- Sending with a protected environment is refused (`protected_environment`); the user sends
+  with it from the app, where the confirmation lives.
 - OAuth 2 uses the cached token and refreshes it; without one the send fails with
   `oauth_required`, as in the app (sign in from the app).
 - Response bodies returned to the tool are capped (text, 256 kB, truncation reported).
@@ -358,7 +358,12 @@ through the watcher like any outside change (a dirty tab gets the conflict promp
 **Consequences.** The dependency rule gains two exceptions: `wbl-engine` depends on `wbl-core`,
 `wbl-format`, `wbl-http`, `wbl-auth` and Roost; `wbl-mcp` on the `wbl-*` crates it serves;
 `src-tauri` on both. Logging must never write to stdout in MCP mode, since stdout is
-the protocol channel. **Verify**: `rmcp`'s current server and elicitation API (3.x), that a
-binary inside the macOS `.app` bundle runs headless from a terminal, and that client roots are
-announced by the clients we target.
+the protocol channel. Errors are tool results with `isError` and `{code, message, detail?}`,
+so the model reads them. **Verified** with `rmcp` 3.11: MCP 2026-07-28 forbids server-to-client
+requests during a call (elicitation becomes a multi-round-trip `InputRequiredResult`) and
+deprecates roots (SEP-2577), so asking the user mid-call or discovering collections from the
+client depends on the protocol version negotiated. Refusing protected environments and taking
+collections from arguments works with every version and keeps a human confirmation where it
+already is. **Verify**: that a binary inside the macOS `.app` bundle runs headless from a
+terminal.
 

@@ -165,8 +165,8 @@ See [OPENAPI.md](OPENAPI.md).
   OpenAPI, Postman and cURL; and send a request or run a folder.
 - FR-10.3 No secret value ever reaches the tool: variables show only their names, and known
   secret values in requests and responses are redacted. Secrets are set in the app.
-- FR-10.4 Sending with a protected environment asks the user to confirm, or fails.
-- FR-10.5 Only collections the user names (arguments or the client's roots) are reachable.
+- FR-10.4 Sending with a protected environment is refused; such sends happen in the app.
+- FR-10.5 Only collections the user names when starting the server are reachable.
 
 ## Non-functional requirements
 

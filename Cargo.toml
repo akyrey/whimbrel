@@ -9,6 +9,7 @@ members = [
     "crates/wbl-openapi",
     "crates/wbl-interop",
     "crates/wbl-engine",
+    "crates/wbl-mcp",
     "apps/desktop/src-tauri",
 ]
 
@@ -28,6 +29,7 @@ wbl-auth = { path = "crates/wbl-auth" }
 wbl-openapi = { path = "crates/wbl-openapi" }
 wbl-interop = { path = "crates/wbl-interop" }
 wbl-engine = { path = "crates/wbl-engine" }
+wbl-mcp = { path = "crates/wbl-mcp" }
 # The kit shared with Dunlin (D-H09). scripts/link-roost.sh points these at a local checkout.
 roost-keychain = { git = "https://github.com/akyrey/roost", tag = "v0.1.4" }
 roost-shell = { git = "https://github.com/akyrey/roost", tag = "v0.1.4" }
