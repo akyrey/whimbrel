@@ -13,7 +13,7 @@ Design: [PRD.md](../PRD.md) FR-1, FR-3, FR-4.6, FR-9.1; D-H17 (JSONPath).
 - [x] 9.2 Tree filter: a box above the tree keeps requests whose name, method or file path
       contains the text (case-insensitive), with their folders; examples are hidden while
       filtering; Escape clears it.
-- [ ] 9.3 Response body: "Copy body" and a wrap toggle next to "Save to file".
+- [x] 9.3 Response body: "Copy body" and a wrap toggle next to "Save to file".
 - [ ] 9.4 JSONPath filter: an RFC 9535 expression above a JSON body shows the matches as a
       pretty JSON array; an invalid expression shows the parser's message. The query runs in
       `wbl-core` with the same engine as captures.

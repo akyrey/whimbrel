@@ -1,4 +1,4 @@
-import { Button, Skeleton, toast } from "@roost/ui";
+import { Button, Skeleton, copyWithToast, toast } from "@roost/ui";
 import { Suspense, lazy, useMemo, useState } from "react";
 
 import { type Response, chooseSaveFile, responseSave, toAppError } from "../../ipc";
@@ -48,13 +48,19 @@ function views(response: Response, table: boolean, image: boolean): View[] {
   return out;
 }
 
-function Code({ text, language }: { text: string; language: string }) {
-  // Wrapping makes the editor lay out a whole line at once: a long single-line body would block
-  // the window.
-  const wrap = text.length <= PRETTY_LIMIT;
+/** Wrapping makes the editor lay out a whole line at once: a long single-line body would block
+ * the window, so large bodies never wrap. */
+const canWrap = (text: string) => text.length <= PRETTY_LIMIT;
+
+function Code({ text, language, wrap }: { text: string; language: string; wrap: boolean }) {
   return (
     <Suspense fallback={<Skeleton rows={6} label="Loading the body" />}>
-      <ReadOnlyCode text={text} label="Response body" language={language} wrap={wrap} />
+      <ReadOnlyCode
+        text={text}
+        label="Response body"
+        language={language}
+        wrap={wrap && canWrap(text)}
+      />
     </Suspense>
   );
 }
@@ -73,6 +79,15 @@ export function BodyView({ response }: { response: Response }) {
   const available = views(response, table !== null, image !== null);
   const [view, setView] = useState<View>(available[0] ?? "raw");
   const current = available.includes(view) ? view : (available[0] ?? "raw");
+  const [wrap, setWrap] = useState(true);
+  const codeText =
+    shown.kind !== "code"
+      ? null
+      : current === "pretty"
+        ? shown.text
+        : current === "raw"
+          ? (response.body.text ?? "")
+          : null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -95,8 +110,28 @@ export function BodyView({ response }: { response: Response }) {
             ))}
           </div>
         )}
+        {codeText !== null && (
+          <label className="ml-auto flex items-center gap-1 text-zinc-400">
+            <input
+              type="checkbox"
+              checked={wrap && canWrap(codeText)}
+              disabled={!canWrap(codeText)}
+              title={canWrap(codeText) ? undefined : "Too large to wrap"}
+              onChange={(e) => {
+                setWrap(e.target.checked);
+              }}
+            />
+            Wrap
+          </label>
+        )}
+        {codeText !== null && (
+          <Button onClick={() => void copyWithToast(codeText, "the body")}>Copy body</Button>
+        )}
         {shown.kind !== "empty" && (
-          <Button className="ml-auto" onClick={() => void save(response)}>
+          <Button
+            className={codeText === null ? "ml-auto" : ""}
+            onClick={() => void save(response)}
+          >
             Save to file
           </Button>
         )}
@@ -109,12 +144,13 @@ export function BodyView({ response }: { response: Response }) {
       )}
       {shown.kind === "empty" && <p className="text-sm text-zinc-500">No body.</p>}
       {shown.kind === "code" && current === "pretty" && (
-        <Code text={shown.text} language={shown.language} />
+        <Code text={shown.text} language={shown.language} wrap={wrap} />
       )}
       {shown.kind === "code" && current === "raw" && (
         <Code
           text={response.body.text ?? ""}
           language={shown.language === "json" && !shown.pretty ? "json" : "text"}
+          wrap={wrap}
         />
       )}
       {current === "table" && table && <JsonGrid table={table} />}

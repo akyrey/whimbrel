@@ -57,6 +57,24 @@ describe("response views", () => {
     expect(within(panel).getByText("session")).toBeInTheDocument();
   });
 
+  it("copies the body as shown and turns line wrapping off and on", async () => {
+    render(<App />);
+    const panel = await send("http://localhost/users");
+    const body = await within(panel).findByLabelText("Response body");
+    expect(body).toHaveClass("cm-lineWrapping");
+
+    await userEvent.click(within(panel).getByRole("checkbox", { name: "Wrap" }));
+    await waitFor(() => {
+      expect(within(panel).getByLabelText("Response body")).not.toHaveClass("cm-lineWrapping");
+    });
+
+    await userEvent.click(within(panel).getByRole("button", { name: "Copy body" }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('"name": "ada"'));
+    await userEvent.click(within(panel).getByRole("radio", { name: "Raw" }));
+    await userEvent.click(within(panel).getByRole("button", { name: "Copy body" }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('"name":"ada"'));
+  });
+
   it("previews images and shows binary bodies as hex", async () => {
     render(<App />);
     const image = await send("http://localhost/image");
