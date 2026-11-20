@@ -149,3 +149,15 @@ export function isUnder(tab: Tab, root: string, path: string): boolean {
 export function pickedExample(tab: Tab) {
   return tab.draft.examples.find((e) => e.id === tab.exampleId) ?? null;
 }
+
+/** The tab `step` away from `active` in `ids`, wrapping at the ends; the first tab when `active`
+ * is not open, and `null` without tabs. */
+export function neighbourId(
+  ids: readonly string[],
+  active: string | null,
+  step: 1 | -1,
+): string | null {
+  const index = active === null ? -1 : ids.indexOf(active);
+  if (index === -1) return ids[0] ?? null;
+  return ids[(index + step + ids.length) % ids.length] ?? null;
+}

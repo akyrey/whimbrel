@@ -1,10 +1,10 @@
-import { Button, Skeleton, toast } from "@roost/ui";
+import { Button, Skeleton } from "@roost/ui";
 import { Suspense, lazy } from "react";
 
 import type { Tab } from "../tabs/model";
 import { useTabs } from "../tabs/tabsStore";
 import { type BodyChoice, choiceOf, setBodyKind, setBodyText } from "./editing";
-import { beautifyJson } from "./beautify";
+import { beautifyBody } from "./bodyActions";
 import { FieldsEditor, FileBodyEditor } from "./FormEditor";
 
 /** CodeMirror loads when a body is first edited, not at start. */
@@ -28,17 +28,6 @@ export function BodyEditor({ tab }: { tab: Tab }) {
     edit(tab.id, c);
   };
 
-  const beautify = (text: string) => {
-    const result = beautifyJson(text);
-    if (!result.ok) {
-      toast.error(`Not valid JSON: ${result.message}`);
-      return;
-    }
-    if (result.text === text) return;
-    // The editor follows the draft's text, so this is one edit that undo takes back.
-    edit(tab.id, setBodyText(result.text));
-  };
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex items-center gap-2">
@@ -60,7 +49,7 @@ export function BodyEditor({ tab }: { tab: Tab }) {
           <Button
             title="Pretty-print the JSON"
             onClick={() => {
-              beautify(body.text);
+              beautifyBody(tab);
             }}
           >
             Beautify

@@ -15,12 +15,14 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { onCollectionChanged, toAppError } from "./ipc";
-import { CollectionTree } from "./features/collections/CollectionTree";
+import { CollectionTree, TREE_FILTER_ID } from "./features/collections/CollectionTree";
 import { useCollections } from "./features/collections/collectionsStore";
 import { RequestBar, URL_INPUT_ID } from "./features/request/RequestBar";
 import { RequestSections } from "./features/request/RequestSections";
 import { SplitResizer } from "./features/layout/SplitResizer";
 import { SIDEBAR_WIDTH, currentShare, useLayout } from "./features/layout/layoutStore";
+import { useSidebar } from "./features/layout/sidebarStore";
+import { beautifyBody } from "./features/request/bodyActions";
 import { ResponsePanel } from "./features/response/ResponsePanel";
 import {
   SHORTCUT_GROUPS,
@@ -48,7 +50,7 @@ import { appItems } from "./features/shell/paletteItems";
 import { useSettings } from "./features/settings/settingsStore";
 import { cancelSend, confirmSend, sendTab, useSendConfirm } from "./features/send/sendFlow";
 import { ConflictBar } from "./features/tabs/ConflictBar";
-import type { Tab } from "./features/tabs/model";
+import { type Tab, neighbourId } from "./features/tabs/model";
 import { TabStrip } from "./features/tabs/TabStrip";
 import { useActiveTab, useTabs } from "./features/tabs/tabsStore";
 
@@ -57,6 +59,35 @@ type Overlay = "palette" | "shortcuts" | null;
 const EDITOR_FONT_FAMILY = "ui-monospace, SFMono-Regular, Menlo, monospace";
 
 const activeId = () => useTabs.getState().activeId;
+const activeTab = () => useTabs.getState().tabs.find((t) => t.id === activeId());
+
+function stepTab(step: 1 | -1): void {
+  const { tabs, activate } = useTabs.getState();
+  const next = neighbourId(
+    tabs.map((t) => t.id),
+    activeId(),
+    step,
+  );
+  if (next) activate(next);
+}
+
+function duplicateActive(): void {
+  const tab = activeTab();
+  if (tab) useTabs.getState().openLoose({ ...tab.draft, name: `${tab.draft.name} copy` });
+}
+
+/** Shows the collections and focuses the filter once the sidebar has rendered them. */
+function focusTreeFilter(): void {
+  useSidebar.getState().show("collections");
+  setTimeout(() => {
+    document.getElementById(TREE_FILTER_ID)?.focus();
+  }, 0);
+}
+
+function toggleResponse(): void {
+  const layout = useLayout.getState();
+  layout.placeResponse(layout.split === "beside" ? "below" : "beside");
+}
 
 /** Saves the active tab; a scratch tab goes to the top of the first open collection. */
 async function saveActive(): Promise<void> {
@@ -112,6 +143,19 @@ function useShortcutActions(setOverlay: (overlay: Overlay) => void) {
       "focus-url": () => {
         document.getElementById(URL_INPUT_ID)?.focus();
       },
+      "next-tab": () => {
+        stepTab(1);
+      },
+      "previous-tab": () => {
+        stepTab(-1);
+      },
+      duplicate: duplicateActive,
+      beautify: () => {
+        const tab = activeTab();
+        if (tab) beautifyBody(tab);
+      },
+      "filter-tree": focusTreeFilter,
+      "toggle-response": toggleResponse,
     }),
     [setOverlay],
   );
@@ -131,6 +175,12 @@ function paletteItems(actions: Record<ShortcutId, () => void>): PaletteItem[] {
     item("new-tab", "New request tab"),
     item("cancel", "Cancel the request"),
     item("focus-url", "Go to the URL"),
+    item("next-tab", "Next tab"),
+    item("previous-tab", "Previous tab"),
+    item("duplicate", "Duplicate the request"),
+    item("beautify", "Beautify the JSON body"),
+    item("filter-tree", "Filter the requests"),
+    item("toggle-response", "Put the response beside or below"),
     item("shortcuts", "Keyboard shortcuts"),
     ...appItems(sendTab),
   ];
@@ -222,11 +272,10 @@ function EmptyState() {
   );
 }
 
-type Side = "collections" | "history";
-
 /** Collections or history, and the cURL import. */
 function Sidebar() {
-  const [side, setSide] = useState<Side>("collections");
+  const side = useSidebar((s) => s.side);
+  const setSide = useSidebar.getState().show;
   return (
     <>
       <div

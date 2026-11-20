@@ -3,6 +3,7 @@ import {
   NEW_REQUEST,
   changedOnDisk,
   edited,
+  neighbourId,
   fileTab,
   isDirty,
   isUnder,
@@ -74,5 +75,19 @@ describe("tab model", () => {
     expect(isUnder(tab, "/c", "user")).toBe(false);
     expect(isUnder(tab, "/other", "users")).toBe(false);
     expect(isUnder(scratchTab("s"), "/c", "users")).toBe(false);
+  });
+});
+
+describe("neighbourId", () => {
+  const ids = ["a", "b", "c"];
+  it("steps forward and back, wrapping at the ends", () => {
+    expect(neighbourId(ids, "a", 1)).toBe("b");
+    expect(neighbourId(ids, "c", 1)).toBe("a");
+    expect(neighbourId(ids, "a", -1)).toBe("c");
+  });
+  it("starts at the first tab without an active one, and gives null without tabs", () => {
+    expect(neighbourId(ids, null, 1)).toBe("a");
+    expect(neighbourId(ids, "gone", -1)).toBe("a");
+    expect(neighbourId([], null, 1)).toBeNull();
   });
 });

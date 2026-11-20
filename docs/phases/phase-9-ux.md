@@ -17,7 +17,7 @@ Design: [PRD.md](../PRD.md) FR-1, FR-3, FR-4.6, FR-9.1; D-H17 (JSONPath).
 - [x] 9.4 JSONPath filter: an RFC 9535 expression above a JSON body shows the matches as a
       pretty JSON array; an invalid expression shows the parser's message. The query runs in
       `wbl-core` with the same engine as captures.
-- [ ] 9.5 Shortcuts: next and previous tab, duplicate the tab's request, filter the tree, beautify
+- [x] 9.5 Shortcuts: next and previous tab, duplicate the tab's request, filter the tree, beautify
       the body, toggle the response beside/below; each is also a palette command.
 - [ ] 9.6 Environment chip: the request bar shows the collection's active environment (none,
       a name, or a protected name in rose with a lock); clicking it focuses the picker.
@@ -28,6 +28,10 @@ Design: [PRD.md](../PRD.md) FR-1, FR-3, FR-4.6, FR-9.1; D-H17 (JSONPath).
 
 - 9.2: the tree's nodes carry no URL, so the filter matches the file path instead; a folder
   whose name matches keeps all of its contents.
+
+- 9.5: next/previous tab are ⌃Tab / ⌃⇧Tab (or ⌘⌥→ / ⌘⌥←), duplicate ⌘⇧D, filter ⌘P, beautify
+  ⌘⇧B, response placement ⌘J. CodeMirror's basic setup binds ⌘D, ⌘[ and ⌘], and the registry
+  cannot match ⇧ with brackets, so those are avoided. A duplicate is a new unsaved tab.
 
 ## Acceptance
 
