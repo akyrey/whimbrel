@@ -70,10 +70,12 @@ secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency ru
       starts and run the server on a tokio runtime. Nothing is logged in this mode; messages
       for people go to stderr (the end-to-end test checks stdout holds only protocol
       messages). `whimbrel mcp --help` prints usage; bad arguments exit with 2.
-- [ ] 12.10 End to end: an MCP client process starts the built binary, creates a request,
-      sends it to a local server with an environment holding a sentinel secret, and gets a
-      redacted result; a running app's watcher picks up the new file (covered by the existing
-      watcher tests for outside writes).
+- [x] 12.10 End to end (`src-tauri/tests/mcp.rs`): a client process starts the built binary,
+      creates an environment and a request, sends it to a local server, and checks every
+      stdout line is a JSON-RPC message. It uses no secret, so it never touches the real
+      keychain; the sentinel secret is covered in-process (`wbl-engine::deliver`,
+      `wbl-mcp` send and environment tests). A running app's watcher picks up the new file
+      (covered by the existing watcher tests for outside writes).
 - [ ] 12.11 Docs: a "Use with AI tools" section in the README with the configuration for
       Claude Desktop, Claude Code and Cursor on macOS and Linux, the tool list, and what the
       server never does (secret values, browser sign-in, history).
