@@ -153,7 +153,7 @@ fn folders_rename_duplicate_move_order_and_delete() {
     let copy = duplicate(&state, &node(&root, &renamed)).unwrap();
     let moved = move_to(
         &state,
-        &RequestMoveArgs {
+        &NodeMoveArgs {
             root: root.clone(),
             path: copy,
             folder: folder.clone(),

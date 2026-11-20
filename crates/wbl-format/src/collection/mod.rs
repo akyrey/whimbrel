@@ -16,7 +16,7 @@ use crate::{FormatError, RequestFile};
 pub use files::CollectionInfo;
 pub use ops::{
     ReadRequest, create, create_folder, create_request, create_requests, delete, duplicate_request,
-    move_request, read_request, rename_folder, rename_request, save_request, set_order,
+    move_node, read_request, rename_folder, rename_request, save_request, set_order,
 };
 pub use paths::{hash, slug, write_atomic};
 

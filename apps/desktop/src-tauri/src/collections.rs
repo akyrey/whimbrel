@@ -12,8 +12,8 @@ use wbl_format::collection::{self, Collection, ReadRequest};
 
 use crate::error::AppError;
 use crate::ipc::{
-    CollectionArgs, CollectionCreateArgs, NodeArgs, NodeNameArgs, NodeOrderArgs, RequestCreateArgs,
-    RequestMoveArgs, RequestSaveArgs,
+    CollectionArgs, CollectionCreateArgs, NodeArgs, NodeMoveArgs, NodeNameArgs, NodeOrderArgs,
+    RequestCreateArgs, RequestSaveArgs,
 };
 use crate::logging::logged;
 use crate::resolve::guard;
@@ -163,8 +163,8 @@ pub fn duplicate(state: &Collections, args: &NodeArgs) -> Result<String, AppErro
     )?)
 }
 
-pub fn move_to(state: &Collections, args: &RequestMoveArgs) -> Result<String, AppError> {
-    Ok(collection::move_request(
+pub fn move_to(state: &Collections, args: &NodeMoveArgs) -> Result<String, AppError> {
+    Ok(collection::move_node(
         &state.opened(&args.root)?,
         &args.path,
         &args.folder,
@@ -328,7 +328,7 @@ pub async fn request_create(
 command!(folder_create, NodeNameArgs, String, create_folder);
 command!(request_rename, NodeNameArgs, String, rename);
 command!(request_duplicate, NodeArgs, String, duplicate);
-command!(request_move, RequestMoveArgs, String, move_to);
+command!(node_move, NodeMoveArgs, String, move_to);
 command!(node_order, NodeOrderArgs, (), order);
 command!(node_delete, NodeArgs, (), delete);
 

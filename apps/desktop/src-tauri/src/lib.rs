@@ -115,7 +115,7 @@ pub fn run() -> Result<(), tauri::Error> {
             collections::folder_create,
             collections::request_rename,
             collections::request_duplicate,
-            collections::request_move,
+            collections::node_move,
             collections::node_order,
             collections::node_delete,
             collections::node_auth_read,

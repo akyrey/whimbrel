@@ -183,26 +183,57 @@ pub fn duplicate_request(root: &Path, path: &str) -> Result<String, FormatError>
     Ok(relative(root, &file))
 }
 
-/// Moves a request into `folder`, last among its new siblings; returns the new path.
-pub fn move_request(root: &Path, path: &str, folder: &str) -> Result<String, FormatError> {
+/// Moves a request, or a folder with everything in it, into `folder` (`""`: the collection),
+/// last among its new siblings; returns the new path. A folder cannot move into itself or one
+/// of its own folders (task 11.1).
+pub fn move_node(root: &Path, path: &str, folder: &str) -> Result<String, FormatError> {
     let full = resolve(root, path, false)?;
     let dir = resolve(root, folder, true)?;
     if full.parent() == Some(dir.as_path()) {
         return Ok(path.to_owned());
     }
-    let order = last_order(root, &dir)? + ORDER_STEP;
-    rewrite(root, path, |s| StoredRequest { order, ..s })?;
-    let name = full
-        .file_name()
+    if full.is_dir() {
+        move_folder(root, &full, &dir)
+    } else {
+        move_request_file(root, path, &full, &dir)
+    }
+}
+
+fn file_name_of(full: &Path) -> String {
+    full.file_name()
         .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_default();
+        .unwrap_or_default()
+}
+
+fn move_request_file(
+    root: &Path,
+    path: &str,
+    full: &Path,
+    dir: &Path,
+) -> Result<String, FormatError> {
+    let order = last_order(root, dir)? + ORDER_STEP;
+    rewrite(root, path, |s| StoredRequest { order, ..s })?;
+    let name = file_name_of(full);
     let stem = name.strip_suffix(REQUEST_SUFFIX).unwrap_or(&name);
-    let target = unique(&dir, stem, REQUEST_SUFFIX);
-    fs::rename(&full, &target)?;
+    let target = unique(dir, stem, REQUEST_SUFFIX);
+    fs::rename(full, &target)?;
     Ok(relative(root, &target))
 }
 
-/// Puts a request or folder at `order` among its siblings.
+fn move_folder(root: &Path, full: &Path, dir: &Path) -> Result<String, FormatError> {
+    if dir.starts_with(full) {
+        return Err(FormatError::Path(
+            "A folder cannot move into itself or one of its folders".into(),
+        ));
+    }
+    let order = last_order(root, dir)? + ORDER_STEP;
+    let target = unique(dir, &file_name_of(full), "");
+    fs::rename(full, &target)?;
+    let moved = relative(root, &target);
+    set_order(root, &moved, order)?;
+    Ok(moved)
+}
+
 /// Renames a folder: its name in `_folder.toml`. The directory keeps its name, so the paths of
 /// what is inside (open tabs, an import's manifest) stay valid.
 pub fn rename_folder(root: &Path, path: &str, name: &str) -> Result<(), FormatError> {
@@ -223,6 +254,7 @@ pub fn rename_folder(root: &Path, path: &str, name: &str) -> Result<(), FormatEr
     write_atomic(&marker, &files::write_folder(&text, &info)?)
 }
 
+/// Puts a request or folder at `order` among its siblings.
 pub fn set_order(root: &Path, path: &str, order: i64) -> Result<(), FormatError> {
     let full = resolve(root, path, false)?;
     if full.is_dir() {

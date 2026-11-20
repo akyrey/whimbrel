@@ -99,7 +99,7 @@ pub struct NodeNameArgs {
 
 #[derive(Debug, Clone, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-pub struct RequestMoveArgs {
+pub struct NodeMoveArgs {
     pub root: String,
     pub path: String,
     pub folder: String,

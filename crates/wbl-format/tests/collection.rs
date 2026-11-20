@@ -171,7 +171,7 @@ fn rename_duplicate_move_and_delete() {
 
     let renamed = collection::rename_request(root, &path, "Ping server").unwrap();
     let copy = collection::duplicate_request(root, &renamed).unwrap();
-    let moved = collection::move_request(root, &copy, &folder).unwrap();
+    let moved = collection::move_node(root, &copy, &folder).unwrap();
 
     assert_eq!(renamed, "ping-server.req.toml");
     assert!(!root.join(&path).exists());
@@ -229,7 +229,7 @@ fn renaming_to_the_same_file_name_or_moving_to_the_same_folder_keeps_the_file() 
     let path = collection::create_request(root, "", &request("Ping", 0)).unwrap();
 
     let renamed = collection::rename_request(root, &path, "PING").unwrap();
-    let moved = collection::move_request(root, &renamed, "").unwrap();
+    let moved = collection::move_node(root, &renamed, "").unwrap();
 
     assert_eq!(renamed, "ping.req.toml");
     assert_eq!(moved, "ping.req.toml");
@@ -261,4 +261,64 @@ fn a_folder_is_renamed_in_place_and_ordered_like_a_request() {
     assert_eq!(f.children.len(), 1);
     assert!(collection::rename_folder(root, "nope", "x").is_err());
     assert!(collection::rename_folder(root, "users/list.req.toml", "x").is_err());
+}
+
+/// Task 11.1: folders move with everything in them; never into themselves.
+#[test]
+fn a_folder_moves_into_another_with_its_contents_last_among_its_new_siblings() {
+    let dir = tempfile::tempdir().unwrap();
+    new_collection(dir.path());
+    let root = dir.path();
+    let users = collection::create_folder(root, "", "Users").unwrap();
+    let admin = collection::create_folder(root, "", "Admin").unwrap();
+    collection::create_request(root, &admin, &request("First", 0)).unwrap();
+    let inner = collection::create_request(root, &users, &request("List", 0)).unwrap();
+    let nested = collection::create_folder(root, &users, "Nested").unwrap();
+
+    let moved = collection::move_node(root, &users, &admin).unwrap();
+
+    assert_eq!(moved, "admin/users");
+    assert!(!root.join(&users).exists());
+    assert!(
+        root.join("admin/users")
+            .join(inner.trim_start_matches("users/"))
+            .exists()
+    );
+    assert!(root.join("admin").join(&nested).is_dir());
+    let tree = collection::load(root).unwrap();
+    assert_eq!(names(&tree.children), vec!["Admin/"]);
+    let Node::Folder(admin_node) = &tree.children[0] else {
+        panic!("Admin is a folder")
+    };
+    assert_eq!(names(&admin_node.children), vec!["First", "Users/"]);
+}
+
+#[test]
+fn a_folder_cannot_move_into_itself_or_its_own_folders() {
+    let dir = tempfile::tempdir().unwrap();
+    new_collection(dir.path());
+    let root = dir.path();
+    let users = collection::create_folder(root, "", "Users").unwrap();
+    let nested = collection::create_folder(root, &users, "Nested").unwrap();
+
+    for into in [users.as_str(), nested.as_str()] {
+        let error = collection::move_node(root, &users, into).unwrap_err();
+        assert!(matches!(error, FormatError::Path(_)), "{into}: {error}");
+    }
+    assert!(root.join(&nested).is_dir());
+}
+
+#[test]
+fn a_folder_moved_beside_a_namesake_gets_a_unique_directory() {
+    let dir = tempfile::tempdir().unwrap();
+    new_collection(dir.path());
+    let root = dir.path();
+    let outer = collection::create_folder(root, "", "Users").unwrap();
+    let other = collection::create_folder(root, "", "Other").unwrap();
+    let inner = collection::create_folder(root, &other, "Users").unwrap();
+
+    let moved = collection::move_node(root, &inner, "").unwrap();
+
+    assert_eq!(outer, "users");
+    assert_eq!(moved, "users-2");
 }

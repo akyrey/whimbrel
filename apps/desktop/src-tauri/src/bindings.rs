@@ -33,7 +33,7 @@ fn export_all(dir: &Path) {
     crate::ipc::RequestSaveArgs::export_all(&config).unwrap();
     crate::ipc::RequestCreateArgs::export_all(&config).unwrap();
     crate::ipc::NodeNameArgs::export_all(&config).unwrap();
-    crate::ipc::RequestMoveArgs::export_all(&config).unwrap();
+    crate::ipc::NodeMoveArgs::export_all(&config).unwrap();
     crate::ipc::NodeOrderArgs::export_all(&config).unwrap();
     crate::collections::CollectionView::export_all(&config).unwrap();
     crate::watch::CollectionChanged::export_all(&config).unwrap();

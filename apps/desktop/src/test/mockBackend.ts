@@ -34,7 +34,7 @@ import type {
   Node,
   Request,
   RequestCreateArgs,
-  RequestMoveArgs,
+  NodeMoveArgs,
   RequestSaveArgs,
   RequestSendArgs,
   Response,
@@ -151,6 +151,39 @@ function unique(fs: Fs, folder: string, name: string, suffix: string): string {
     candidate = join(folder, `${slug(name)}-${String(n)}${suffix}`);
   }
   return candidate;
+}
+
+/** Like `wbl-format::move_node`: last in `folder`, under a unique name, never into itself. */
+function moveNode(fs: Fs, path: string, folder: string): string | AppError {
+  if (parentOf(path) === folder) return path;
+  const file = fs.files.get(path);
+  const orders = nodes(fs, folder).map((n) => (n.kind === "broken" ? 0 : n.order));
+  const order = Math.max(0, ...orders) + 10;
+  const stem = path.split("/").pop()?.replace(".req.toml", "") ?? "x";
+  if (file) {
+    fs.files.delete(path);
+    const to = unique(fs, folder, stem, ".req.toml");
+    fs.files.set(to, { stored: { ...file.stored, order }, hash: nextHash() });
+    return to;
+  }
+  if (folder === path || folder.startsWith(`${path}/`)) {
+    return { code: "invalid_path", message: "A folder cannot move into itself" };
+  }
+  const to = unique(fs, folder, stem, "");
+  const rename = (key: string) => (key === path ? to : `${to}${key.slice(path.length)}`);
+  const under = (key: string) => key === path || key.startsWith(`${path}/`);
+  for (const [key, value] of [...fs.files]) {
+    if (!under(key)) continue;
+    fs.files.delete(key);
+    fs.files.set(rename(key), value);
+  }
+  for (const [key, value] of [...fs.folders]) {
+    if (!under(key)) continue;
+    fs.folders.delete(key);
+    fs.folders.set(rename(key), value);
+  }
+  folderOrders.set(`${fs.id}:${to}`, order);
+  return to;
 }
 
 function nodes(fs: Fs, folder: string): Node[] {
@@ -294,18 +327,10 @@ function fileCommand(fs: Fs, command: string, a: Args): Promise<unknown> {
       fs.files.set(path, { stored: { ...file.stored, name }, hash: nextHash() });
       return Promise.resolve(path);
     }
-    case "request_move": {
-      const { folder } = a as unknown as RequestMoveArgs;
-      if (!file) return fail("io", "No such file");
-      fs.files.delete(a.path);
-      const path = unique(
-        fs,
-        folder,
-        a.path.split("/").pop()?.replace(".req.toml", "") ?? "x",
-        ".req.toml",
-      );
-      fs.files.set(path, file);
-      return Promise.resolve(path);
+    case "node_move": {
+      const { folder } = a as unknown as NodeMoveArgs;
+      const moved = moveNode(fs, a.path, folder);
+      return typeof moved === "string" ? Promise.resolve(moved) : Promise.reject(moved);
     }
     case "node_delete":
       for (const key of [...fs.files.keys()])

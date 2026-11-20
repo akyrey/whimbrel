@@ -39,7 +39,7 @@ import type {
   ReadRequest,
   Request,
   RequestCreateArgs,
-  RequestMoveArgs,
+  NodeMoveArgs,
   RequestSaveArgs,
   StoredRequest,
 } from "./generated";
@@ -202,7 +202,8 @@ export const requestRename = (root: string, path: string, name: string): Promise
 export const requestDuplicate = (root: string, path: string): Promise<string> =>
   call("request_duplicate", { root, path });
 
-export const requestMove = (args: RequestMoveArgs): Promise<string> => call("request_move", args);
+/** Moves a request or a folder into `folder` (`""`: the collection), last; returns the new path. */
+export const nodeMove = (args: NodeMoveArgs): Promise<string> => call("node_move", args);
 
 export const nodeDelete = (root: string, path: string): Promise<null> =>
   call("node_delete", { root, path });
