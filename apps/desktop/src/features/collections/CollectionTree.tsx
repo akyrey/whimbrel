@@ -75,6 +75,12 @@ function containerItems(ui: Ui, root: string, folder: string, name: string): Con
     },
     { label: "Export as .http…", onSelect: () => void exportHttp(root, folder, name) },
     {
+      label: "Auth…",
+      onSelect: () => {
+        ui.ask({ kind: "auth", root, folder, name });
+      },
+    },
+    {
       label: "New request",
       onSelect: () => {
         ui.ask({
@@ -323,12 +329,6 @@ function CollectionItem({ view, ui }: { view: CollectionView; ui: Ui }) {
   const shown = filterNodes(view.collection.children, ui.filter);
   const items = [
     ...containerItems(ui, view.root, "", view.collection.name),
-    {
-      label: "Auth…",
-      onSelect: () => {
-        ui.ask({ kind: "auth", root: view.root, folder: "", name: view.collection.name });
-      },
-    },
     {
       label: "TLS…",
       onSelect: () => {

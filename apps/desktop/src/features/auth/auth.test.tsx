@@ -132,6 +132,54 @@ describe("auth", () => {
     expect(useTabs.getState().tabs[0]?.draft.auth).toEqual({ type: "none" });
   });
 
+  it("sets a folder's auth from its menu, which the requests inside inherit", async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Open…" }));
+    const tree = await screen.findByRole("region", { name: "Demo API" });
+    fireEvent.contextMenu(within(tree).getByRole("button", { name: /Users/ }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Auth…" }));
+    const dialog = await screen.findByRole("dialog", { name: "Auth of Users" });
+    const type = within(dialog).getByRole("combobox", { name: "Auth type" });
+    expect(within(type).getByRole("option", { name: "Inherit" })).toBeInTheDocument();
+    await userEvent.selectOptions(type, "bearer");
+    await userEvent.type(within(dialog).getByRole("textbox", { name: "Token" }), "folder-token");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    await screen.findAllByText("Auth saved");
+
+    await userEvent.click(await within(tree).findByRole("button", { name: /List users/ }));
+    await screen.findByRole("textbox", { name: "URL" });
+    expect(await preview()).toContain("Authorization: Bearer ••••••");
+  });
+
+  it("links an inheriting request to the folders and collection it inherits from", async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Open…" }));
+    const tree = await screen.findByRole("region", { name: "Demo API" });
+    await userEvent.click(await within(tree).findByRole("button", { name: /List users/ }));
+    await userEvent.click(await screen.findByText("Auth"));
+
+    const from = screen.getByRole("group", { name: "Inherited auth" });
+    expect(within(from).getByRole("button", { name: "Users" })).toBeInTheDocument();
+    await userEvent.click(within(from).getByRole("button", { name: "Demo API" }));
+    const dialog = await screen.findByRole("dialog", { name: "Auth of Demo API" });
+    await userEvent.selectOptions(
+      within(dialog).getByRole("combobox", { name: "Auth type" }),
+      "bearer",
+    );
+    await userEvent.type(within(dialog).getByRole("textbox", { name: "Token" }), "t");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    await screen.findAllByText("Auth saved");
+    expect(await preview()).toContain("Authorization: Bearer ••••••");
+  });
+
+  it("shows no inherited auth links when the request has its own", async () => {
+    await openPing();
+    await userEvent.click(screen.getByText("Auth"));
+    expect(screen.getByRole("group", { name: "Inherited auth" })).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Auth type" }), "none");
+    expect(screen.queryByRole("group", { name: "Inherited auth" })).toBeNull();
+  });
+
   it("saves the collection's TLS files", async () => {
     const tree = await openPing();
     fireEvent.contextMenu(within(tree).getByRole("heading", { name: "Demo API" }));
