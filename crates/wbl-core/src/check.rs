@@ -97,6 +97,14 @@ fn query(observed: &Observed, path: &str) -> Result<Option<Value>, CaptureError>
     Ok(parsed.query(&json).first().cloned())
 }
 
+/// Every value at `path` in the JSON `body`, in document order (task 9.4).
+pub fn select(body: &str, path: &str) -> Result<Vec<Value>, CaptureError> {
+    let parsed =
+        JsonPath::parse(path).map_err(|e| CaptureError::BadPath(path.to_owned(), e.to_string()))?;
+    let json: Value = serde_json::from_str(body).map_err(|_| CaptureError::NotJson)?;
+    Ok(parsed.query(&json).all().into_iter().cloned().collect())
+}
+
 fn header<'a>(observed: &'a Observed, name: &str) -> Option<&'a str> {
     observed
         .headers

@@ -189,3 +189,40 @@ fn assertions_read_from_their_json_form() {
     let t: Assertion = serde_json::from_value(json!({"check": "time", "belowMs": 9})).unwrap();
     assert_eq!(t, Assertion::Time { below_ms: 9 });
 }
+
+/// Task 9.4: the response view's JSONPath filter.
+mod select {
+    use serde_json::json;
+    use wbl_core::check::{CaptureError, select};
+
+    const BODY: &str = r#"{"users":[{"name":"ada","age":36},{"name":"grace","age":45}]}"#;
+
+    #[test]
+    fn returns_every_match_in_order() {
+        assert_eq!(
+            select(BODY, "$.users[*].name").unwrap(),
+            vec![json!("ada"), json!("grace")]
+        );
+        assert_eq!(
+            select(BODY, "$.users[?@.age > 40]").unwrap(),
+            vec![json!({"name":"grace","age":45})]
+        );
+    }
+
+    #[test]
+    fn no_match_is_an_empty_list() {
+        assert_eq!(
+            select(BODY, "$.nobody").unwrap(),
+            Vec::<serde_json::Value>::new()
+        );
+    }
+
+    #[test]
+    fn rejects_a_bad_path_and_a_body_that_is_not_json() {
+        assert!(matches!(
+            select(BODY, "$.users[").unwrap_err(),
+            CaptureError::BadPath(..)
+        ));
+        assert_eq!(select("<html>", "$").unwrap_err(), CaptureError::NotJson);
+    }
+}

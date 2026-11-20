@@ -86,6 +86,7 @@ pub fn run() -> Result<(), tauri::Error> {
             commands::variables_in_scope,
             commands::response_save,
             commands::curl_export,
+            checks::response_select,
             oauth::oauth_status,
             oauth::oauth_authorize,
             oauth::oauth_forget,

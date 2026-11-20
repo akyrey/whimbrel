@@ -278,3 +278,25 @@ async fn a_secret_capture_is_masked_and_saved_when_the_environment_declares_it()
         "no environment: kept in memory only"
     );
 }
+
+/// Task 9.4: the response view's JSONPath filter.
+#[test]
+fn selects_matches_as_pretty_json_and_names_the_errors() {
+    let args = |path: &str| crate::ipc::ResponseSelectArgs {
+        body: r#"{"users":[{"name":"ada"},{"name":"grace"}]}"#.into(),
+        path: path.into(),
+    };
+    assert_eq!(
+        select(&args("$.users[*].name")).unwrap(),
+        "[\n  \"ada\",\n  \"grace\"\n]"
+    );
+    assert_eq!(
+        select(&args("$.users[")).unwrap_err().code,
+        "invalid_json_path"
+    );
+    let not_json = crate::ipc::ResponseSelectArgs {
+        body: "<html>".into(),
+        path: "$".into(),
+    };
+    assert_eq!(select(&not_json).unwrap_err().code, "not_json");
+}

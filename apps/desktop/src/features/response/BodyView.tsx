@@ -4,6 +4,7 @@ import { Suspense, lazy, useMemo, useState } from "react";
 import { type Response, chooseSaveFile, responseSave, toAppError } from "../../ipc";
 import { PRETTY_LIMIT, formatSize, hexDump, imageSource, jsonTable, showBody } from "./format";
 import { JsonGrid } from "./JsonGrid";
+import { useJsonFilter } from "./jsonFilter";
 
 const ReadOnlyCode = lazy(async () => ({ default: (await import("@roost/editor")).ReadOnlyCode }));
 
@@ -80,7 +81,14 @@ export function BodyView({ response }: { response: Response }) {
   const [view, setView] = useState<View>(available[0] ?? "raw");
   const current = available.includes(view) ? view : (available[0] ?? "raw");
   const [wrap, setWrap] = useState(true);
-  const codeText =
+  const [path, setPath] = useState("");
+  const filterable =
+    shown.kind === "code" &&
+    shown.language === "json" &&
+    !response.body.truncated &&
+    (current === "pretty" || current === "raw");
+  const filtered = useJsonFilter(response.body.text ?? "", filterable ? path : "");
+  const unfiltered =
     shown.kind !== "code"
       ? null
       : current === "pretty"
@@ -88,6 +96,7 @@ export function BodyView({ response }: { response: Response }) {
         : current === "raw"
           ? (response.body.text ?? "")
           : null;
+  const codeText = filtered.text ?? unfiltered;
 
   return (
     <div className="flex flex-col gap-2">
@@ -136,6 +145,28 @@ export function BodyView({ response }: { response: Response }) {
           </Button>
         )}
       </div>
+      {filterable && (
+        <input
+          type="text"
+          aria-label="JSONPath filter"
+          placeholder="Filter with JSONPath, e.g. $.items[*].id"
+          className="input py-0.5 font-mono text-xs"
+          spellCheck={false}
+          value={path}
+          onChange={(e) => {
+            setPath(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setPath("");
+          }}
+        />
+      )}
+      {filtered.error !== null && (
+        <p role="note" className="text-xs text-rose-400">
+          {filtered.error}
+        </p>
+      )}
+      {filtered.text !== null && <Code text={filtered.text} language="json" wrap={wrap} />}
       {response.body.truncated && (
         <p role="note" className="text-xs text-amber-300">
           Showing the first part of {formatSize(response.body.size)}.
@@ -143,10 +174,10 @@ export function BodyView({ response }: { response: Response }) {
         </p>
       )}
       {shown.kind === "empty" && <p className="text-sm text-zinc-500">No body.</p>}
-      {shown.kind === "code" && current === "pretty" && (
+      {filtered.text === null && shown.kind === "code" && current === "pretty" && (
         <Code text={shown.text} language={shown.language} wrap={wrap} />
       )}
-      {shown.kind === "code" && current === "raw" && (
+      {filtered.text === null && shown.kind === "code" && current === "raw" && (
         <Code
           text={response.body.text ?? ""}
           language={shown.language === "json" && !shown.pretty ? "json" : "text"}

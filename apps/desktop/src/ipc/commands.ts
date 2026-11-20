@@ -109,6 +109,10 @@ export const curlExport = (send: RequestSendArgs, reveal: boolean): Promise<stri
 
 export const curlImport = (text: string): Promise<CurlImported> => call("curl_import", { text });
 
+/** The values at an RFC 9535 JSONPath in a JSON body, as a pretty JSON array (task 9.4). */
+export const responseSelect = (body: string, path: string): Promise<string> =>
+  call("response_select", { body, path });
+
 /** What would be sent, every secret masked. */
 export const requestPreview = (args: RequestSendArgs): Promise<Request> =>
   call("request_preview", args);

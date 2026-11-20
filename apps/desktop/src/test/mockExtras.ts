@@ -136,6 +136,28 @@ function curlOf(request: Request): string {
 }
 
 /** A small reader for `curl 'url' -H '…' -X … --data-raw '…'`; other options are ignored. */
+/** A small JSONPath for the mock: `$`, `.name`, `[*]` and `[n]` (the app uses RFC 9535). */
+function selectJson(body: string, path: string): string | { code: string; message: string } {
+  const steps = /^\$((?:\.[A-Za-z_]\w*|\[\*\]|\[\d+\])*)$/.exec(path.trim());
+  if (!steps) return { code: "invalid_json_path", message: `\`${path}\` is not a JSONPath` };
+  let found: unknown[];
+  try {
+    found = [JSON.parse(body) as unknown];
+  } catch {
+    return { code: "not_json", message: "The body is not JSON" };
+  }
+  for (const step of steps[1]?.match(/\.\w+|\[\*\]|\[\d+\]/g) ?? []) {
+    found = found.flatMap((value): unknown[] => {
+      if (typeof value !== "object" || value === null) return [];
+      const record = value as Record<string, unknown>;
+      if (step === "[*]") return Object.values(record);
+      const key = step.startsWith(".") ? step.slice(1) : step.slice(1, -1);
+      return key in record ? [record[key]] : [];
+    });
+  }
+  return JSON.stringify(found, null, 2);
+}
+
 function curlImport(text: string) {
   const words = [...text.matchAll(/'([^']*)'|"([^"]*)"|(\S+)/g)].map(
     (m) => m[1] ?? m[2] ?? m[3] ?? "",
@@ -192,6 +214,10 @@ export function phase4Command(
     case "curl_export": {
       const resolved = resolve(args.send as Args, !(args.reveal as boolean));
       return "code" in resolved ? Promise.reject(resolved) : Promise.resolve(curlOf(resolved));
+    }
+    case "response_select": {
+      const selected = selectJson(String(args.body), String(args.path));
+      return typeof selected === "string" ? Promise.resolve(selected) : Promise.reject(selected);
     }
     case "curl_import": {
       const imported = curlImport(String(args.text));

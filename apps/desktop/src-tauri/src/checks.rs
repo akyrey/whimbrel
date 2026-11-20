@@ -3,13 +3,14 @@
 
 use serde::Serialize;
 use ts_rs::TS;
-use wbl_core::check::{CheckResult, Observed, assert, capture};
+use wbl_core::check::{CaptureError, CheckResult, Observed, assert, capture};
 use wbl_format::collection::{self, environments};
 use wbl_http::Response;
 
 use crate::collections::Collections;
 use crate::error::AppError;
-use crate::ipc::RequestSendArgs;
+use crate::ipc::{RequestSendArgs, ResponseSelectArgs};
+use crate::logging::logged;
 use crate::secrets::Secrets;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -125,6 +126,23 @@ pub fn after_send(
         assertions,
         captures,
     })
+}
+
+/// The values at `args.path` in the body, as one pretty JSON array.
+pub fn select(args: &ResponseSelectArgs) -> Result<String, AppError> {
+    let found = wbl_core::check::select(&args.body, &args.path).map_err(|e| {
+        let code = match e {
+            CaptureError::NotJson => "not_json",
+            _ => "invalid_json_path",
+        };
+        AppError::new(code, e.to_string())
+    })?;
+    serde_json::to_string_pretty(&found).map_err(|e| AppError::internal(e.to_string()))
+}
+
+#[tauri::command]
+pub async fn response_select(args: ResponseSelectArgs) -> Result<String, AppError> {
+    logged("response_select", async { select(&args) }).await
 }
 
 #[cfg(test)]

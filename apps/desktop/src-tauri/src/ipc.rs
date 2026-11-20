@@ -221,6 +221,14 @@ pub struct CurlExportArgs {
     pub reveal: bool,
 }
 
+/// A JSONPath to run over a response body (task 9.4).
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ResponseSelectArgs {
+    pub body: String,
+    pub path: String,
+}
+
 #[derive(Debug, Clone, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct CurlImportArgs {

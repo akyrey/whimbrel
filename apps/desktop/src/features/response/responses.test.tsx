@@ -75,6 +75,30 @@ describe("response views", () => {
     expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('"name":"ada"'));
   });
 
+  it("filters a JSON body with a JSONPath and says why a path is invalid", async () => {
+    render(<App />);
+    const panel = await send("http://localhost/users");
+    const filter = await within(panel).findByRole("textbox", { name: "JSONPath filter" });
+
+    await userEvent.type(filter, "$[[*].name");
+    await waitFor(() => {
+      expect(within(panel).getByLabelText("Response body")).toHaveTextContent(
+        /^\[\s*"ada",\s*"grace"\s*]$/,
+      );
+    });
+    await userEvent.click(within(panel).getByRole("button", { name: "Copy body" }));
+    expect(writeText).toHaveBeenLastCalledWith('[\n  "ada",\n  "grace"\n]');
+
+    await userEvent.clear(filter);
+    await userEvent.type(filter, "$[[");
+    expect(await within(panel).findByText(/is not a JSONPath/)).toBeInTheDocument();
+
+    await userEvent.clear(filter);
+    await waitFor(() => {
+      expect(within(panel).getByLabelText("Response body")).toHaveTextContent('"id": 2');
+    });
+  });
+
   it("previews images and shows binary bodies as hex", async () => {
     render(<App />);
     const image = await send("http://localhost/image");

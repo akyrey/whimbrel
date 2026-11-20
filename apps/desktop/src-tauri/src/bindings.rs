@@ -47,6 +47,7 @@ fn export_all(dir: &Path) {
     crate::ipc::TlsSaveArgs::export_all(&config).unwrap();
     wbl_auth::DeviceCode::export_all(&config).unwrap();
     crate::ipc::CurlImportArgs::export_all(&config).unwrap();
+    crate::ipc::ResponseSelectArgs::export_all(&config).unwrap();
     crate::ipc::CurlImported::export_all(&config).unwrap();
     crate::ipc::HistoryIdArgs::export_all(&config).unwrap();
     wbl_store::HistorySummary::export_all(&config).unwrap();
