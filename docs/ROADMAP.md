@@ -1,6 +1,6 @@
 # Roadmap
 
-Twelve phases (0–11). Each ends with something runnable. As in Dunlin, each phase gets a brief in
+Thirteen phases (0–12). Each ends with something runnable. As in Dunlin, each phase gets a brief in
 `docs/phases/` (tasks, tests, acceptance criteria) before work on it starts; the task lists below
 are the seeds for those briefs.
 
@@ -19,6 +19,7 @@ are the seeds for those briefs.
 - [x] Phase 9: Everyday UX ([brief](phases/phase-9-ux.md))
 - [x] Phase 10: Timing breakdown and response comparison ([brief](phases/phase-10-timings-compare.md))
 - [x] Phase 11: Drag and drop in the tree ([brief](phases/phase-11-tree-dnd.md))
+- [ ] Phase 12: MCP server for AI tools ([brief](phases/phase-12-mcp.md))
 
 ## Order and dependencies
 
@@ -145,6 +146,14 @@ is checked to update an installed copy.
 - Packaging via the shared workflow; new updater key pair; signing per D-037.
 - **Accept:** a signed release installs on macOS and Linux and updates itself to the next one.
 
+### Phase 12 — MCP server for AI tools (D-H23)
+
+- Extract the send pipeline from `src-tauri` into `wbl-engine`, behaviour unchanged.
+- `wbl-mcp` over stdio: read, edit and import collections and environments; send and run.
+- `whimbrel mcp` in the app binary; setup notes for common clients.
+- **Accept:** an MCP client creates a request, sends it against a local server and gets a
+  redacted result; the sentinel-secret test passes over MCP output; the open app reloads.
+
 ## Requirement coverage
 
 | Requirement | Phase |
@@ -158,6 +167,7 @@ is checked to update an installed copy.
 | FR-7 OpenAPI | 6, 7 (validation, re-import) |
 | FR-8 History | 4 |
 | FR-9 Shared shell | 0, 1, 8 |
+| FR-10 Access for AI tools (MCP) | 12 |
 
 ## Risks to retire early
 

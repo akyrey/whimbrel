@@ -156,6 +156,18 @@ See [OPENAPI.md](OPENAPI.md).
 - FR-9.3 Signed macOS app; Linux deb, rpm, AppImage.
 - FR-9.4 Restores window, open collections and tabs on start.
 
+### FR-10 Access for AI tools (MCP)
+
+- FR-10.1 `whimbrel mcp` runs a Model Context Protocol server over stdio, so AI tools (Claude
+  Desktop, Claude Code, Cursor and others) can work with collections without the app open.
+- FR-10.2 Through it a tool can read the tree, requests and environments; create, edit, move,
+  rename and delete requests and folders; edit environments and non-secret variables; import
+  OpenAPI, Postman and cURL; and send a request or run a folder.
+- FR-10.3 No secret value ever reaches the tool: variables show only their names, and known
+  secret values in requests and responses are redacted. Secrets are set in the app.
+- FR-10.4 Sending with a protected environment asks the user to confirm, or fails.
+- FR-10.5 Only collections the user names (arguments or the client's roots) are reachable.
+
 ## Non-functional requirements
 
 - NFR-1 Cold start under ~1 s on a recent laptop; first request sent in under 50 ms overhead.

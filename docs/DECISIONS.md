@@ -325,3 +325,39 @@ writes each request with the headers it inherits. Saving refuses literal secret 
 auth. The request's Headers tab lists what it inherits, struck through where replaced.
 **Consequences.** Older versions keep the `[[headers]]` of these files on rewrite (unknown keys
 are preserved) but do not send them. Folder variables (FR-4.4) are still to do.
+
+## D-H23 An MCP server in the app binary, on a send pipeline shared with the app (2026-11-20)
+
+**Context.** AI tools should manage collections and environments as Postman's MCP server lets
+them (FR-10). The files can already be edited by hand, but only `wbl-format` writes them in
+canonical form, and sending needs scopes, secrets and auth, which today live in `src-tauri`
+(`resolve.rs`, `secrets.rs`, `auth_apply.rs`, the runner). Postman's server talks to its cloud
+API; ours has none to talk to.
+**Decision.** Two new crates. `wbl-engine` takes the send pipeline out of `src-tauri` without
+Tauri types: scopes and resolution, the keychain wrapper and secret guard, auth context, checks
+and the folder runner; `src-tauri` keeps its commands as thin callers. `wbl-mcp` is the server,
+built on the official Rust SDK `rmcp` over stdio, with tools over `wbl-format`, `wbl-engine`,
+`wbl-openapi` and `wbl-interop`. It ships inside the app binary: `whimbrel mcp [--collection
+<dir>]…` starts the server instead of the window, so there is one signed binary, updated with
+the app, and no sidecar. The server works on files directly; the running app sees its writes
+through the watcher like any outside change (a dirty tab gets the conflict prompt). Rules:
+- Only collections passed with `--collection` or announced as client roots are reachable;
+  paths go through `wbl-format`'s path resolution, so nothing escapes a collection.
+- Secret values never leave the server (D-H04, D-H12). Variables are listed as names with
+  `secret: true`; a tool may mark a variable secret but never set its value (MCP elicitation
+  must not ask for sensitive data). Saving refuses literal secret values, as the app does.
+  Sent requests are returned masked, and known secret values in response headers and bodies
+  are replaced with `«secret:<name>»`.
+- Sending with a protected environment asks through MCP elicitation; a client without
+  elicitation gets the error `mcp.protected_environment`.
+- OAuth 2 uses the cached token and refreshes it; a flow that needs the browser fails with
+  `auth.sign_in_required` (sign in from the app).
+- Response bodies returned to the tool are capped (text, 256 kB, truncation reported).
+- MCP sends are not recorded in history in this phase.
+**Consequences.** The dependency rule gains two exceptions: `wbl-engine` depends on `wbl-core`,
+`wbl-format`, `wbl-http`, `wbl-auth` and Roost; `wbl-mcp` on the `wbl-*` crates it serves;
+`src-tauri` on both. Logging must never write to stdout in MCP mode, since stdout is
+the protocol channel. **Verify**: `rmcp`'s current server and elicitation API (3.x), that a
+binary inside the macOS `.app` bundle runs headless from a terminal, and that client roots are
+announced by the clients we target.
+

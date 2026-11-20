@@ -1,0 +1,89 @@
+# Phase 12: MCP server for AI tools
+
+Goal: AI tools manage collections and environments, and send requests, through a Model Context
+Protocol server that ships in the app binary as `whimbrel mcp`, without ever seeing a secret.
+
+Design: [PRD.md](../PRD.md) FR-10; [DECISIONS.md](../DECISIONS.md) D-H23 (and D-H04, D-H12 for
+secrets); [ARCHITECTURE.md](../ARCHITECTURE.md) (workspace layout, dependency rule);
+[FILE_FORMAT.md](../FILE_FORMAT.md).
+
+## Before starting
+
+- **Verify** `rmcp` 3.x (crates.io `rmcp`, latest 3.11): the server API (tool router macros or
+  hand-written handlers), stdio transport, `roots/list`, elicitation, and an in-process client
+  for tests (a duplex transport). Record anything that changes the plan in D-H23.
+- **Verify** that `Whimbrel.app/Contents/MacOS/whimbrel mcp` runs headless from a terminal and
+  that the AppImage and deb binaries take arguments the same way.
+
+## Tasks
+
+### Shared pipeline
+
+- [ ] 12.1 `wbl-engine` crate: move `resolve.rs`, `secrets.rs`, `auth_apply.rs`, `checks.rs`
+      and the runner core out of `src-tauri` with their tests, replacing Tauri types (channels,
+      `AppError`) with the engine's own error enum (stable codes) and plain callbacks or
+      streams. `src-tauri` commands call the engine. Behaviour unchanged: the existing
+      `src-tauri` and frontend suites, including the sentinel-secret test, are the gate.
+- [ ] 12.2 `wbl-engine::send_once`: resolve, apply auth (cached or refreshed OAuth 2 token
+      only; a browser flow fails with `auth.sign_in_required`), send with `wbl-http`, and
+      return a masked request, status, headers, timings and the body up to a cap. Known secret
+      values in response headers and body become `«secret:<name>»`. Tests against a local
+      server, including a response that echoes a secret.
+
+### Server
+
+- [ ] 12.3 `wbl-mcp` crate skeleton: server info, stdio transport, the set of reachable
+      collections from `--collection` arguments and client roots (a directory with a
+      `collection.toml`). A path outside them, or escaping a collection, fails with
+      `mcp.not_reachable`. Errors map to MCP tool errors carrying the stable code and a message
+      without URLs or values (D-H11). Tests through an in-process client.
+- [ ] 12.4 Read tools: `list_collections`, `get_tree` (folders and requests with method, name,
+      path, order), `get_request` (the file's request, with examples, captures and assertions;
+      inherited headers and auth listed separately), `list_environments`, `get_environment`
+      (variables with values, secret ones as names with `secret: true`, `protected`).
+- [ ] 12.5 Request and folder tools: `create_request`, `update_request` (whole request, as the
+      app saves it; refuses literal secret values with the app's guard), `create_folder`,
+      `rename`, `move`, `reorder`, `duplicate`, `delete`. Each returns the canonical form.
+      Tests: an unchanged update leaves the file byte-identical; a move keeps the tree valid.
+- [ ] 12.6 Environment tools: `create_environment`, `set_variables` (add, change, remove;
+      marking a variable secret stores the name only and removes any value from the file),
+      `set_collection_variables`, `delete_environment`. No tool sets a secret value. The
+      sentinel test: after every write tool, no secret value appears on disk or in any result.
+- [ ] 12.7 Import tools: `import_openapi` (file path or URL), `import_postman`, `import_curl`
+      (into a folder), and `export_http`, through `wbl-openapi` and `wbl-interop`, returning
+      the import report (what was skipped and why).
+- [ ] 12.8 `send_request` (a stored request, optional environment and example) and
+      `run_folder` (captures and assertions, returns the results grid as rows). A protected
+      environment asks through elicitation; declined or unsupported gives
+      `mcp.protected_environment`. Response bodies are text up to 256 kB; binary bodies are
+      described (type, size), not returned.
+
+### Shipping
+
+- [ ] 12.9 `whimbrel mcp [--collection <dir>]…` in `main.rs`: parse arguments before Tauri
+      starts and run the server on a tokio runtime; logging goes to the log file only (a test
+      checks nothing but protocol messages reach stdout). `whimbrel mcp --help` prints usage.
+- [ ] 12.10 End to end: an MCP client process starts the built binary, creates a request,
+      sends it to a local server with an environment holding a sentinel secret, and gets a
+      redacted result; a running app's watcher picks up the new file (covered by the existing
+      watcher tests for outside writes).
+- [ ] 12.11 Docs: a "Use with AI tools" section in the README with the configuration for
+      Claude Desktop, Claude Code and Cursor on macOS and Linux, the tool list, and what the
+      server never does (secret values, browser sign-in, history).
+
+## Notes
+
+- Tool inputs are validated with JSON Schemas generated from Rust types (via `schemars`, as
+  `rmcp` expects; **Verify**), so a malformed call fails before any file is touched.
+- Tool descriptions are written for the model: say what a tool changes on disk and that
+  secrets are names only.
+- Concurrency with the running app needs nothing new: writes are atomic (`write_atomic`) and
+  the watcher treats them like a `git checkout`.
+- Out of scope: HTTP transport, MCP resources and prompts, live app state (open tabs, the
+  active environment), recording MCP sends in history. Revisit after use.
+
+## Acceptance
+
+Each task's tests pass; `wbl-engine`, `wbl-mcp` and `src-tauri` keep 80% line coverage; the
+sentinel-secret test covers MCP results; the app behaves as before (existing suites and E2E
+green); the end-to-end test in 12.10 passes against the built binary on macOS and Linux.

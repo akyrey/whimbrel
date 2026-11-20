@@ -19,6 +19,8 @@ Code follows the docs; when they disagree, fix one of them in the same change.
 ```
 crates/wbl-core              request, collection and environment model, interpolation (no I/O)
 crates/wbl-http              sending requests: reqwest, cancellation, timings
+crates/wbl-engine            send pipeline shared by the app and the MCP server
+crates/wbl-mcp               MCP server for AI tools (`whimbrel mcp`)
 apps/desktop/src-tauri       Tauri commands, in-flight request registry (thin)
 apps/desktop/src             React frontend, organised by feature
 ```
@@ -29,8 +31,9 @@ Roost checkout and run `scripts/link-roost.sh ../roost`; run `scripts/unlink-roo
 committing (CI refuses a linked manifest). Code only Whimbrel uses stays here.
 
 Dependency rule: `wbl-core` depends on no other workspace crate. Other `wbl-*` crates depend only
-on `wbl-core` and Roost, except `wbl-openapi` and `wbl-interop`, which also use `wbl-format` (D-H16, D-H19). Only
-`src-tauri` depends on everything.
+on `wbl-core` and Roost, with these exceptions: `wbl-openapi` and `wbl-interop` also use
+`wbl-format` (D-H16, D-H19); `wbl-engine` also uses `wbl-format`, `wbl-http` and `wbl-auth`, and
+`wbl-mcp` uses the crates it serves (D-H23). Only `src-tauri` depends on everything.
 
 ## Rust conventions
 
