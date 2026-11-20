@@ -18,7 +18,7 @@ are the seeds for those briefs.
 - [ ] Phase 8: Polish, interop, release
 - [x] Phase 9: Everyday UX ([brief](phases/phase-9-ux.md))
 - [x] Phase 10: Timing breakdown and response comparison ([brief](phases/phase-10-timings-compare.md))
-- [ ] Phase 11: Drag and drop in the tree ([brief](phases/phase-11-tree-dnd.md))
+- [x] Phase 11: Drag and drop in the tree ([brief](phases/phase-11-tree-dnd.md))
 
 ## Order and dependencies
 

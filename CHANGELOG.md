@@ -4,6 +4,14 @@ All notable changes to Whimbrel. The format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-20
+
+### Added
+
+- Drag and drop in the collection tree: reorder requests and folders, move them into other
+  folders or to the top of the collection; open tabs follow the moved files.
+- Folders can move into other folders (with everything in them).
+
 ## [0.3.0] - 2026-11-20
 
 ### Added
