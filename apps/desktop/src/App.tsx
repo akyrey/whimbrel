@@ -31,7 +31,6 @@ import {
   shortcutLabel,
 } from "./features/shortcuts/registry";
 import { SchemaCheck } from "./features/openapi/SchemaCheck";
-import { ShowInSpec } from "./features/openapi/ShowInSpec";
 import { SpecBrowser } from "./features/openapi/SpecBrowser";
 import { SpecList } from "./features/openapi/SpecList";
 import { syncSpecs, useSpecs } from "./features/openapi/specsStore";
@@ -240,7 +239,6 @@ function RequestView({ tab }: { tab: Tab }) {
           style={beside ? { width: size } : { height: size }}
         >
           <ConflictBar tab={tab} />
-          <ShowInSpec tab={tab} />
           <RequestBar tab={tab} />
           <UsedVariables tab={tab} />
           <ExamplesBar tab={tab} />

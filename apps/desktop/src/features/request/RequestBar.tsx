@@ -4,7 +4,8 @@ import { shortcutLabel } from "../shortcuts/registry";
 import type { Tab } from "../tabs/model";
 import { useState } from "react";
 
-import { copyAsCurl } from "../curl/curlActions";
+import { CurlMenu } from "../curl/CurlMenu";
+import { ShowInSpec } from "../openapi/ShowInSpec";
 import { PreviewDialog } from "../send/PreviewDialog";
 import { sendTab } from "../send/sendFlow";
 import { rootOf, useTabs } from "../tabs/tabsStore";
@@ -18,7 +19,7 @@ const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "QU
 
 export const URL_INPUT_ID = "request-url";
 
-/** Method, URL and Send/Cancel. */
+/** The request's toolbar (environment, spec, preview, cURL) above method, URL and Send/Cancel. */
 export function RequestBar({ tab }: { tab: Tab }) {
   const { method, url } = tab.draft.request;
   const sending = tab.status.kind === "sending";
@@ -29,18 +30,32 @@ export function RequestBar({ tab }: { tab: Tab }) {
 
   return (
     <form
-      className="flex flex-wrap items-center gap-2"
+      className="flex flex-col gap-2"
       onSubmit={(e) => {
         e.preventDefault();
         sendTab(tab.id);
       }}
     >
-      <div className="flex min-w-80 flex-1 items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <EnvironmentChip root={rootOf(tab)} />
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <ShowInSpec tab={tab} />
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setPreviewing(true);
+            }}
+          >
+            Preview
+          </Button>
+          <CurlMenu tab={tab} />
+        </div>
+      </div>
+      <div className="flex min-w-0 items-center gap-2">
         <input
           aria-label="Method"
           list="request-methods"
-          className="input w-28 font-mono font-semibold uppercase"
+          className="input w-24 shrink-0 font-mono font-semibold uppercase"
           value={method}
           onChange={(e) => {
             edit(tab.id, setMethod(e.target.value));
@@ -65,32 +80,25 @@ export function RequestBar({ tab }: { tab: Tab }) {
         {/* Distinct keys: if React reused one <button>, a click on Cancel that ends the request
           could still submit the form once the button turns back into Send. */}
         {sending ? (
-          <Button key="cancel" onClick={() => void cancel(tab.id)} title={shortcutLabel("cancel")}>
+          <Button
+            key="cancel"
+            className="shrink-0"
+            onClick={() => void cancel(tab.id)}
+            title={shortcutLabel("cancel")}
+          >
             Cancel
           </Button>
         ) : (
-          <Button key="send" type="submit" variant="primary" title={shortcutLabel("send")}>
+          <Button
+            key="send"
+            type="submit"
+            variant="primary"
+            className="shrink-0"
+            title={shortcutLabel("send")}
+          >
             Send
           </Button>
         )}
-      </div>
-      <div className="flex items-center gap-2">
-        <Button
-          onClick={() => {
-            setPreviewing(true);
-          }}
-        >
-          Preview
-        </Button>
-        <Button title="Secrets masked" onClick={() => void copyAsCurl(tab, false)}>
-          Copy cURL
-        </Button>
-        <Button
-          title="With the secret values: take care where you paste it"
-          onClick={() => void copyAsCurl(tab, true)}
-        >
-          Copy cURL with secrets
-        </Button>
       </div>
       {previewing && (
         <PreviewDialog

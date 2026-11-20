@@ -234,7 +234,8 @@ describe("cURL", () => {
     );
     expect(screen.getByRole("combobox", { name: "Method" })).toHaveValue("PUT");
     expect(screen.getByText("Not imported: --compressed")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Copy cURL" }));
+    await userEvent.click(screen.getByRole("button", { name: "cURL" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Copy cURL" }));
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(
         "curl -X PUT 'http://localhost/echo' \\\n  -H 'X-Api: 1'",
