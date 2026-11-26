@@ -10,6 +10,7 @@ const EMPTY_OAUTH: OAuth2Config = {
   clientId: "",
   clientSecret: "",
   scope: "",
+  redirectUri: "",
 };
 
 /** The default fields of a newly picked type. */

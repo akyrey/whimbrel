@@ -17,4 +17,9 @@ clientSecret: string,
 /**
  * Space separated.
  */
-scope: string, };
+scope: string, 
+/**
+ * Authorization code grant only: the redirect URI registered with the server, a loopback
+ * `http://` URL with a fixed port (`loopback_redirect`). Empty: a random port on 127.0.0.1.
+ */
+redirectUri: string, };

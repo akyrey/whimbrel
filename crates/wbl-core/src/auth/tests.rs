@@ -144,6 +144,7 @@ fn oauth_needs_a_token_and_uses_it_as_bearer() {
         client_id: "app".into(),
         client_secret: "{{pass}}".into(),
         scope: "read".into(),
+        redirect_uri: "http://localhost:8080/{{user}}".into(),
     };
     let auth = resolved(&Auth::OAuth2(config));
 
@@ -157,6 +158,7 @@ fn oauth_needs_a_token_and_uses_it_as_bearer() {
         panic!()
     };
     assert_eq!(resolved.client_secret, "s3cret");
+    assert_eq!(resolved.redirect_uri, "http://localhost:8080/ada");
 }
 
 #[test]
@@ -194,6 +196,7 @@ fn an_oauth_configuration_has_a_stable_key_for_its_cached_token() {
         client_id: "app".into(),
         client_secret: String::new(),
         scope: "read".into(),
+        redirect_uri: String::new(),
     };
     let b = OAuth2Config {
         scope: "write".into(),

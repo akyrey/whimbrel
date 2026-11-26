@@ -206,8 +206,14 @@ describe("auth", () => {
     const grant = screen.getByRole("combobox", { name: "Grant" });
     await userEvent.selectOptions(grant, "authorization_code");
     expect(screen.getByRole("textbox", { name: "Authorization URL" })).toBeInTheDocument();
+    const redirect = screen.getByRole("textbox", { name: "Redirect URI" });
+    await userEvent.type(redirect, "http://localhost:8080/cb");
+    expect(useTabs.getState().tabs[0]?.draft.auth).toMatchObject({
+      redirectUri: "http://localhost:8080/cb",
+    });
     await userEvent.selectOptions(grant, "device_code");
     expect(screen.getByRole("textbox", { name: "Device URL" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Redirect URI" })).not.toBeInTheDocument();
     await userEvent.selectOptions(type, "none");
     expect(useTabs.getState().tabs[0]?.draft.auth).toEqual({ type: "none" });
   });

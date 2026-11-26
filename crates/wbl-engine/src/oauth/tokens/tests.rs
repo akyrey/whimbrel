@@ -19,6 +19,7 @@ fn config() -> OAuth2Config {
         client_id: "app".into(),
         client_secret: String::new(),
         scope: String::new(),
+        redirect_uri: String::new(),
     }
 }
 

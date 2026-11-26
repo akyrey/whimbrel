@@ -82,6 +82,9 @@ pub enum FlowError {
     Expired,
     #[error("{0}")]
     Browser(String),
+    /// The redirect cannot be listened for (the registered port is taken).
+    #[error("{0}")]
+    Redirect(String),
 }
 
 impl FlowError {
@@ -95,6 +98,7 @@ impl FlowError {
             Self::StateMismatch => "oauth_state_mismatch",
             Self::Expired => "oauth_expired",
             Self::Browser(_) => "oauth_browser",
+            Self::Redirect(_) => "oauth_redirect",
         }
     }
 }
@@ -255,7 +259,8 @@ impl OAuthClient {
     }
 
     /// Opens `open_browser` on the authorization page, waits for the redirect to a loopback
-    /// listener, and exchanges the code (with its PKCE verifier) for a token.
+    /// listener (on the configuration's redirect URI, else a random port), and exchanges the
+    /// code (with its PKCE verifier) for a token.
     pub async fn authorization_code(
         &self,
         config: &OAuth2Config,
@@ -264,7 +269,7 @@ impl OAuthClient {
     ) -> Result<Token, FlowError> {
         let mut url = endpoint("authorization URL", &config.auth_url)?;
         endpoint(TOKEN_URL, &config.token_url)?;
-        let listener = loopback::Listener::bind().await?;
+        let listener = loopback::Listener::bind(&config.redirect_uri).await?;
         let redirect_uri = listener.redirect_uri();
         let verifier = random_text(3);
         let state = random_text(1);

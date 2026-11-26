@@ -98,17 +98,20 @@ fn auth() -> impl Strategy<Value = wbl_core::auth::Auth> {
                 KeyLocation::Header
             },
         }),
-        (url(), word, text(), text()).prop_map(|(token_url, client_id, client_secret, scope)| {
-            Auth::OAuth2(OAuth2Config {
-                grant: Grant::ClientCredentials,
-                token_url,
-                auth_url: String::new(),
-                device_url: String::new(),
-                client_id,
-                client_secret,
-                scope,
-            })
-        }),
+        (url(), word, text(), text(), url()).prop_map(
+            |(token_url, client_id, client_secret, scope, redirect_uri)| {
+                Auth::OAuth2(OAuth2Config {
+                    grant: Grant::AuthorizationCode,
+                    token_url,
+                    auth_url: String::new(),
+                    device_url: String::new(),
+                    client_id,
+                    client_secret,
+                    scope,
+                    redirect_uri,
+                })
+            }
+        ),
     ]
 }
 

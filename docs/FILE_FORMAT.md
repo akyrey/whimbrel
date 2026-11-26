@@ -44,6 +44,11 @@ name = "X-Tenant"
 value = "{{tenant}}"
 ```
 
+OAuth 2 (`type = "oauth2"`) takes `grant`, `token_url`, `client_id` and, as needed, `auth_url`,
+`device_url`, `client_secret`, `scope` and `redirect_uri` (authorization code only: the loopback
+URI registered with the server, such as `http://localhost:8080/callback`; absent, a random port on
+127.0.0.1 is used, D-H25).
+
 `_folder.toml` takes `[auth]` and `[[headers]]` the same way, for the requests under the
 folder. Headers apply from the collection inwards, then the request's own; a header at a deeper
 level replaces every inherited one of the same name (ignoring case), and a disabled one

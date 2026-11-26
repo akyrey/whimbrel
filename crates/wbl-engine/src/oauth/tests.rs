@@ -58,6 +58,7 @@ fn config(base: &str) -> OAuth2Config {
         client_id: "app".into(),
         client_secret: "shh".into(),
         scope: String::new(),
+        redirect_uri: String::new(),
     }
 }
 

@@ -50,6 +50,7 @@ fn read_oauth(t: &Table) -> Result<Auth, FormatError> {
         client_id: string(t, "client_id", "auth.client_id")?,
         client_secret: optional_string(t, "client_secret", "auth.client_secret")?,
         scope: optional_string(t, "scope", "auth.scope")?,
+        redirect_uri: optional_string(t, "redirect_uri", "auth.redirect_uri")?,
     }))
 }
 
@@ -132,6 +133,7 @@ fn fill(t: &mut Table, auth: &Auth) {
             put("client_id", &c.client_id, true);
             put("client_secret", &c.client_secret, false);
             put("scope", &c.scope, false);
+            put("redirect_uri", &c.redirect_uri, false);
         }
     }
 }

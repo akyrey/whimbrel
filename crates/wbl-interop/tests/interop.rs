@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used, clippy::expect_used)]
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 //! Task 8.4: Postman v2.1 and `.http` in, `.http` out.
 
 use std::path::PathBuf;
@@ -248,4 +248,56 @@ fn installing_writes_folders_requests_variables_and_environments() {
     );
     assert!(again.environments.is_empty());
     assert!(again.warnings.iter().any(|w| w.contains("Imported exists")));
+}
+
+fn postman_oauth(name: &str, redirect_uri: &str) -> String {
+    format!(
+        r#"{{"name": "{name}", "request": {{"method": "GET", "url": "https://api.test/{name}", "auth": {{"type": "oauth2", "oauth2": [
+            {{"key": "grant_type", "value": "authorization_code_with_pkce"}},
+            {{"key": "accessTokenUrl", "value": "https://idp.test/token"}},
+            {{"key": "authUrl", "value": "https://idp.test/authorize"}},
+            {{"key": "redirect_uri", "value": "{redirect_uri}"}}
+        ]}}}}}}"#
+    )
+}
+
+fn redirect_of(imported: &Imported, name: &str) -> String {
+    match &find(imported, name).stored.auth {
+        Auth::OAuth2(c) => c.redirect_uri.clone(),
+        other => panic!("not OAuth 2: {other:?}"),
+    }
+}
+
+#[test]
+fn a_postman_callback_url_is_kept_when_whimbrel_can_listen_on_it() {
+    let items = [
+        postman_oauth("loopback", "http://localhost:8080/cb"),
+        postman_oauth("variable", "{{callback}}"),
+        postman_oauth("hosted", "https://oauth.pstmn.io/v1/callback"),
+    ]
+    .join(",");
+    let text = format!(
+        r#"{{"info": {{"name": "C", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"}}, "item": [{items}]}}"#
+    );
+
+    let imported = read("c.json", &text).unwrap();
+
+    assert_eq!(
+        redirect_of(&imported, "loopback"),
+        "http://localhost:8080/cb"
+    );
+    assert_eq!(redirect_of(&imported, "variable"), "{{callback}}");
+    assert_eq!(
+        redirect_of(&imported, "hosted"),
+        "",
+        "a random loopback port instead"
+    );
+    assert!(
+        imported
+            .warnings
+            .iter()
+            .any(|w| w.contains("https://oauth.pstmn.io/v1/callback")),
+        "{:?}",
+        imported.warnings
+    );
 }

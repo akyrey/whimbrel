@@ -385,3 +385,22 @@ and in `latest.json`, and fails before building when it is missing or empty.
 **Consequences.** Commit subjects of `feat`, `perf` and `fix` commits are user-facing text. The
 `packaging` test fails when the version in `Cargo.toml` has no changelog section. git-cliff is
 needed only on the machine that prepares a release, not in CI.
+
+## D-H25 The authorization code redirect can be the one registered with the server (2026-11-26)
+
+**Context.** The authorization code flow always sent `http://127.0.0.1:<random>/callback`. RFC
+8252 §7.3 asks servers to accept any port on a loopback redirect, but many compare the redirect
+URI exactly with the registered one, so those providers could not be used. Postman lets the user
+enter any callback URL and catches it in an embedded browser window; that needs a webview the MCP
+server does not have, and providers such as Google refuse embedded browsers (RFC 8252 §8.12).
+**Decision.** `OAuth2Config` gains `redirect_uri` (`[auth] redirect_uri` in files, written only
+when set). Empty keeps the random port. Otherwise it must be plain `http://` on `localhost`,
+`127.0.0.1` or `[::1]` with a port other than 0 and no fragment (`wbl_core::auth::loopback_redirect`);
+Whimbrel listens there (127.0.0.1 for `localhost`, since browsers fall back to IPv4), answers only
+its path, and sends the URI exactly as entered in both the authorization and token requests. A
+URI that cannot be listened on is refused before the browser opens (`oauth_endpoint`); a port in
+use is named (`oauth_redirect`). Postman imports keep a callback URL that qualifies (or is a
+`{{variable}}`); others, such as `https://oauth.pstmn.io/v1/callback`, are dropped with a warning.
+**Consequences.** The redirect URI is not part of the token cache key: it changes how the code
+arrives, not the token. Non-loopback callbacks (an embedded window that intercepts the redirect)
+remain possible later, as an opt-in beside the system browser.

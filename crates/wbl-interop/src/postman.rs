@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 
 use serde_json::Value;
-use wbl_core::auth::{Auth, Grant, KeyLocation, OAuth2Config};
+use wbl_core::auth::{Auth, Grant, KeyLocation, OAuth2Config, loopback_redirect};
 use wbl_core::example::overlay_of;
 use wbl_core::{Body, BodyKind, FormField, Header, Request};
 use wbl_format::{Environment, SecretName};
@@ -187,6 +187,19 @@ impl Reader {
         }
     }
 
+    /// Postman's callback URL when Whimbrel can listen on it (or it is a variable); otherwise
+    /// empty, for a random loopback port, with a warning.
+    fn redirect_uri(&mut self, uri: String) -> String {
+        if uri.is_empty() || uri.contains("{{") || loopback_redirect(&uri).is_ok() {
+            return uri;
+        }
+        self.warn(format!(
+            "the OAuth 2 callback URL {uri} is not a loopback address; Whimbrel uses a random \
+             port on 127.0.0.1 instead, which the provider must accept"
+        ));
+        String::new()
+    }
+
     /// Postman auth; `None` (absent) inherits.
     fn auth(&mut self, auth: Option<&Value>, secrets: &mut Vec<String>) -> Auth {
         let Some(auth) = auth else {
@@ -244,6 +257,7 @@ impl Reader {
                     client_id: field("clientId"),
                     client_secret: secret(field("clientSecret"), "clientSecret"),
                     scope: field("scope"),
+                    redirect_uri: self.redirect_uri(field("redirect_uri")),
                 })
             }
             other => {

@@ -85,6 +85,12 @@ function OAuthFields({
       {field("clientId", "Client ID")}
       {field("clientSecret", "Client secret", `Empty for public clients; ${SECRET_HINT}`)}
       {field("scope", "Scope", "space separated")}
+      {config.grant === "authorization_code" &&
+        field(
+          "redirectUri",
+          "Redirect URI",
+          "a random 127.0.0.1 port, or http://localhost:PORT/path",
+        )}
     </>
   );
 }

@@ -120,6 +120,7 @@ fn oauth(base: &str) -> Auth {
         client_id: "app".into(),
         client_secret: "shh".into(),
         scope: String::new(),
+        redirect_uri: String::new(),
     })
 }
 

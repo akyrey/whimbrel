@@ -17,6 +17,7 @@ fn config(base: &str, grant: Grant) -> OAuth2Config {
         client_id: fake_server::CLIENT_ID.into(),
         client_secret: fake_server::CLIENT_SECRET.into(),
         scope: "read".into(),
+        redirect_uri: String::new(),
     }
 }
 
@@ -127,6 +128,93 @@ async fn authorization_code_with_pkce_through_a_browser_and_a_loopback_redirect(
         sent.get("redirect_uri")
             .is_some_and(|r| r.starts_with("http://127.0.0.1:"))
     );
+}
+
+/// A port nothing listens on now (freed again before it is used).
+fn free_port() -> u16 {
+    std::net::TcpListener::bind("127.0.0.1:0")
+        .unwrap()
+        .local_addr()
+        .unwrap()
+        .port()
+}
+
+/// A "browser" that follows the authorization server's redirect to wherever it points.
+fn follow(url: &str) -> Result<(), String> {
+    let url = url.to_owned();
+    tokio::spawn(async move {
+        let page = reqwest::get(url).await.unwrap().text().await.unwrap();
+        assert!(page.contains("You can close this window"), "{page}");
+    });
+    Ok(())
+}
+
+#[tokio::test]
+async fn authorization_code_listens_on_the_registered_loopback_redirect() {
+    let (base, state) = fake_server::start().await;
+    let redirect_uri = format!("http://localhost:{}/oauth/done", free_port());
+    let config = OAuth2Config {
+        redirect_uri: redirect_uri.clone(),
+        ..config(&base, Grant::AuthorizationCode)
+    };
+
+    let token = OAuthClient::new()
+        .authorization_code(&config, &CancellationToken::new(), follow)
+        .await
+        .unwrap();
+
+    assert_eq!(token.access_token, "access-1");
+    let sent = state
+        .lock()
+        .unwrap()
+        .token_requests
+        .last()
+        .cloned()
+        .unwrap();
+    assert_eq!(
+        sent.get("redirect_uri"),
+        Some(&redirect_uri),
+        "sent as registered"
+    );
+}
+
+#[tokio::test]
+async fn a_redirect_that_cannot_be_listened_on_is_refused_before_the_browser_opens() {
+    let mut opened = false;
+    let config = OAuth2Config {
+        redirect_uri: "https://oauth.example/callback".into(),
+        ..config("https://idp.example", Grant::AuthorizationCode)
+    };
+
+    let error = OAuthClient::new()
+        .authorization_code(&config, &CancellationToken::new(), |_| {
+            opened = true;
+            Ok(())
+        })
+        .await
+        .unwrap_err();
+
+    assert_eq!(error.code(), "oauth_endpoint");
+    assert!(error.to_string().contains("http://"), "{error}");
+    assert!(!opened, "the browser stays closed");
+}
+
+#[tokio::test]
+async fn a_registered_port_in_use_is_named() {
+    let taken = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = taken.local_addr().unwrap().port();
+    let config = OAuth2Config {
+        redirect_uri: format!("http://127.0.0.1:{port}/cb"),
+        ..config("https://idp.example", Grant::AuthorizationCode)
+    };
+
+    let error = OAuthClient::new()
+        .authorization_code(&config, &CancellationToken::new(), |_| Ok(()))
+        .await
+        .unwrap_err();
+
+    assert_eq!(error.code(), "oauth_redirect");
+    assert!(error.to_string().contains(&port.to_string()), "{error}");
 }
 
 #[tokio::test]

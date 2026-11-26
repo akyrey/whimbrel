@@ -8,6 +8,9 @@ use serde::{Deserialize, Serialize};
 use crate::interpolate::{Dynamic, ResolveError, Scope, interpolate};
 use crate::{Header, Request};
 
+mod redirect;
+pub use redirect::{LoopbackRedirect, RedirectError, loopback_redirect};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
@@ -42,6 +45,10 @@ pub struct OAuth2Config {
     pub client_secret: String,
     /// Space separated.
     pub scope: String,
+    /// Authorization code grant only: the redirect URI registered with the server, a loopback
+    /// `http://` URL with a fixed port (`loopback_redirect`). Empty: a random port on 127.0.0.1.
+    #[serde(default)]
+    pub redirect_uri: String,
 }
 
 impl OAuth2Config {
@@ -148,6 +155,7 @@ pub fn resolve_auth(
             client_id: run(&c.client_id),
             client_secret: run(&c.client_secret),
             scope: run(&c.scope),
+            redirect_uri: run(&c.redirect_uri),
             grant: c.grant,
         }),
     };

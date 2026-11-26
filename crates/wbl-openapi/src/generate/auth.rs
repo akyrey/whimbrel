@@ -78,6 +78,7 @@ fn oauth(
         client_id: needs.variable(format!("{id}ClientId"), &from),
         client_secret: needs.secret(format!("{id}ClientSecret"), &from),
         scope: scopes.join(" "),
+        redirect_uri: String::new(),
     }))
 }
 

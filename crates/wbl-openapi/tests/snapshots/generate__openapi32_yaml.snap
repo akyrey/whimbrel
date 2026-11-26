@@ -12,7 +12,8 @@ expression: generated
     "deviceUrl": "https://auth.example.com/device",
     "clientId": "{{deviceClientId}}",
     "clientSecret": "{{deviceClientSecret}}",
-    "scope": "search"
+    "scope": "search",
+    "redirectUri": ""
   },
   "folders": [
     [

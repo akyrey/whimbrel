@@ -112,7 +112,8 @@ collection.
 
 - FR-5.1 None, inherit (from folder/collection), Basic, Bearer, API key (header or query).
 - FR-5.2 OAuth 2.0: client credentials, authorization code with PKCE (system browser + loopback
-  redirect), device authorization; tokens cached in the keychain and refreshed. Several named
+  redirect, on a random port or the registered `http://localhost:PORT/path`, D-H25), device
+  authorization; tokens cached in the keychain and refreshed. Several named
   tokens can be kept per configuration; one is in use, and they can be renamed, switched and
   deleted (D-H21).
 - FR-5.3 Client certificates (PEM / PKCS#12) and custom CA per collection.

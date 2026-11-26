@@ -1,10 +1,14 @@
-//! The redirect target of the authorization code flow (RFC 8252 §7.3): a listener on 127.0.0.1
-//! for one request, which carries the code (or the server's error) and the state.
+//! The redirect target of the authorization code flow (RFC 8252 §7.3): a listener on a loopback
+//! address for one request, which carries the code (or the server's error) and the state. The
+//! port is random unless the configuration names the redirect URI registered with the server.
 
 use std::collections::HashMap;
+use std::net::SocketAddr;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
+
+use wbl_core::auth::loopback_redirect;
 
 use crate::FlowError;
 
@@ -13,38 +17,81 @@ const PAGE: &str = "<!doctype html><meta charset=\"utf-8\"><title>Whimbrel</titl
 const DONE_PAGE: &str = "<!doctype html><meta charset=\"utf-8\"><title>Whimbrel</title>\
 <p style=\"font-family:system-ui;margin:3em\">You can close this window.</p>";
 
+const RANDOM_PATH: &str = "/callback";
+
 pub(crate) struct Listener {
     listener: TcpListener,
-    port: u16,
+    redirect_uri: String,
+    /// The path the redirect arrives on; requests to others are skipped.
+    path: String,
 }
 
-fn unreachable(error: std::io::Error) -> FlowError {
-    FlowError::Unreachable(format!("the local redirect listener: {error}"))
+fn failed(error: std::io::Error) -> FlowError {
+    FlowError::Redirect(format!("The local redirect listener failed: {error}"))
+}
+
+fn bind_failed(address: SocketAddr, error: std::io::Error) -> FlowError {
+    if error.kind() == std::io::ErrorKind::AddrInUse {
+        return FlowError::Redirect(format!(
+            "Port {} on {} is in use by another program: close it, or register another redirect URI",
+            address.port(),
+            address.ip()
+        ));
+    }
+    FlowError::Redirect(format!(
+        "Whimbrel cannot listen on {address} for the redirect: {error}"
+    ))
 }
 
 impl Listener {
-    pub(crate) async fn bind() -> Result<Self, FlowError> {
-        let listener = TcpListener::bind("127.0.0.1:0")
+    /// Listens where `registered` points, or on a random port when it is empty.
+    pub(crate) async fn bind(registered: &str) -> Result<Self, FlowError> {
+        let registered = registered.trim();
+        if registered.is_empty() {
+            return Self::bind_random().await;
+        }
+        let target =
+            loopback_redirect(registered).map_err(|e| FlowError::Endpoint(e.to_string()))?;
+        let address = SocketAddr::new(target.ip, target.port);
+        let listener = TcpListener::bind(address)
             .await
-            .map_err(unreachable)?;
-        let port = listener.local_addr().map_err(unreachable)?.port();
-        Ok(Self { listener, port })
+            .map_err(|e| bind_failed(address, e))?;
+        Ok(Self {
+            listener,
+            redirect_uri: registered.to_owned(),
+            path: target.path,
+        })
     }
 
+    async fn bind_random() -> Result<Self, FlowError> {
+        let address = SocketAddr::from(([127, 0, 0, 1], 0));
+        let listener = TcpListener::bind(address)
+            .await
+            .map_err(|e| bind_failed(address, e))?;
+        let port = listener.local_addr().map_err(failed)?.port();
+        Ok(Self {
+            listener,
+            redirect_uri: format!("http://127.0.0.1:{port}{RANDOM_PATH}"),
+            path: RANDOM_PATH.to_owned(),
+        })
+    }
+
+    /// Sent to the server as given, since it compares it with the registered one.
     pub(crate) fn redirect_uri(&self) -> String {
-        format!("http://127.0.0.1:{}/callback", self.port)
+        self.redirect_uri.clone()
     }
 
-    /// The code of the first request to `/callback`; other paths (a favicon) are answered and
-    /// skipped.
+    /// The code of the first request to the redirect's path; other paths (a favicon) are
+    /// answered and skipped.
     pub(crate) async fn wait(self, state: &str) -> Result<String, FlowError> {
         loop {
-            let (mut socket, _) = self.listener.accept().await.map_err(unreachable)?;
+            let (mut socket, _) = self.listener.accept().await.map_err(failed)?;
             let mut buffer = vec![0u8; 8192];
-            let read = socket.read(&mut buffer).await.map_err(unreachable)?;
+            let read = socket.read(&mut buffer).await.map_err(failed)?;
             let head = String::from_utf8_lossy(&buffer[..read]).to_string();
             let target = head.split_whitespace().nth(1).unwrap_or("").to_owned();
-            let Some(query) = target.strip_prefix("/callback") else {
+            let (path, query) = target.split_once('?').unwrap_or((target.as_str(), ""));
+            if path != self.path {
                 let _ = socket
                     .write_all(
                         b"HTTP/1.1 404 Not Found\r\ncontent-length: 0\r\nconnection: close\r\n\r\n",
@@ -52,10 +99,9 @@ impl Listener {
                     .await;
                 continue;
             };
-            let pairs: HashMap<String, String> =
-                url::form_urlencoded::parse(query.trim_start_matches('?').as_bytes())
-                    .into_owned()
-                    .collect();
+            let pairs: HashMap<String, String> = url::form_urlencoded::parse(query.as_bytes())
+                .into_owned()
+                .collect();
             let page = if pairs.contains_key("code") {
                 PAGE
             } else {
@@ -108,7 +154,7 @@ mod tests {
 
     #[tokio::test]
     async fn a_favicon_is_skipped_and_the_callback_gives_the_code() {
-        let listener = Listener::bind().await.unwrap();
+        let listener = Listener::bind("").await.unwrap();
         let uri = listener.redirect_uri();
         let waiting = tokio::spawn(async move { listener.wait("s1").await });
 
@@ -121,8 +167,30 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_registered_redirect_answers_only_its_own_path() {
+        let port = std::net::TcpListener::bind("127.0.0.1:0")
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+        let listener = Listener::bind(&format!(" http://localhost:{port}/oauth/cb "))
+            .await
+            .unwrap();
+        let uri = listener.redirect_uri();
+        let waiting = tokio::spawn(async move { listener.wait("s1").await });
+
+        let longer = visit(uri.clone(), "/oauth/cbx?code=wrong&state=s1").await;
+        let page = visit(uri.clone(), "/oauth/cb?app=1&code=c1&state=s1").await;
+
+        assert_eq!(uri, format!("http://localhost:{port}/oauth/cb"));
+        assert!(longer.starts_with("HTTP/1.1 404"));
+        assert!(page.contains("Signed in"));
+        assert_eq!(waiting.await.unwrap().unwrap(), "c1");
+    }
+
+    #[tokio::test]
     async fn another_state_or_the_servers_error_is_refused() {
-        let listener = Listener::bind().await.unwrap();
+        let listener = Listener::bind("").await.unwrap();
         let uri = listener.redirect_uri();
         let waiting = tokio::spawn(async move { listener.wait("mine").await });
         visit(uri, "/callback?code=c1&state=theirs").await;
@@ -131,7 +199,7 @@ mod tests {
             FlowError::StateMismatch
         );
 
-        let listener = Listener::bind().await.unwrap();
+        let listener = Listener::bind("").await.unwrap();
         let uri = listener.redirect_uri();
         let waiting = tokio::spawn(async move { listener.wait("s").await });
         let page = visit(
