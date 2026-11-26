@@ -4,6 +4,15 @@ All notable changes to Whimbrel. The format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-26
+
+### Added
+
+- OAuth 2 authorization code: a "Redirect URI" field for providers that only accept the URI
+  registered with them. Enter a loopback address such as `http://localhost:8080/callback` and
+  Whimbrel listens on that port and path; leave it empty to keep using a random port on
+  127.0.0.1. Postman imports keep a callback URL of this kind.
+
 ## [0.7.0] - 2026-11-20
 
 ### Added
